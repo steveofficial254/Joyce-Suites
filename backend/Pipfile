@@ -12,6 +12,8 @@ flask-uploads = "*"
 psycopg2-binary = "*"
 reportlab = "*"
 pyjwt = "*"
+flask-migrate = "*"
+python-dotenv = "*"
 
 [dev-packages]
 

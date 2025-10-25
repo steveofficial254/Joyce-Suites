@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "7ef3d8fd23f1b5954adc769f1c7741dda7d0ff0119221980328afa400fe92232"
+            "sha256": "0b6b1d5451c8ff05fc45b3d455c0cef2c031ae7ace78bd99d4f9e539b73bafb9"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -16,6 +16,14 @@
         ]
     },
     "default": {
+        "alembic": {
+            "hashes": [
+                "sha256:4652a0b3e19616b57d652b82bfa5e38bf5dbea0813eed971612671cb9e90c0fe",
+                "sha256:80523bc437d41b35c5db7e525ad9d908f79de65c27d6a5a5eab6df348a352d99"
+            ],
+            "markers": "python_version >= '3.10'",
+            "version": "==1.17.0"
+        },
         "bcrypt": {
             "hashes": [
                 "sha256:046ad6db88edb3c5ece4369af997938fb1c19d6a699b9c1b27b0db432faae4c4",
@@ -236,6 +244,15 @@
             "index": "pypi",
             "version": "==1.0.1"
         },
+        "flask-migrate": {
+            "hashes": [
+                "sha256:1a336b06eb2c3ace005f5f2ded8641d534c18798d64061f6ff11f79e1434126d",
+                "sha256:24d8051af161782e0743af1b04a152d007bad9772b2bca67b7ec1e8ceeb3910d"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.6'",
+            "version": "==4.1.0"
+        },
         "flask-sqlalchemy": {
             "hashes": [
                 "sha256:4ba4be7f419dc72f4efd8802d69974803c37259dd42f3913b0dcf75c9447e0a0",
@@ -327,6 +344,14 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==3.1.6"
+        },
+        "mako": {
+            "hashes": [
+                "sha256:99579a6f39583fa7e5630a28c3c1f440e4e97a414b80372649c0ce338da2ea28",
+                "sha256:baef24a52fc4fc514a0887ac600f9f1cff3d82c61d4d700a1fa84d597b88db59"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==1.3.10"
         },
         "markupsafe": {
             "hashes": [
@@ -616,6 +641,15 @@
             "index": "pypi",
             "markers": "python_version >= '3.9'",
             "version": "==2.10.1"
+        },
+        "python-dotenv": {
+            "hashes": [
+                "sha256:31f23644fe2602f88ff55e1f5c79ba497e01224ee7737937930c448e4d0e24dc",
+                "sha256:a8a6399716257f45be6a007360200409fce5cda2661e3dec71d23dc15f6189ab"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.9'",
+            "version": "==1.1.1"
         },
         "pytz": {
             "hashes": [
