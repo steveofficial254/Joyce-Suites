@@ -1,77 +1,101 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
 
-// Import components - ONLY ONCE EACH
-import LoginRegister from './pages/auth/LoginRegister';
+// Auth Pages
+import TenantRegister from './pages/auth/TenantRegister';
+import TenantLogin from './pages/auth/TenantLogin';
+import CaretakerLogin from './pages/auth/CaretakerLogin';
+import AdminLogin from './pages/auth/AdminLogin';
+
+// Lease Agreement
+import LeaseAgreement from './pages/Lease/LeaseAgreement';
+
+// Dashboard Pages
 import TenantDashboard from './pages/tenant/TenantDashboard';
-
-// Import CSS
-import './App.css';
+import TenantPayments from './pages/tenant/TenantPayment';
+import TenantProfile from './pages/tenant/TenantProfile';
+import AdminDashboard from './pages/admin/AdminDashboard';
 
 // Protected Route Component
-const ProtectedRoute = ({ children }) => {
-  const { user } = useAuth();
-  return user ? children : <Navigate to="/" />;
-};
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const token = localStorage.getItem('token');
+  const userRole = localStorage.getItem('userRole');
 
-// Public Route Component (redirect to dashboard if already logged in)
-const PublicRoute = ({ children }) => {
-  const { user } = useAuth();
-  return !user ? children : <Navigate to="/dashboard" />;
-};
-
-function AppContent() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="loading-spinner">Loading...</div>
-      </div>
-    );
+  if (!token) {
+    return <Navigate to="/login" replace />;
   }
 
-  return (
-    <div className="App">
-      <Routes>
-        {/* Public Routes */}
-        <Route 
-          path="/" 
-          element={
-            <PublicRoute>
-              <LoginRegister />
-            </PublicRoute>
-          } 
-        />
-        
-        {/* Protected Routes */}
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              {user?.role === 'tenant' && <TenantDashboard />}
-              {/* Add other role-based dashboards here */}
-              {user?.role === 'caretaker' && <TenantDashboard />} {/* Temporary - replace with CaretakerDashboard */}
-              {user?.role === 'admin' && <TenantDashboard />} {/* Temporary - replace with AdminDashboard */}
-            </ProtectedRoute>
-          } 
-        />
+  if (allowedRoles && !allowedRoles.includes(userRole)) {
+    return <Navigate to="/unauthorized" replace />;
+  }
 
-        {/* Catch all route */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </div>
-  );
-}
+  return children;
+};
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <Routes>
+          {/* Landing/Home Route */}
+          <Route path="/" element={<Navigate to="/register-tenant" replace />} />
+
+          {/* Auth Routes */}
+          <Route path="/register-tenant" element={<TenantRegister />} />
+          <Route path="/login" element={<TenantLogin />} />
+          <Route path="/caretaker-login" element={<CaretakerLogin />} />
+          <Route path="/admin-login" element={<AdminLogin />} />
+
+          {/* Lease Agreement - Protected */}
+          <Route
+            path="/lease-agreement"
+            element={
+              <ProtectedRoute allowedRoles={['tenant']}>
+                <LeaseAgreement />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Tenant Routes - Protected */}
+          <Route
+            path="/tenant/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['tenant']}>
+                <TenantDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/tenant/dashboard" element={<TenantDashboard />} />
+          <Route path="/tenant/payments" element={<TenantPayments />} />
+          <Route path="/tenant/profile" element={<TenantProfile />} />
+
+          {/* Caretaker Routes - Protected */}
+    
+         
+           <Route
+            path="/caretaker/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['caretaker', 'admin']}>
+                <CaretakerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          {/* Admin Routes - Protected */}
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+         
+          {/* Error Routes */}
+          
+        </Routes>
+      </AuthProvider>
+    </Router>
   );
 }
 
