@@ -1,3 +1,4 @@
+Ddevelop
 from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config
@@ -8,11 +9,23 @@ from routes.auth_routes import auth_bp
 from routes.caretaker_routes import caretaker_bp
 from routes.tenant_routes import tenant_bp
 
+=======
+from flask import Flask
+from flask_migrate import Migrate
+from dotenv import load_dotenv
+import os
+
+from config import Config
+from models.base import db
+
+load_dotenv()
+ main
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+ Ddevelop
     # Initialize extensions
     db.init_app(app)
     CORS(app)
@@ -43,3 +56,10 @@ if __name__ == "__main__":
         debug=(app.config.get("FLASK_ENV") == "development")
     )
 
+=======
+    db.init_app(app)
+    migrate = Migrate(app, db)
+
+    return app
+
+main

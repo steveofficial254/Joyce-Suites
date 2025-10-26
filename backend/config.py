@@ -1,4 +1,5 @@
 import os
+ Ddevelop
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -32,3 +33,10 @@ class Config:
     # Mpesa endpoints (sandbox)
     AUTH_URL = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
     STK_PUSH_URL = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+
+
+class Config:
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'postgresql://user:password@localhost:5432/joyce_suites_db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'a_very_secret_key'
+ main
