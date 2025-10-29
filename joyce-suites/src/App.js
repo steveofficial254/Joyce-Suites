@@ -13,6 +13,7 @@ import LeaseAgreement from './pages/Lease/LeaseAgreement';
 
 // Dashboard Pages
 import TenantDashboard from './pages/tenant/TenantDashboard';
+import CaretakerDashboard from './pages/caretaker/CaretakerDashboard';
 import TenantPayments from './pages/tenant/TenantPayment';
 import TenantProfile from './pages/tenant/TenantProfile';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -23,7 +24,14 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const userRole = localStorage.getItem('userRole');
 
   if (!token) {
-    return <Navigate to="/login" replace />;
+    // Redirect based on allowed roles
+    if (allowedRoles?.includes('caretaker')) {
+      return <Navigate to="/caretaker-login" replace />;
+    } else if (allowedRoles?.includes('admin')) {
+      return <Navigate to="/admin-login" replace />;
+    } else {
+      return <Navigate to="/login" replace />;
+    }
   }
 
   if (allowedRoles && !allowedRoles.includes(userRole)) {
@@ -66,14 +74,11 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/tenant/dashboard" element={<TenantDashboard />} />
           <Route path="/tenant/payments" element={<TenantPayments />} />
           <Route path="/tenant/profile" element={<TenantProfile />} />
 
           {/* Caretaker Routes - Protected */}
-    
-         
-           <Route
+          <Route
             path="/caretaker/dashboard"
             element={
               <ProtectedRoute allowedRoles={['caretaker', 'admin']}>
@@ -81,6 +86,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           {/* Admin Routes - Protected */}
           <Route
             path="/admin/dashboard"
@@ -90,9 +96,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-         
-          {/* Error Routes */}
-          
         </Routes>
       </AuthProvider>
     </Router>

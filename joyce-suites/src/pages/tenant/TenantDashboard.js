@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './TenantDashboard.css';
 import logo from '../../assets/image1.png';
+import TenantPayment from './TenantPayment';
+import TenantProfile from './TenantProfile';
 
 
 // Import apartment images (image4 to image22)
@@ -9,7 +11,7 @@ import apartment1 from '../../assets/image12.jpg';
 import apartment2 from '../../assets/image21.jpg';
 import apartment3 from '../../assets/image22.jpg';
 import apartment4 from '../../assets/image10.jpg';
-import apartment5 from '../../assets/image11.jpg';
+import apartment5 from '../../assets/image8.jpg';
 import apartment6 from '../../assets/image9.jpg';
 
 const TenantDashboard = () => {
