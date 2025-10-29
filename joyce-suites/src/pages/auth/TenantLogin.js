@@ -21,45 +21,65 @@ const TenantLogin = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  e.preventDefault();
 
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, role: 'tenant' })
-      });
+  // 🧹 Always clear any previous tokens before login attempt
+  localStorage.removeItem('token');
+  localStorage.removeItem('userRole');
+  localStorage.removeItem('userId');
 
-      const data = await response.json();
+  setError('');
+  setLoading(true);
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
-      }
+  try {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...formData, role: 'tenant' }),
+    });
 
-      // Store auth data
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('userRole', 'tenant');
-      localStorage.setItem('userId', data.userId);
+    const data = await response.json();
 
-      // Check if lease is signed
-      if (data.leaseSigned) {
-        navigate('/tenant/dashboard');
-      } else {
-        navigate('/lease-agreement');
-      }
-    } catch (err) {
-      setError(err.message || 'Login failed. Please try again.');
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      // 🚨 Ensure full cleanup on bad response
+      localStorage.removeItem('token');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userId');
+
+      setError(data.message || 'Login failed');
+      return;
     }
-  };
+
+    // ✅ Successful login
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('userRole', 'tenant');
+    localStorage.setItem('userId', data.userId);
+
+    if (data.leaseSigned) {
+      navigate('/tenant/dashboard');
+    } else {
+      navigate('/lease-agreement');
+    }
+  } catch (err) {
+    // 🚨 Network or unexpected error — always clear again
+    localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userId');
+
+    setError(err.message || 'Network error');
+  } finally {
+    setLoading(false);
+  }
+};
+;
 
   return (
-    <div className="login-container" style={{ backgroundImage: `url(${backgroundImage})` }}>
+    <div
+      className="login-container"
+      style={{ backgroundImage: `url(${backgroundImage})` }}
+    >
       <div className="login-overlay"></div>
-      
+
       <div className="login-content">
         <div className="login-card">
           <img src={logo} alt="Joyce Suits Logo" className="login-logo" />
@@ -96,7 +116,9 @@ const TenantLogin = () => {
             </div>
 
             <div className="form-actions">
-              <a href="/forgot-password" className="forgot-link">Forgot Password?</a>
+              <a href="/forgot-password" className="forgot-link">
+                Forgot Password?
+              </a>
             </div>
 
             <button type="submit" className="btn btn-primary" disabled={loading}>
@@ -105,15 +127,24 @@ const TenantLogin = () => {
           </form>
 
           <div className="auth-links">
-            <p>Don't have an account? <a href="/register-tenant">Register here</a></p>
+            <p>
+              Don't have an account?{' '}
+              <a href="/register-tenant">Register here</a>
+            </p>
           </div>
         </div>
 
         <div className="auth-navigation">
-          <button onClick={() => navigate('/caretaker-login')} className="nav-btn caretaker-btn">
+          <button
+            onClick={() => navigate('/caretaker-login')}
+            className="nav-btn caretaker-btn"
+          >
             Caretaker Login →
           </button>
-          <button onClick={() => navigate('/admin-login')} className="nav-btn admin-btn">
+          <button
+            onClick={() => navigate('/admin-login')}
+            className="nav-btn admin-btn"
+          >
             Admin Login →
           </button>
         </div>

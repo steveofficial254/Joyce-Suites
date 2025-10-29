@@ -1,12 +1,11 @@
-// src/pages/caretaker/CaretakerDashboard.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, LogOut, X, Bell } from 'lucide-react';
-import DashboardPage from './pages/DashboardPage';
-import TenantsPage from './pages/TenantsPage';
-import PaymentsPage from './pages/PaymentsPage';
-import BalancesPage from './pages/BalancesPage';
-import CommentsPage from './pages/CommentsPage';
+import { Menu, X, Bell, LogOut } from 'lucide-react';
+import DashboardPage from './DashboardPage';
+import TenantPage from './TenantPage';
+import PaymentPage from './PaymentPage';
+import BalancesPage from './BalancesPage';
+import CommentsPage from './CommentsPage';
 import './CaretakerDashboard.css';
 
 const CaretakerDashboard = () => {
@@ -79,6 +78,9 @@ const CaretakerDashboard = () => {
 
   // Handle Logout
   const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userId');
     navigate('/');
   };
 
@@ -88,9 +90,9 @@ const CaretakerDashboard = () => {
       case 'dashboard':
         return <DashboardPage stats={stats} tenants={tenants} />;
       case 'tenants':
-        return <TenantsPage tenants={tenants} />;
+        return <TenantPage tenants={tenants} />;
       case 'payments':
-        return <PaymentsPage payments={payments} onConfirm={confirmPayment} onMarkPending={markPending} />;
+        return <PaymentPage payments={payments} onConfirm={confirmPayment} onMarkPending={markPending} />;
       case 'balances':
         return <BalancesPage tenants={tenants} />;
       case 'comments':
@@ -109,6 +111,7 @@ const CaretakerDashboard = () => {
           <button 
             className="sidebar-close-btn"
             onClick={() => setSidebarOpen(false)}
+            aria-label="Close sidebar"
           >
             <X size={24} />
           </button>
@@ -147,12 +150,13 @@ const CaretakerDashboard = () => {
           <button 
             className="menu-toggle-btn"
             onClick={() => setSidebarOpen(true)}
+            aria-label="Open sidebar"
           >
             <Menu size={24} />
           </button>
           <h1 className="header-title">Caretaker – Joyce Suits Apartments</h1>
           <div className="header-right">
-            <button className="notification-btn">
+            <button className="notification-btn" aria-label="Notifications">
               <Bell size={20} />
               <span className="notification-badge">3</span>
             </button>
@@ -170,6 +174,7 @@ const CaretakerDashboard = () => {
         <div 
           className="caretaker-sidebar-overlay"
           onClick={() => setSidebarOpen(false)}
+          role="presentation"
         />
       )}
     </div>
