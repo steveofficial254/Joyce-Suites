@@ -23,7 +23,7 @@ const TenantLogin = () => {
   const handleSubmit = async (e) => {
   e.preventDefault();
 
-  // 🧹 Always clear any previous tokens before login attempt
+  // 🧹 Clear previous login data
   localStorage.removeItem('token');
   localStorage.removeItem('userRole');
   localStorage.removeItem('userId');
@@ -32,46 +32,43 @@ const TenantLogin = () => {
   setLoading(true);
 
   try {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formData, role: 'tenant' }),
-    });
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 1200));
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      // 🚨 Ensure full cleanup on bad response
-      localStorage.removeItem('token');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('userId');
-
-      setError(data.message || 'Login failed');
-      return;
+    // 💡 Fake validation (optional)
+    if (formData.email === '' || formData.password === '') {
+      throw new Error('Please enter both email and password');
     }
 
-    // ✅ Successful login
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('userRole', 'tenant');
-    localStorage.setItem('userId', data.userId);
+    // 💡 Mock successful login response
+    const fakeResponse = {
+      token: 'mocked-jwt-token-123456',
+      userId: Math.floor(Math.random() * 1000),
+      leaseSigned: true, // toggle this to test redirect flow
+    };
 
-    if (data.leaseSigned) {
+    // ✅ Store in localStorage
+    localStorage.setItem('token', fakeResponse.token);
+    localStorage.setItem('userRole', 'tenant');
+    localStorage.setItem('userId', fakeResponse.userId);
+
+    // 🧭 Redirect mock
+    if (fakeResponse.leaseSigned) {
       navigate('/tenant/dashboard');
     } else {
       navigate('/lease-agreement');
     }
+
+    console.log('Mock login success:', fakeResponse);
   } catch (err) {
-    // 🚨 Network or unexpected error — always clear again
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userId');
-
-    setError(err.message || 'Network error');
+    setError(err.message || 'Mock login failed');
   } finally {
     setLoading(false);
   }
 };
-;
 
   return (
     <div

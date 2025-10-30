@@ -74,60 +74,49 @@ const TenantRegister = () => {
     if (!formData.terms) return setError('You must agree to the terms and conditions'), false;
     return true;
   };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+  setSuccess('');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
+  if (!validateForm()) return;
 
-    if (!validateForm()) return;
+  setLoading(true);
 
-    setLoading(true);
+  try {
+    // Simulate upload delay
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    try {
-      const uploadData = new FormData();
-      uploadData.append('fullName', formData.fullName);
-      uploadData.append('email', formData.email);
-      uploadData.append('phone', formData.phone);
-      uploadData.append('idNumber', formData.idNumber);
-      uploadData.append('roomNumber', formData.roomNumber);
-      uploadData.append('password', formData.password);
-      uploadData.append('photo', formData.photo);
-      uploadData.append('idDocument', formData.idDocument);
-      uploadData.append('role', 'tenant');
+    // Mock a fake backend response
+    const fakeResponse = {
+      tenantId: Math.floor(Math.random() * 1000),
+      unitData: { room: formData.roomNumber },
+    };
 
-      const response = await fetch('/api/auth/register-tenant', {
-        method: 'POST',
-        body: uploadData
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Catch common backend messages like duplicate emails
-        const message = data.message || 'Registration failed';
-        if (message.toLowerCase().includes('email')) {
-          setError('Email already exists');
-        } else {
-          setError(message);
-        }
-        throw new Error(message);
-      }
-
-      localStorage.setItem('tenantData', JSON.stringify({
+    // Simulate storing to localStorage
+    localStorage.setItem(
+      'tenantData',
+      JSON.stringify({
         ...formData,
-        id: data.tenantId,
-        unitData: data.unitData
-      }));
+        id: fakeResponse.tenantId,
+        unitData: fakeResponse.unitData,
+      })
+    );
 
-      setSuccess('Registration successful! Redirecting to sign lease agreement...');
-      setTimeout(() => navigate('/lease-agreement'), 2000);
-    } catch (err) {
-      setError(err.message || 'Registration failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Show success message
+    setSuccess('Registration successful! Redirecting to sign lease agreement...');
+    console.log('Mock tenant registration:', fakeResponse);
+
+    // Redirect after short delay
+    setTimeout(() => navigate('/lease-agreement'), 2000);
+  } catch (err) {
+    setError('Mock registration failed. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
+
+ 
 
   return (
     <div className="tenant-register-container" style={{ backgroundImage: `url(${backgroundImage})` }}>
