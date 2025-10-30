@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import apiService from '../services/api';
 
 const AuthContext = createContext();
 
@@ -15,26 +16,41 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Mock user database for demo purposes
-  const mockUsers = [
-    { id: 1, email: 'tenant@example.com', password: 'password', role: 'tenant', name: 'John Tenant', unit: 'A101' },
-    { id: 2, email: 'caretaker@example.com', password: 'password', role: 'caretaker', name: 'Jane Caretaker' },
-    { id: 3, email: 'admin@example.com', password: 'password', role: 'admin', name: 'Admin User' },
-  ];
+  // Storage keys
+  const STORAGE_KEYS = {
+    USER: 'joyce-suites-user',
+    TOKEN: 'joyce-suites-token'
+  };
 
   useEffect(() => {
     // Check for stored authentication on app start
-    const savedUser = localStorage.getItem('joyce-suites-user');
-    if (savedUser) {
+    const initializeAuth = async () => {
       try {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
+        const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
+        const savedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
+
+        if (savedUser && savedToken) {
+          const userData = JSON.parse(savedUser);
+          
+          // Verify token is still valid by making a profile request
+          try {
+            const profile = await apiService.auth.getProfile();
+            setUser({ ...userData, ...profile });
+          } catch (error) {
+            // Token is invalid, clear storage
+            console.error('Token validation failed:', error);
+            logout();
+          }
+        }
       } catch (err) {
-        console.error('Error parsing saved user data:', err);
-        localStorage.removeItem('joyce-suites-user');
+        console.error('Error initializing auth:', err);
+        logout();
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   const login = async (email, password) => {
@@ -42,31 +58,30 @@ export function AuthProvider({ children }) {
     setLoading(true);
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Find user in mock database
-      const foundUser = mockUsers.find(u => u.email === email && u.password === password);
+      const response = await apiService.auth.login(email, password);
       
-      if (!foundUser) {
-        throw new Error('Invalid email or password');
+      if (response.success) {
+        const userData = {
+          ...response.user,
+          loginTime: new Date().toISOString()
+        };
+
+        setUser(userData);
+        
+        // Store user data and token
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+        if (response.token) {
+          localStorage.setItem(STORAGE_KEYS.TOKEN, response.token);
+        }
+        
+        return { success: true, user: userData };
+      } else {
+        throw new Error(response.message || 'Login failed');
       }
-
-      // Remove password from user object before storing
-      const { password: _, ...userWithoutPassword } = foundUser;
-      
-      const userData = {
-        ...userWithoutPassword,
-        loginTime: new Date().toISOString()
-      };
-
-      setUser(userData);
-      localStorage.setItem('joyce-suites-user', JSON.stringify(userData));
-      
-      return { success: true, user: userData };
     } catch (err) {
-      setError(err.message);
-      return { success: false, error: err.message };
+      const errorMessage = err.message || 'An error occurred during login';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }
@@ -77,48 +92,86 @@ export function AuthProvider({ children }) {
     setLoading(true);
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Check if user already exists
-      const existingUser = mockUsers.find(u => u.email === userData.email);
-      if (existingUser) {
-        throw new Error('User with this email already exists');
-      }
-
-      // In a real app, this would call your backend API
-      const newUser = {
-        id: Date.now(),
-        ...userData,
-        loginTime: new Date().toISOString()
-      };
-
-      setUser(newUser);
-      localStorage.setItem('joyce-suites-user', JSON.stringify(newUser));
+      const response = await apiService.auth.signup(userData);
       
-      return { success: true, user: newUser };
+      if (response.success) {
+        const newUser = {
+          ...response.user,
+          loginTime: new Date().toISOString()
+        };
+
+        setUser(newUser);
+        
+        // Store user data and token
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
+        if (response.token) {
+          localStorage.setItem(STORAGE_KEYS.TOKEN, response.token);
+        }
+        
+        return { success: true, user: newUser };
+      } else {
+        throw new Error(response.message || 'Signup failed');
+      }
     } catch (err) {
-      setError(err.message);
-      return { success: false, error: err.message };
+      const errorMessage = err.message || 'An error occurred during signup';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setError('');
-    localStorage.removeItem('joyce-suites-user');
+  const logout = async () => {
+    try {
+      // Call logout endpoint if available
+      await apiService.auth.logout();
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      // Clear local state regardless of API call success
+      setUser(null);
+      setError('');
+      localStorage.removeItem(STORAGE_KEYS.USER);
+      localStorage.removeItem(STORAGE_KEYS.TOKEN);
+    }
   };
 
-  const updateProfile = (updatedData) => {
-    if (user) {
-      const updatedUser = { ...user, ...updatedData };
-      setUser(updatedUser);
-      localStorage.setItem('joyce-suites-user', JSON.stringify(updatedUser));
-      return { success: true, user: updatedUser };
+  const updateProfile = async (updatedData) => {
+    if (!user) {
+      return { success: false, error: 'No user logged in' };
     }
-    return { success: false, error: 'No user logged in' };
+
+    try {
+      const response = await apiService.auth.updateProfile(updatedData);
+      
+      if (response.success) {
+        const updatedUser = { ...user, ...response.user };
+        setUser(updatedUser);
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+        return { success: true, user: updatedUser };
+      } else {
+        throw new Error(response.message || 'Profile update failed');
+      }
+    } catch (err) {
+      const errorMessage = err.message || 'An error occurred while updating profile';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const refreshUser = async () => {
+    if (!user) return;
+
+    try {
+      const profile = await apiService.auth.getProfile();
+      const updatedUser = { ...user, ...profile };
+      setUser(updatedUser);
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+      // If refresh fails, log user out
+      logout();
+    }
   };
 
   const clearError = () => setError('');
@@ -134,6 +187,7 @@ export function AuthProvider({ children }) {
     signup,
     logout,
     updateProfile,
+    refreshUser,
     loading,
     error,
     clearError,
