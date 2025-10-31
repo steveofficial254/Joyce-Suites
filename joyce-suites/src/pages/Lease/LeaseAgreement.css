@@ -1,0 +1,499 @@
+:root {
+  --maroon-primary: #7D1F3F;
+  --maroon-dark: #5A1730;
+  --maroon-light: #9B4B6A;
+  --cream: #FFF8F0;
+  --white: #FFFFFF;
+  --text-dark: #2C2C2C;
+  --text-light: #6B6B6B;
+  --success: #4CAF50;
+  --danger: #E53935;
+  --border: #E0E0E0;
+  --shadow: 0 4px 24px rgba(125, 31, 63, 0.1);
+}
+
+/* Main Container */
+.lease-agreement-container {
+  min-height: 100vh;
+  background: var(--cream);
+  padding: 40px 20px;
+}
+
+.lease-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.lease-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  margin-bottom: 16px;
+}
+
+.lease-header h1 {
+  font-size: 2.5rem;
+  color: var(--maroon-primary);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.lease-header h2 {
+  font-size: 1.5rem;
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
+/* Content Wrapper */
+.lease-content-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Alert Messages */
+.alert {
+  padding: 16px 20px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  font-weight: 500;
+  animation: slideDown 0.4s ease-out;
+}
+
+.alert-error {
+  background-color: #FFEBEE;
+  color: var(--danger);
+  border-left: 4px solid var(--danger);
+}
+
+.alert-success {
+  background-color: #E8F5E9;
+  color: var(--success);
+  border-left: 4px solid var(--success);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Lease Document */
+.lease-document {
+  background: var(--white);
+  padding: 48px;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 40px;
+  border: 1px solid var(--border);
+}
+
+.lease-intro {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  margin-bottom: 32px;
+  color: var(--text-dark);
+}
+
+.lease-intro strong {
+  color: var(--maroon-primary);
+  font-weight: 600;
+}
+
+/* Lease Sections */
+.lease-section {
+  margin-bottom: 32px;
+}
+
+.lease-section h3 {
+  font-size: 1.2rem;
+  color: var(--maroon-primary);
+  font-weight: 700;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-box {
+  background: var(--cream);
+  padding: 20px 24px;
+  border-radius: 12px;
+  border-left: 4px solid var(--maroon-primary);
+}
+
+.info-box p {
+  margin-bottom: 8px;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.info-box p:last-child {
+  margin-bottom: 0;
+}
+
+.info-box strong {
+  color: var(--maroon-dark);
+  font-weight: 600;
+}
+
+.tenant-info {
+  background: linear-gradient(135deg, #FFF8F0 0%, #FFE9E9 100%);
+}
+
+/* Terms and Conditions */
+.lease-terms {
+  margin-top: 40px;
+}
+
+.term-item {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.term-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.term-item h4 {
+  font-size: 1.1rem;
+  color: var(--maroon-dark);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.term-item p {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--text-dark);
+  margin-bottom: 12px;
+}
+
+.term-item p:last-child {
+  margin-bottom: 0;
+}
+
+.term-item ul {
+  list-style-position: inside;
+  padding-left: 0;
+}
+
+.term-item li {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--text-dark);
+  margin-bottom: 10px;
+  padding-left: 16px;
+}
+
+/* Signature Section */
+.signature-section {
+  background: var(--white);
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 40px;
+  border: 2px solid var(--maroon-primary);
+}
+
+.signature-section h3 {
+  font-size: 1.5rem;
+  color: var(--maroon-primary);
+  font-weight: 700;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+/* Terms Acceptance */
+.terms-acceptance {
+  background: var(--cream);
+  padding: 20px 24px;
+  border-radius: 12px;
+  margin-bottom: 32px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-dark);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--maroon-primary);
+  flex-shrink: 0;
+}
+
+.checkbox-label span {
+  flex: 1;
+}
+
+/* Signature Canvas */
+.signature-canvas-container {
+  margin-bottom: 32px;
+}
+
+.signature-label {
+  display: block;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+}
+
+.signature-instruction {
+  display: block;
+  font-weight: 400;
+  color: var(--text-light);
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+.canvas-wrapper {
+  border: 3px solid var(--maroon-primary);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--white);
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.signature-canvas {
+  display: block;
+  width: 100%;
+  height: 200px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.signature-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.signature-date {
+  font-weight: 600;
+  color: var(--maroon-dark);
+  font-size: 1rem;
+}
+
+/* Submit Section */
+.submit-section {
+  text-align: center;
+}
+
+.btn {
+  padding: 14px 32px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--maroon-primary), var(--maroon-light));
+  color: var(--white);
+  box-shadow: var(--shadow);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px rgba(125, 31, 63, 0.3);
+}
+
+.btn-large {
+  padding: 18px 48px;
+  font-size: 1.1rem;
+}
+
+.btn-secondary {
+  background: var(--cream);
+  color: var(--maroon-primary);
+  border: 2px solid var(--maroon-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--maroon-primary);
+  color: var(--white);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--maroon-primary);
+  border: 2px solid var(--maroon-primary);
+}
+
+.btn-outline:hover {
+  background: var(--maroon-primary);
+  color: var(--white);
+}
+
+.submit-note {
+  margin-top: 16px;
+  font-size: 0.9rem;
+  color: var(--text-light);
+  font-style: italic;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Spinner */
+.spinner-small {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--white);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Loading Container */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 16px;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border);
+  border-top-color: var(--maroon-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Lease Actions */
+.lease-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+}
+
+/* Print Styles */
+@media print {
+  .lease-header,
+  .signature-actions,
+  .submit-section,
+  .lease-actions,
+  .alert {
+    display: none;
+  }
+
+  .lease-document,
+  .signature-section {
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+
+  .lease-agreement-container {
+    padding: 0;
+  }
+
+  .signature-canvas {
+    border: 1px solid #000;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .lease-document {
+    padding: 24px;
+  }
+
+  .signature-section {
+    padding: 24px;
+  }
+
+  .lease-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .lease-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .canvas-wrapper {
+    overflow-x: auto;
+  }
+
+  .signature-canvas {
+    min-width: 400px;
+  }
+
+  .signature-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .lease-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .lease-agreement-container {
+    padding: 20px 12px;
+  }
+
+  .lease-document {
+    padding: 16px;
+  }
+
+  .signature-section {
+    padding: 16px;
+  }
+
+  .lease-logo {
+    width: 60px;
+    height: 60px;
+  }
+
+  .term-item h4 {
+    font-size: 1rem;
+  }
+
+  .term-item p,
+  .term-item li {
+    font-size: 0.95rem;
+  }
+}
