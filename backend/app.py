@@ -2,12 +2,16 @@
 
 from flask import Flask, jsonify
 =======
-Ddevelop
 from flask import Flask, jsonify
 from flask_cors import CORS
+from flask_migrate import Migrate
+from dotenv import load_dotenv
+import os
+
 from config import Config
 from models import db
-# import your blueprints (adjust these imports if needed)
+
+# Import your blueprints
 from routes.mpesa_routes import mpesa_bp, payment_bp
 from routes.auth_routes import auth_bp
 from routes.caretaker_routes import caretaker_bp
@@ -38,18 +42,7 @@ from models.base import db
 load_dotenv()
  main
 
-
-
-def create_app(config_name: str = None):
-    """
-    Application factory function for creating Flask app instances.
-    
-    Args:
-        config_name: Configuration name (development, testing, production)
-    
-    Returns:
-        Configured Flask application instance
-    """
+def create_app():
     app = Flask(__name__)
     
     # Load configuration
@@ -57,12 +50,11 @@ def create_app(config_name: str = None):
         config_name = os.getenv("FLASK_ENV", "development")
     
     app.config.from_object(Config)
-    
-    # Initialize extensions
-=======
+
  Ddevelop
     # Initialize extensions
     db.init_app(app)
+    migrate = Migrate(app, db)
     CORS(app)
 
     # Register blueprints
@@ -76,12 +68,23 @@ def create_app(config_name: str = None):
     def home():
         return jsonify({"message": "✅ Joyce Suites Backend is running successfully!"}), 200
 
+    @app.route("/api/health")
+    def health_check():
+        return jsonify({
+            "status": "success",
+            "message": "Joyce Suites API is healthy",
+            "environment": app.config.get("FLASK_ENV", "production")
+        }), 200
+
     # Create database tables automatically (for development)
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+            print("✅ Database tables created successfully")
+        except Exception as e:
+            print(f"❌ Error creating database tables: {e}")
 
     return app
-
 
 if __name__ == "__main__":
     app = create_app()
