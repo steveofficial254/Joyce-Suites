@@ -230,8 +230,11 @@ def check_db_connection(app: Flask) -> bool:
         return False
 
 
+# ✅ Expose app globally for Gunicorn / Render
+app = create_app()
+
+
 if __name__ == "__main__":
-    app = create_app()
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     port = int(os.getenv("PORT", 5000))
     debug = os.getenv("FLASK_DEBUG", "False").lower() == "true"
