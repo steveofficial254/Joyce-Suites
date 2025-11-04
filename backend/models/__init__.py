@@ -1,18 +1,3 @@
- Ddevelop
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
-
-class Payment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    amount = db.Column(db.Float)
-    phone = db.Column(db.String(20))
-
-class Room(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    number = db.Column(db.String(20))
-    price = db.Column(db.Float)
-=======
 from .base import db, BaseModel
 from .user import User, USER_ROLES
 from .property import Property, PROPERTY_TYPES, PROPERTY_STATUSES
@@ -30,7 +15,7 @@ __all__ = [
     # Database
     'db',
     'BaseModel',
-    
+
     # Models
     'User',
     'Property',
@@ -43,7 +28,7 @@ __all__ = [
     'ResetPassword',
     'VacateNotice',
     'PropertyImage',
-    
+
     # Constants
     'USER_ROLES',
     'PROPERTY_TYPES',
@@ -56,4 +41,3 @@ __all__ = [
     'NOTIFICATION_TYPES',
     'VACATE_STATUSES',
 ]
-main

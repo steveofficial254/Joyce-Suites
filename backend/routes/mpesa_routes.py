@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 import json
-from models import db, Payment, Room
+from models import db, Payment, Property
 
 
 

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 """
 Caretaker Routes Module
 
@@ -11,7 +10,7 @@ All routes require caretaker role authentication.
 from flask import Blueprint, request, jsonify
 from functools import wraps
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 from enum import Enum
 from routes.auth_routes import token_required
 
@@ -216,7 +215,7 @@ rooms_db = {
 }
 
 
-def validate_maintenance_data(data: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+def validate_maintenance_data(data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
     """
     Validate maintenance request data.
     
@@ -246,7 +245,7 @@ def validate_maintenance_data(data: Dict[str, Any]) -> tuple[bool, Optional[str]
     return True, None
 
 
-def validate_notification_data(data: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+def validate_notification_data(data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
     """
     Validate notification data.
     
@@ -699,31 +698,3 @@ def get_occupied_rooms():
             "success": False,
             "error": f"Failed to retrieve occupied rooms: {str(e)}"
         }), 500
-=======
-from flask import Blueprint, jsonify, request
-
-# Create the caretaker blueprint
-caretaker_bp = Blueprint('caretaker_bp', __name__)
-
-# Example route: get all caretakers
-@caretaker_bp.route('/caretakers', methods=['GET'])
-def get_caretakers():
-    caretakers = [
-        {"id": 1, "name": "John Doe", "phone": "0712345678"},
-        {"id": 2, "name": "Jane Smith", "phone": "0723456789"}
-    ]
-    return jsonify(caretakers), 200
-
-# Example route: add a caretaker
-@caretaker_bp.route('/caretakers', methods=['POST'])
-def add_caretaker():
-    data = request.get_json()
-    name = data.get('name')
-    phone = data.get('phone')
-
-    if not name or not phone:
-        return jsonify({"error": "Name and phone are required"}), 400
-
-    new_caretaker = {"id": 3, "name": name, "phone": phone}
-    return jsonify({"message": "Caretaker added successfully", "caretaker": new_caretaker}), 201
->>>>>>> main

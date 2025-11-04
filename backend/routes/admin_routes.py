@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from functools import wraps
-from datetime import datetime, UTC
-from typing import Dict, Any, Optional
+from datetime import datetime, timezone
+from typing import Dict, Any, Optional, Tuple
 from routes.auth_routes import token_required
 import re # Used for phone number validation
 
@@ -127,7 +127,7 @@ rooms_db = {
 }
 
 
-def validate_tenant_data(data: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+def validate_tenant_data(data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
     """
     Validate tenant data.
     
@@ -200,7 +200,7 @@ class ReportService:
         
         return {
             "title": "Monthly Payment Report",
-            "date_generated": datetime.now(UTC).isoformat(),
+            "date_generated": datetime.now(timezone.utc).isoformat(),
             "summary": {
                 "total_active_contracts": len(contracts_db),
                 "expected_monthly_revenue": total_rent,
@@ -216,7 +216,7 @@ class ReportService:
         
         return {
             "title": "Occupancy Report",
-            "date_generated": datetime.now(UTC).isoformat(),
+            "date_generated": datetime.now(timezone.utc).isoformat(),
             "summary": {
                 "total_rooms": total_rooms,
                 "occupied_rooms": occupied_rooms,
@@ -377,8 +377,8 @@ def create_tenant():
         
     try:
         new_id = get_next_tenant_id()
-        # FIX: Use datetime.now(UTC) instead of utcnow()
-        current_time = datetime.now(UTC).isoformat()
+        # FIX: Use datetime.now(timezone.utc) instead of UTC
+        current_time = datetime.now(timezone.utc).isoformat()
         
         new_tenant = {
             "tenant_id": new_id,
@@ -453,8 +453,8 @@ def update_tenant(tenant_id: int):
             if key in tenant:
                 tenant[key] = value
                 
-        # FIX: Use datetime.now(UTC) instead of utcnow()
-        tenant["updated_at"] = datetime.now(UTC).isoformat()
+        # FIX: Use datetime.now(timezone.utc) instead of UTC
+        tenant["updated_at"] = datetime.now(timezone.utc).isoformat()
         tenants_db[tenant_id] = tenant
         
         return jsonify({

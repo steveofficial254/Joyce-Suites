@@ -10,7 +10,7 @@ All database operations should be injected or called separately through models.
 
 from datetime import datetime
 from enum import Enum
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Tuple
 from decimal import Decimal
 
 
@@ -26,7 +26,7 @@ class ContractService:
     """Service class for managing tenant contracts."""
 
     @staticmethod
-    def validate_contract_dates(start_date: str, end_date: str) -> tuple[bool, Optional[str]]:
+    def validate_contract_dates(start_date: str, end_date: str) -> Tuple[bool, Optional[str]]:
         """
         Validate contract start and end dates.
         
@@ -40,19 +40,21 @@ class ContractService:
         try:
             start = datetime.fromisoformat(start_date)
             end = datetime.fromisoformat(end_date)
+            current_date = datetime.now().date()
+            
+            # Compare dates without time component
+            if start.date() >= end.date():
+                return False, "Start date must be before end date"
+            
+            if start.date() < current_date:
+                return False, "Start date cannot be in the past"
+            
+            return True, None
         except (ValueError, TypeError):
             return False, "Invalid date format. Use ISO format (YYYY-MM-DD)"
-        
-        if start >= end:
-            return False, "Start date must be before end date"
-        
-        if start < datetime.now():
-            return False, "Start date cannot be in the past"
-        
-        return True, None
 
     @staticmethod
-    def validate_rent_amount(rent_amount: Any) -> tuple[bool, Optional[str]]:
+    def validate_rent_amount(rent_amount: Any) -> Tuple[bool, Optional[str]]:
         """
         Validate rent amount.
         
@@ -161,7 +163,7 @@ class ContractService:
             }
         
         try:
-           
+            # Mock data - replace with actual database query
             contract = {
                 "contract_id": "CNT001",
                 "tenant_id": tenant_id,
@@ -214,19 +216,14 @@ class ContractService:
             }
         
         try:
-           
+            # Validate rent amount if provided
             if "rent_amount" in updates:
                 amount_valid, amount_error = self.validate_rent_amount(updates["rent_amount"])
                 if not amount_valid:
                     return {"success": False, "error": amount_error}
                 updates["rent_amount"] = float(Decimal(str(updates["rent_amount"])))
             
-            if "end_date" in updates:
-                # Note: In production, validate that new end_date is reasonable
-                pass
-            
-           
-            
+            # Mock update - replace with actual database operation
             updated_contract = {
                 "contract_id": "CNT001",
                 "tenant_id": tenant_id,
@@ -273,7 +270,7 @@ class ContractService:
             }
         
         try:
-            
+            # Mock termination - replace with actual database operation
             termination_record = {
                 "contract_id": "CNT001",
                 "tenant_id": tenant_id,

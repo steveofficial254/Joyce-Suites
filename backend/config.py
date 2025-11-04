@@ -1,19 +1,42 @@
 import os
-<<<<<<< HEAD
 from datetime import timedelta
-=======
- Ddevelop
 from dotenv import load_dotenv
 
 load_dotenv()
 
-class Config:
+class BaseConfig:
+    """Base configuration"""
+    
     FLASK_ENV = os.getenv("FLASK_ENV", "development")
     PORT = int(os.getenv("PORT", 5000))
 
-    # Database (SQLite by default)
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///joyce_suites.db")
+    # Database (default to PostgreSQL, fallback to SQLite)
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        "SQLALCHEMY_DATABASE_URI",
+        "postgresql://joyce_user:joyce_password_123@localhost:5432/joyce_suites"
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 3600,
+    }
+
+    SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key")
+
+    # JWT configuration
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET", "dev-secret-key-change-in-production")
+    JWT_ALGORITHM = "HS256"
+    JWT_EXPIRATION_HOURS = 24
+
+    # CORS
+    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+
+    # Session
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
+    SESSION_COOKIE_SECURE = False
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
 
     # Joyce M-Pesa Credentials
     JOYCE = {
@@ -33,63 +56,34 @@ class Config:
 
     CALLBACK_URL = os.getenv("CALLBACK_URL")
 
-    # Mpesa endpoints (sandbox)
+    # M-Pesa sandbox endpoints
     AUTH_URL = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
     STK_PUSH_URL = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
 
->>>>>>> main
 
-class Config:
-    """Base configuration"""
-    
-    # Read from .env, but have a fallback PostgreSQL connection
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "SQLALCHEMY_DATABASE_URI",
-        "postgresql://joyce_user:joyce_password_123@localhost:5432/joyce_suites"
-    )
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-<<<<<<< HEAD
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_pre_ping": True,
-        "pool_recycle": 3600,
-    }
-    
-    SECRET_KEY = os.getenv("JWT_SECRET", "dev-secret-key-change-in-production")
-    JSON_SORT_KEYS = False
-    
-    JWT_SECRET_KEY = os.getenv("JWT_SECRET", "dev-secret-key-change-in-production")
-    JWT_ALGORITHM = "HS256"
-    JWT_EXPIRATION_HOURS = 24
-    
-    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
-    
-    PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
-    SESSION_COOKIE_SECURE = False
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = "Lax"
-
-class DevelopmentConfig(Config):
+class DevelopmentConfig(BaseConfig):
     DEBUG = True
     TESTING = False
 
-class TestingConfig(Config):
+
+class TestingConfig(BaseConfig):
     DEBUG = True
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
 
-class ProductionConfig(Config):
+
+class ProductionConfig(BaseConfig):
     DEBUG = False
     TESTING = False
     SESSION_COOKIE_SECURE = True
 
+
+# Select configuration based on environment
 config_name = os.getenv("FLASK_ENV", "development")
 config_map = {
     "development": DevelopmentConfig,
     "testing": TestingConfig,
     "production": ProductionConfig,
 }
+
 Config = config_map.get(config_name, DevelopmentConfig)
-=======
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'a_very_secret_key'
- main
->>>>>>> main
