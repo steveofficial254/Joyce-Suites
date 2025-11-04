@@ -64,6 +64,16 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(payment_bp, url_prefix="/api/payments")
 
     # Health endpoints
+    @app.route("/", methods=["GET"])
+    def root():
+        return jsonify({
+            "service": "Joyce Suites API",
+            "status": "running",
+            "environment": os.getenv("FLASK_ENV", "development"),
+            "version": "1.0.0",
+            "timestamp": datetime.utcnow().isoformat()
+        }), 200
+
     @app.route("/api/health", methods=["GET"])
     def health_check():
         return jsonify({
@@ -91,52 +101,28 @@ def register_error_handlers(app: Flask) -> None:
     """Register common HTTP error handlers."""
     @app.errorhandler(400)
     def bad_request(error):
-        return jsonify({
-            "success": False,
-            "error": "Bad Request",
-            "message": str(error)
-        }), 400
+        return jsonify({"success": False, "error": "Bad Request", "message": str(error)}), 400
 
     @app.errorhandler(401)
     def unauthorized(error):
-        return jsonify({
-            "success": False,
-            "error": "Unauthorized",
-            "message": "Missing or invalid credentials"
-        }), 401
+        return jsonify({"success": False, "error": "Unauthorized", "message": "Missing or invalid credentials"}), 401
 
     @app.errorhandler(403)
     def forbidden(error):
-        return jsonify({
-            "success": False,
-            "error": "Forbidden",
-            "message": "You do not have permission to access this resource"
-        }), 403
+        return jsonify({"success": False, "error": "Forbidden", "message": "You do not have permission"}), 403
 
     @app.errorhandler(404)
     def not_found(error):
-        return jsonify({
-            "success": False,
-            "error": "Not Found",
-            "message": "The requested resource was not found"
-        }), 404
+        return jsonify({"success": False, "error": "Not Found", "message": "The requested resource was not found"}), 404
 
     @app.errorhandler(405)
     def method_not_allowed(error):
-        return jsonify({
-            "success": False,
-            "error": "Method Not Allowed",
-            "message": "Unsupported HTTP method"
-        }), 405
+        return jsonify({"success": False, "error": "Method Not Allowed", "message": "Unsupported HTTP method"}), 405
 
     @app.errorhandler(500)
     def internal_error(error):
         app.logger.error(f"Internal server error: {str(error)}")
-        return jsonify({
-            "success": False,
-            "error": "Internal Server Error",
-            "message": "An unexpected error occurred"
-        }), 500
+        return jsonify({"success": False, "error": "Internal Server Error", "message": "An unexpected error occurred"}), 500
 
 
 def register_cli_commands(app: Flask) -> None:
@@ -209,15 +195,13 @@ def configure_logging(app: Flask) -> None:
     handler = RotatingFileHandler(
         "logs/joyce_suites.log", maxBytes=10 * 1024 * 1024, backupCount=10
     )
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     handler.setFormatter(formatter)
     handler.setLevel(logging.INFO)
 
     app.logger.addHandler(handler)
     app.logger.setLevel(logging.INFO)
-    app.logger.info(f"Joyce Suites API started - Env: {os.getenv('FLASK_ENV', 'development')}")
+    app.logger.info(f"🚀 Joyce Suites API started - Env: {os.getenv('FLASK_ENV', 'development')}")
 
 
 def check_db_connection(app: Flask) -> bool:
@@ -235,8 +219,14 @@ app = create_app()
 
 
 if __name__ == "__main__":
+    # ✅ Dynamic port binding for Render
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     port = int(os.getenv("PORT", 5000))
     debug = os.getenv("FLASK_DEBUG", "False").lower() == "true"
 
+    with app.app_context():
+        db.create_all()
+        app.logger.info("✅ Database verified before startup.")
+
+    print(f"\n🌍 Joyce Suites API running on http://{host}:{port} (Env: {os.getenv('FLASK_ENV')})")
     app.run(host=host, port=port, debug=debug, use_reloader=debug)
