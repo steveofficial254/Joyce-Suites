@@ -23,6 +23,9 @@ class User(BaseModel, SerializerMixin):
     last_name = db.Column(db.String(50), nullable=False)
     phone_number = db.Column(db.String(20))
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    photo_path = db.Column(db.String(255), nullable=True)
+    id_document_path = db.Column(db.String(255), nullable=True)
+    room_number = db.Column(db.String(20), nullable=True)
 
     # Relationships
     leases = db.relationship(
@@ -117,6 +120,9 @@ class User(BaseModel, SerializerMixin):
             "phone_number": self.phone_number,
             "role": self.role,
             "is_active": self.is_active,
+            "photo_path": self.photo_path,
+            "id_document_path": self.id_document_path,
+            "room_number": self.room_number,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
