@@ -64,10 +64,27 @@ const TenantRegister = () => {
   const validateForm = () => {
     if (!formData.fullName.trim()) return setError('Full name is required'), false;
     if (!formData.email.includes('@')) return setError('Valid email is required'), false;
-    if (!formData.phone || formData.phone.length < 10) return setError('Valid phone number is required'), false;
+
+    // Kenyan phone number validation
+    const phoneRegex = /^(\+254|0)[1-9]\d{8}$/;
+    if (!formData.phone || !phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
+      return setError('Phone number must be in format +254XXXXXXXXX or 07XXXXXXXX'), false;
+    }
+
     if (!formData.idNumber.trim()) return setError('ID number is required'), false;
     if (!formData.roomNumber.trim()) return setError('Room number is required'), false;
-    if (formData.password.length < 8) return setError('Password must be at least 8 characters'), false;
+
+    // Password validation - must have uppercase, digit, and 8+ characters
+    if (formData.password.length < 8) {
+      return setError('Password must be at least 8 characters'), false;
+    }
+    if (!/[A-Z]/.test(formData.password)) {
+      return setError('Password must contain at least one uppercase letter'), false;
+    }
+    if (!/\d/.test(formData.password)) {
+      return setError('Password must contain at least one digit'), false;
+    }
+
     if (formData.password !== formData.confirmPassword) return setError('Passwords do not match'), false;
     if (!formData.photo) return setError('Photo is required'), false;
     if (!formData.idDocument) return setError('ID document is required'), false;
@@ -203,11 +220,12 @@ const TenantRegister = () => {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="email">Email Address *</label>
-                  <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} required />
+                  <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="example@email.com" required />
                 </div>
                 <div className="form-group">
                   <label htmlFor="phone">Phone Number *</label>
-                  <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleInputChange} required />
+                  <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="+254712345678 or 0712345678" required />
+                  <small style={{ color: '#666', fontSize: '12px' }}>Format: +254XXXXXXXXX or 07XXXXXXXX</small>
                 </div>
               </div>
 
@@ -229,7 +247,8 @@ const TenantRegister = () => {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="password">Password *</label>
-                  <input type="password" id="password" name="password" value={formData.password} onChange={handleInputChange} required />
+                  <input type="password" id="password" name="password" value={formData.password} onChange={handleInputChange} placeholder="Min 8 characters" required />
+                  <small style={{ color: '#666', fontSize: '12px' }}>Must contain at least 8 characters, 1 uppercase letter, and 1 digit</small>
                 </div>
                 <div className="form-group">
                   <label htmlFor="confirmPassword">Confirm Password *</label>
