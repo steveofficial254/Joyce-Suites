@@ -1,5 +1,5 @@
 """
-Authentication Routes Module - UPDATED
+Authentication Routes Module
 
 Handles user registration, login, logout, and profile management for Joyce Suites.
 Implements JWT-based authentication with role-based access control.
@@ -17,7 +17,7 @@ import os
 from typing import Tuple, Dict, Any, Optional
 
 
-# Blueprint initialization
+# Blueprint initialization - NO url_prefix here (it's set in app.py)
 auth_bp = Blueprint("auth", __name__)
 
 
