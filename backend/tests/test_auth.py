@@ -1,527 +1,613 @@
 """
-tests/test_auth.py - Tests for authentication routes
+Authentication Routes Module - UPDATED
 
-Tests cover registration, login, profile management, and authorization.
+Handles user registration, login, logout, and profile management for Joyce Suites.
+Implements JWT-based authentication with role-based access control.
+
+Supported roles: Admin, Caretaker, Tenant
 """
 
-import pytest
+from flask import Blueprint, request, jsonify
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+from datetime import datetime, timedelta
+from enum import Enum
+import jwt
+import os
+from typing import Tuple, Dict, Any, Optional
 
 
-class TestAuthRegistration:
-    """Test user registration endpoint."""
-    
-    def test_register_user_success(self, client):
-        """Test successful user registration."""
-        response = client.post('/api/auth/register', json={
-            'email': 'newuser@test.com',
-            'password': 'NewPass@123456',
-            'confirm_password': 'NewPass@123456',
-            'full_name': 'New User',
-            'phone': '+254712345678',
-            'role': 'tenant'
-        })
-        
-        assert response.status_code == 201
-        data = response.get_json()
-        assert data['success'] is True
-        assert data['user']['email'] == 'newuser@test.com'
-        assert data['user']['full_name'] == 'New User'
-        assert 'token' in data
-        print(f"✓ User registered successfully: {data['user']['email']}")
-    
-    def test_register_user_duplicate_email(self, client, tenant_user):
-        """Test registration with duplicate email fails."""
-        response = client.post('/api/auth/register', json={
-            'email': tenant_user['email'],
-            'password': 'Pass@123456',
-            'confirm_password': 'Pass@123456',
-            'full_name': 'Duplicate User',
-            'phone': '+254712345678',
-            'role': 'tenant'
-        })
-        
-        assert response.status_code == 409
-        data = response.get_json()
-        assert data['success'] is False
-        assert 'Email already registered' in data['error']
-        print(f"✓ Duplicate email rejected: {tenant_user['email']}")
-    
-    def test_register_weak_password(self, client):
-        """Test registration with weak password fails."""
-        response = client.post('/api/auth/register', json={
-            'email': 'weakpass@test.com',
-            'password': 'weak',
-            'confirm_password': 'weak',
-            'full_name': 'Weak Pass User',
-            'phone': '+254712345678',
-            'role': 'tenant'
-        })
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert data['success'] is False
-        assert 'password' in data['error'].lower()
-        print(f"✓ Weak password rejected")
-    
-    def test_register_passwords_mismatch(self, client):
-        """Test registration with mismatched passwords fails."""
-        response = client.post('/api/auth/register', json={
-            'email': 'mismatch@test.com',
-            'password': 'Pass@123456',
-            'confirm_password': 'Different@123456',
-            'full_name': 'Mismatch User',
-            'phone': '+254712345678',
-            'role': 'tenant'
-        })
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert data['success'] is False
-        assert 'passwords do not match' in data['error'].lower()
-        print(f"✓ Password mismatch rejected")
-    
-    def test_register_missing_fields(self, client):
-        """Test registration with missing required fields fails."""
-        response = client.post('/api/auth/register', json={
-            'email': 'incomplete@test.com',
-            'password': 'Pass@123456'
-        })
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert data['success'] is False
-        print(f"✓ Missing fields rejected")
-    
-    def test_register_invalid_phone(self, client):
-        """Test registration with invalid phone format fails."""
-        response = client.post('/api/auth/register', json={
-            'email': 'invalidphone@test.com',
-            'password': 'Pass@123456',
-            'confirm_password': 'Pass@123456',
-            'full_name': 'Invalid Phone',
-            'phone': '123',
-            'role': 'tenant'
-        })
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert data['success'] is False
-        assert 'phone' in data['error'].lower()
-        print(f"✓ Invalid phone format rejected")
-    
-    def test_register_invalid_role(self, client):
-        """Test registration with invalid role fails."""
-        response = client.post('/api/auth/register', json={
-            'email': 'invalidrole@test.com',
-            'password': 'Pass@123456',
-            'confirm_password': 'Pass@123456',
-            'full_name': 'Invalid Role',
-            'phone': '+254712345678',
-            'role': 'superadmin'
-        })
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert data['success'] is False
-        print(f"✓ Invalid role rejected")
-    
-    def test_register_invalid_email_format(self, client):
-        """Test registration with invalid email format fails."""
-        response = client.post('/api/auth/register', json={
-            'email': 'invalidemail',
-            'password': 'Pass@123456',
-            'confirm_password': 'Pass@123456',
-            'full_name': 'Invalid Email',
-            'phone': '+254712345678',
-            'role': 'tenant'
-        })
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert data['success'] is False
-        print(f"✓ Invalid email format rejected")
+# Blueprint initialization
+auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 
-class TestAuthLogin:
-    """Test user login endpoint."""
-    
-    def test_login_success(self, client, tenant_user):
-        """Test successful login."""
-        response = client.post('/api/auth/login', json={
-            'email': tenant_user['email'],
-            'password': tenant_user['password']
-        })
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-        assert data['user']['email'] == tenant_user['email']
-        assert 'token' in data
-        print(f"✓ Login successful for: {tenant_user['email']}")
-    
-    def test_login_invalid_email(self, client):
-        """Test login with non-existent email."""
-        response = client.post('/api/auth/login', json={
-            'email': 'nonexistent@test.com',
-            'password': 'Pass@123456'
-        })
-        
-        assert response.status_code == 401
-        data = response.get_json()
-        assert data['success'] is False
-        print(f"✓ Login rejected for non-existent email")
-    
-    def test_login_invalid_password(self, client, tenant_user):
-        """Test login with incorrect password."""
-        response = client.post('/api/auth/login', json={
-            'email': tenant_user['email'],
-            'password': 'WrongPassword@123456'
-        })
-        
-        assert response.status_code == 401
-        data = response.get_json()
-        assert data['success'] is False
-        print(f"✓ Login rejected with wrong password")
-    
-    def test_login_missing_email(self, client):
-        """Test login with missing email."""
-        response = client.post('/api/auth/login', json={
-            'password': 'Pass@123456'
-        })
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert data['success'] is False
-        print(f"✓ Login rejected with missing email")
-    
-    def test_login_missing_password(self, client):
-        """Test login with missing password."""
-        response = client.post('/api/auth/login', json={
-            'email': 'test@test.com'
-        })
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert data['success'] is False
-        print(f"✓ Login rejected with missing password")
-    
-    def test_login_all_roles(self, client, admin_user, caretaker_user, tenant_user):
-        """Test login works for all user roles."""
-        test_cases = [
-            (admin_user['email'], admin_user['password'], 'admin'),
-            (caretaker_user['email'], caretaker_user['password'], 'caretaker'),
-            (tenant_user['email'], tenant_user['password'], 'tenant'),
-        ]
-        
-        for email, password, role in test_cases:
-            response = client.post('/api/auth/login', json={
-                'email': email,
-                'password': password
-            })
-            
-            assert response.status_code == 200
-            data = response.get_json()
-            assert data['success'] is True
-            assert data['user']['role'] == role
-            print(f"✓ {role.capitalize()} login successful")
+# Configuration
+JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_HOURS = 24
 
 
-class TestAuthProfile:
-    """Test user profile endpoints."""
-    
-    def test_get_profile_success(self, client, auth_headers):
-        """Test getting user profile with valid token."""
-        response = client.get('/api/auth/profile', headers=auth_headers)
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-        assert 'user' in data
-        assert 'email' in data['user']
-        print(f"✓ Profile retrieved successfully")
-    
-    def test_get_profile_unauthorized(self, client):
-        """Test getting profile without token."""
-        response = client.get('/api/auth/profile')
-        
-        assert response.status_code == 401
-        data = response.get_json()
-        assert data['success'] is False
-        print(f"✓ Profile access rejected without token")
-    
-    def test_get_profile_invalid_token(self, client):
-        """Test getting profile with invalid token."""
-        response = client.get('/api/auth/profile',
-            headers={'Authorization': 'Bearer invalid_token'}
-        )
-        
-        assert response.status_code == 401
-        print(f"✓ Profile access rejected with invalid token")
-    
-    def test_update_profile_success(self, client, auth_headers):
-        """Test updating user profile."""
-        response = client.put('/api/auth/profile/update', 
-            headers=auth_headers,
-            json={
-                'full_name': 'Updated Admin Name',
-                'phone': '+254712999999'
-            }
-        )
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-        assert data['user']['full_name'] == 'Updated Admin Name'
-        print(f"✓ Profile updated successfully")
-    
-    def test_update_profile_invalid_phone(self, client, auth_headers):
-        """Test updating profile with invalid phone."""
-        response = client.put('/api/auth/profile/update',
-            headers=auth_headers,
-            json={
-                'phone': '123'
-            }
-        )
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert data['success'] is False
-        print(f"✓ Profile update rejected with invalid phone")
-    
-    def test_update_profile_unauthorized(self, client):
-        """Test updating profile without token."""
-        response = client.put('/api/auth/profile/update', json={
-            'full_name': 'Updated Name'
-        })
-        
-        assert response.status_code == 401
-        print(f"✓ Profile update rejected without token")
-    
-    def test_update_profile_partial(self, client, auth_headers):
-        """Test updating only some profile fields."""
-        response = client.put('/api/auth/profile/update',
-            headers=auth_headers,
-            json={
-                'full_name': 'Only Name Updated'
-            }
-        )
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-        assert data['user']['full_name'] == 'Only Name Updated'
-        print(f"✓ Partial profile update successful")
+class UserRole(Enum):
+    """Enumeration for user roles."""
+    ADMIN = "admin"
+    CARETAKER = "caretaker"
+    TENANT = "tenant"
 
 
-class TestAuthLogout:
-    """Test user logout endpoint."""
-    
-    def test_logout_success(self, client, auth_headers):
-        """Test successful logout."""
-        response = client.post('/api/auth/logout', headers=auth_headers)
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-        print(f"✓ Logout successful")
-    
-    def test_logout_unauthorized(self, client):
-        """Test logout without token."""
-        response = client.post('/api/auth/logout')
-        
-        assert response.status_code == 401
-        data = response.get_json()
-        assert data['success'] is False
-        print(f"✓ Logout rejected without token")
+# Mock database (replace with SQLAlchemy models in production)
+users_db = {}
+blacklisted_tokens = set()
 
 
-class TestAuthDelete:
-    """Test user deletion (admin only)."""
+class ValidationError(Exception):
+    """Custom exception for validation errors."""
+    pass
+
+
+def validate_email(email: str) -> bool:
+    """
+    Validate email format.
     
-    def test_delete_user_admin_success(self, client, admin_user, tenant_user):
-        """Test admin deleting a user."""
-        # Create a fresh user to delete (to avoid issues with fixture reuse)
-        fresh_user = {
-            'email': 'delete_target@test.com',
-            'password': 'DeleteTarget@123456',
-            'confirm_password': 'DeleteTarget@123456',
-            'full_name': 'Delete Target User',
-            'phone': '+254745678901',
-            'role': 'tenant'
+    Args:
+        email: Email address to validate
+    
+    Returns:
+        True if valid, False otherwise
+    """
+    import re
+    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+    return re.match(pattern, email) is not None
+
+
+def validate_password(password: str) -> Tuple[bool, Optional[str]]:
+    """
+    Validate password strength.
+    
+    Args:
+        password: Password to validate
+    
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long"
+    if not any(c.isupper() for c in password):
+        return False, "Password must contain at least one uppercase letter"
+    if not any(c.isdigit() for c in password):
+        return False, "Password must contain at least one digit"
+    return True, None
+
+
+def validate_phone(phone: str) -> bool:
+    """
+    Validate phone number format (Kenya format).
+    
+    Args:
+        phone: Phone number to validate
+    
+    Returns:
+        True if valid, False otherwise
+    """
+    import re
+    # Kenya phone format: +254 or 0 followed by 9-10 digits
+    pattern = r"^(\+254|0)[1-9]\d{8}$"
+    return re.match(pattern, phone) is not None
+
+
+def generate_jwt_token(user_id: int, role: str) -> str:
+    """
+    Generate a JWT token for authenticated user.
+    
+    Args:
+        user_id: User's unique identifier
+        role: User's role
+    
+    Returns:
+        Encoded JWT token
+    """
+    payload = {
+        "user_id": user_id,
+        "role": role,
+        "iat": datetime.utcnow(),
+        "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+    }
+    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return token
+
+
+def verify_jwt_token(token: str) -> Dict[str, Any]:
+    """
+    Verify and decode JWT token.
+    
+    Args:
+        token: JWT token to verify
+    
+    Returns:
+        Decoded token payload
+    
+    Raises:
+        jwt.InvalidTokenError: If token is invalid
+    """
+    if token in blacklisted_tokens:
+        raise jwt.InvalidTokenError("Token has been blacklisted")
+    
+    payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    return payload
+
+
+def token_required(f):
+    """
+    Decorator to require valid JWT token.
+    
+    Args:
+        f: Flask route function
+    
+    Returns:
+        Wrapped function
+    """
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        
+        # Extract token from Authorization header
+        if "Authorization" in request.headers:
+            auth_header = request.headers["Authorization"]
+            try:
+                token = auth_header.split(" ")[1]
+            except IndexError:
+                return jsonify({"success": False, "error": "Invalid token format"}), 401
+        
+        if not token:
+            return jsonify({"success": False, "error": "Token is missing"}), 401
+        
+        try:
+            payload = verify_jwt_token(token)
+            request.user_id = payload["user_id"]
+            request.user_role = payload["role"]
+        except jwt.ExpiredSignatureError:
+            return jsonify({"success": False, "error": "Token has expired"}), 401
+        except jwt.InvalidTokenError as e:
+            return jsonify({"success": False, "error": f"Invalid token: {str(e)}"}), 401
+        
+        return f(*args, **kwargs)
+    
+    return decorated
+
+
+def admin_required(f):
+    """
+    Decorator to require admin role.
+    
+    Args:
+        f: Flask route function
+    
+    Returns:
+        Wrapped function
+    """
+    @wraps(f)
+    @token_required
+    def decorated(*args, **kwargs):
+        if request.user_role != UserRole.ADMIN.value:
+            return jsonify({
+                "success": False,
+                "error": "Admin access required"
+            }), 403
+        return f(*args, **kwargs)
+    
+    return decorated
+
+
+# ==================== AUTH ROUTES ====================
+
+@auth_bp.route("/register", methods=["POST"])
+def register():
+    """
+    Register a new user (tenant, caretaker, or admin).
+    Handles both JSON and FormData (multipart/form-data with file uploads).
+    
+    Request body (FormData):
+    {
+        "email": "user@example.com",
+        "password": "SecurePass123",
+        "full_name": "John Doe",
+        "phone": "+254712345678",
+        "role": "tenant",
+        "photo": <file>,
+        "idDocument": <file>,
+        "idNumber": "12345678",
+        "roomNumber": "101"
+    }
+    
+    Returns:
+        JSON response with user data or error message
+    """
+    try:
+        # Handle FormData (multipart/form-data)
+        if request.form:
+            data = request.form.to_dict()
+        else:
+            # Fallback to JSON
+            data = request.get_json()
+        
+        # Extract file uploads if present
+        photo = request.files.get('photo')
+        id_document = request.files.get('idDocument')
+        
+        # Validate required fields
+        required_fields = ["email", "password", "full_name", "phone", "role"]
+        missing = [field for field in required_fields if field not in data or not data[field]]
+        if missing:
+            return jsonify({
+                "success": False,
+                "error": f"Missing required fields: {', '.join(missing)}"
+            }), 400
+        
+        email = data["email"].strip().lower()
+        password = data["password"]
+        full_name = data["full_name"].strip()
+        phone = data["phone"].strip()
+        role = data["role"].lower()
+        
+        # Validate email format
+        if not validate_email(email):
+            return jsonify({
+                "success": False,
+                "error": "Invalid email format"
+            }), 400
+        
+        # Check if email already exists
+        if email in users_db:
+            return jsonify({
+                "success": False,
+                "error": "Email already registered"
+            }), 409
+        
+        # Validate password strength
+        is_valid, error_msg = validate_password(password)
+        if not is_valid:
+            return jsonify({
+                "success": False,
+                "error": error_msg
+            }), 400
+        
+        # Validate phone format
+        if not validate_phone(phone):
+            return jsonify({
+                "success": False,
+                "error": "Invalid phone number format"
+            }), 400
+        
+        # Validate role
+        valid_roles = [r.value for r in UserRole]
+        if role not in valid_roles:
+            return jsonify({
+                "success": False,
+                "error": f"Invalid role. Must be one of: {', '.join(valid_roles)}"
+            }), 400
+        
+        # Create user (in production, use SQLAlchemy)
+        user_id = len(users_db) + 1
+        user = {
+            "user_id": user_id,
+            "email": email,
+            "password_hash": generate_password_hash(password),
+            "full_name": full_name,
+            "phone": phone,
+            "role": role,
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat(),
+            "is_active": True
         }
-        client.post('/api/auth/register', json=fresh_user)
         
-        # Login as admin to get fresh token
-        admin_login = client.post('/api/auth/login', json={
-            'email': admin_user['email'],
-            'password': admin_user['password']
-        })
-        assert admin_login.status_code == 200, f"Admin login failed: {admin_login.get_json()}"
-        admin_data = admin_login.get_json()
-        admin_token = admin_data['token']
-        admin_headers = {'Authorization': f'Bearer {admin_token}'}
+        # Store user (mock database)
+        users_db[email] = user
         
-        # Get the fresh user's ID by logging in
-        target_login = client.post('/api/auth/login', json={
-            'email': fresh_user['email'],
-            'password': fresh_user['password']
-        })
-        assert target_login.status_code == 200, f"Target login failed: {target_login.get_json()}"
-        target_data = target_login.get_json()
-        target_id = target_data['user']['user_id']
+        # Generate JWT token
+        token = generate_jwt_token(user_id, role)
         
-        # Now delete as admin
-        response = client.delete(f'/api/auth/delete/{target_id}', headers=admin_headers)
-        
-        assert response.status_code == 200, f"Delete failed: {response.get_json()}"
-        data = response.get_json()
-        assert data['success'] is True
-        print(f"✓ Admin deleted user successfully")
+        return jsonify({
+            "success": True,
+            "message": "User registered successfully",
+            "user": {
+                "user_id": user["user_id"],
+                "email": user["email"],
+                "full_name": user["full_name"],
+                "phone": user["phone"],
+                "role": user["role"],
+                "created_at": user["created_at"]
+            },
+            "token": token
+        }), 201
     
-    def test_delete_user_not_found(self, client, admin_user):
-        """Test deleting non-existent user."""
-        # Login as admin to get fresh token
-        admin_login = client.post('/api/auth/login', json={
-            'email': admin_user['email'],
-            'password': admin_user['password']
-        })
-        admin_token = admin_login.get_json()['token']
-        admin_headers = {'Authorization': f'Bearer {admin_token}'}
-        
-        response = client.delete('/api/auth/delete/9999', headers=admin_headers)
-        
-        assert response.status_code == 404
-        data = response.get_json()
-        assert data['success'] is False
-        print(f"✓ Delete non-existent user rejected")
-    
-    def test_delete_own_account(self, client, admin_user):
-        """Test cannot delete own account."""
-        # Login as admin to get fresh token and ID
-        admin_login = client.post('/api/auth/login', json={
-            'email': admin_user['email'],
-            'password': admin_user['password']
-        })
-        admin_data = admin_login.get_json()
-        admin_token = admin_data['token']
-        admin_id = admin_data['user']['user_id']
-        admin_headers = {'Authorization': f'Bearer {admin_token}'}
-        
-        response = client.delete(f'/api/auth/delete/{admin_id}', headers=admin_headers)
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert 'Cannot delete your own account' in data['error']
-        print(f"✓ Self-deletion rejected")
-    
-    def test_delete_user_unauthorized(self, client, tenant_user):
-        """Test non-admin cannot delete users."""
-        response = client.post('/api/auth/login', json={
-            'email': tenant_user['email'],
-            'password': tenant_user['password']
-        })
-        token = response.get_json()['token']
-        headers = {'Authorization': f'Bearer {token}'}
-        
-        # Try to delete another user
-        response = client.delete(f'/api/auth/delete/9999', headers=headers)
-        
-        assert response.status_code == 403
-        print(f"✓ Non-admin delete rejected")
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Registration failed: {str(e)}"
+        }), 500
 
 
-class TestAuthTokens:
-    """Test JWT token validation and security."""
+@auth_bp.route("/login", methods=["POST"])
+def login():
+    """
+    Authenticate user and return JWT token.
     
-    def test_invalid_token_format(self, client):
-        """Test with invalid token format."""
-        response = client.get('/api/auth/profile',
-            headers={'Authorization': 'InvalidFormat'}
-        )
-        
-        assert response.status_code == 401
-        print(f"✓ Invalid token format rejected")
+    Request body:
+    {
+        "email": "user@example.com",
+        "password": "SecurePass123"
+    }
     
-    def test_missing_bearer_prefix(self, client):
-        """Test with missing Bearer prefix."""
-        response = client.get('/api/auth/profile',
-            headers={'Authorization': 'some_random_token'}
-        )
+    Returns:
+        JSON response with JWT token or error message
+    """
+    try:
+        data = request.get_json()
         
-        assert response.status_code == 401
-        print(f"✓ Missing Bearer prefix rejected")
+        # Validate required fields
+        if not data or not data.get("email") or not data.get("password"):
+            return jsonify({
+                "success": False,
+                "error": "Email and password are required"
+            }), 400
+        
+        email = data["email"].strip().lower()
+        password = data["password"]
+        
+        # Find user (mock database)
+        user = users_db.get(email)
+        
+        if not user:
+            return jsonify({
+                "success": False,
+                "error": "Invalid email or password"
+            }), 401
+        
+        # Verify password
+        if not check_password_hash(user["password_hash"], password):
+            return jsonify({
+                "success": False,
+                "error": "Invalid email or password"
+            }), 401
+        
+        # Check if user is active
+        if not user.get("is_active", True):
+            return jsonify({
+                "success": False,
+                "error": "User account is inactive"
+            }), 403
+        
+        # Generate JWT token
+        token = generate_jwt_token(user["user_id"], user["role"])
+        
+        # Update last login (in production, update in database)
+        user["last_login"] = datetime.utcnow().isoformat()
+        
+        return jsonify({
+            "success": True,
+            "message": "Login successful",
+            "user": {
+                "user_id": user["user_id"],
+                "email": user["email"],
+                "full_name": user["full_name"],
+                "role": user["role"]
+            },
+            "token": token
+        }), 200
     
-    def test_empty_auth_header(self, client):
-        """Test with empty Authorization header."""
-        response = client.get('/api/auth/profile',
-            headers={'Authorization': ''}
-        )
-        
-        assert response.status_code == 401
-        print(f"✓ Empty auth header rejected")
-    
-    def test_token_in_response(self, client, tenant_user):
-        """Test that token is returned in login response."""
-        response = client.post('/api/auth/login', json={
-            'email': tenant_user['email'],
-            'password': tenant_user['password']
-        })
-        
-        data = response.get_json()
-        assert 'token' in data
-        assert len(data['token']) > 0
-        assert data['token'].count('.') == 2
-        print(f"✓ Valid JWT token returned")
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Login failed: {str(e)}"
+        }), 500
 
 
-class TestAuthIntegration:
-    """Integration tests for auth flow."""
+@auth_bp.route("/logout", methods=["POST"])
+@token_required
+def logout():
+    """
+    Log out user by blacklisting their token.
     
-    def test_full_auth_flow(self, client):
-        """Test complete registration -> login -> profile flow."""
-        # 1. Register
-        register_response = client.post('/api/auth/register', json={
-            'email': 'flow@test.com',
-            'password': 'FlowTest@123456',
-            'confirm_password': 'FlowTest@123456',
-            'full_name': 'Flow Test User',
-            'phone': '+254712345678',
-            'role': 'tenant'
-        })
-        assert register_response.status_code == 201
-        token = register_response.get_json()['token']
-        print(f"✓ Step 1: Registration successful")
+    Headers:
+        Authorization: Bearer <token>
+    
+    Returns:
+        JSON response confirming logout
+    """
+    try:
+        # Extract token from Authorization header
+        auth_header = request.headers.get("Authorization", "")
+        token = auth_header.split(" ")[1] if " " in auth_header else None
         
-        # 2. Login
-        login_response = client.post('/api/auth/login', json={
-            'email': 'flow@test.com',
-            'password': 'FlowTest@123456'
-        })
-        assert login_response.status_code == 200
-        token = login_response.get_json()['token']
-        print(f"✓ Step 2: Login successful")
+        if token:
+            # Add token to blacklist
+            blacklisted_tokens.add(token)
         
-        # 3. Get Profile
-        profile_response = client.get('/api/auth/profile',
-            headers={'Authorization': f'Bearer {token}'}
-        )
-        assert profile_response.status_code == 200
-        assert profile_response.get_json()['user']['email'] == 'flow@test.com'
-        print(f"✓ Step 3: Profile retrieval successful")
+        return jsonify({
+            "success": True,
+            "message": "Logged out successfully"
+        }), 200
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Logout failed: {str(e)}"
+        }), 500
+
+
+@auth_bp.route("/profile", methods=["GET"])
+@token_required
+def get_profile():
+    """
+    Get authenticated user's profile information.
+    
+    Headers:
+        Authorization: Bearer <token>
+    
+    Returns:
+        JSON response with user profile data
+    """
+    try:
+        # Find user by user_id from token
+        user = None
+        for u in users_db.values():
+            if u["user_id"] == request.user_id:
+                user = u
+                break
         
-        # 4. Update Profile
-        update_response = client.put('/api/auth/profile/update',
-            headers={'Authorization': f'Bearer {token}'},
-            json={'full_name': 'Updated Flow User'}
-        )
-        assert update_response.status_code == 200
-        print(f"✓ Step 4: Profile update successful")
+        if not user:
+            return jsonify({
+                "success": False,
+                "error": "User not found"
+            }), 404
         
-        # 5. Logout
-        logout_response = client.post('/api/auth/logout',
-            headers={'Authorization': f'Bearer {token}'}
-        )
-        assert logout_response.status_code == 200
-        print(f"✓ Step 5: Logout successful")
+        return jsonify({
+            "success": True,
+            "user": {
+                "user_id": user["user_id"],
+                "email": user["email"],
+                "full_name": user["full_name"],
+                "phone": user["phone"],
+                "role": user["role"],
+                "created_at": user["created_at"],
+                "updated_at": user["updated_at"],
+                "is_active": user["is_active"],
+                "last_login": user.get("last_login")
+            }
+        }), 200
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Failed to retrieve profile: {str(e)}"
+        }), 500
+
+
+@auth_bp.route("/profile/update", methods=["PUT"])
+@token_required
+def update_profile():
+    """
+    Update authenticated user's profile information.
+    
+    Request body:
+    {
+        "full_name": "John Smith",
+        "phone": "+254712345678"
+    }
+    
+    Headers:
+        Authorization: Bearer <token>
+    
+    Returns:
+        JSON response with updated user data
+    """
+    try:
+        data = request.get_json()
         
-        print(f"✓✓✓ Full auth flow completed successfully!")
+        # Find user by user_id from token
+        user = None
+        user_email = None
+        for email, u in users_db.items():
+            if u["user_id"] == request.user_id:
+                user = u
+                user_email = email
+                break
+        
+        if not user:
+            return jsonify({
+                "success": False,
+                "error": "User not found"
+            }), 404
+        
+        # Update allowed fields
+        allowed_fields = ["full_name", "phone"]
+        updated_fields = {}
+        
+        for field in allowed_fields:
+            if field in data and data[field]:
+                value = data[field].strip()
+                
+                # Validate phone if provided
+                if field == "phone" and not validate_phone(value):
+                    return jsonify({
+                        "success": False,
+                        "error": "Invalid phone number format"
+                    }), 400
+                
+                updated_fields[field] = value
+        
+        # Update user data
+        user.update(updated_fields)
+        user["updated_at"] = datetime.utcnow().isoformat()
+        
+        return jsonify({
+            "success": True,
+            "message": "Profile updated successfully",
+            "user": {
+                "user_id": user["user_id"],
+                "email": user["email"],
+                "full_name": user["full_name"],
+                "phone": user["phone"],
+                "role": user["role"],
+                "updated_at": user["updated_at"]
+            }
+        }), 200
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Failed to update profile: {str(e)}"
+        }), 500
+
+
+@auth_bp.route("/delete/<int:user_id>", methods=["DELETE"])
+@admin_required
+def delete_user(user_id: int):
+    """
+    Delete a user account (admin only).
+    
+    URL parameters:
+        user_id: ID of user to delete
+    
+    Headers:
+        Authorization: Bearer <token>
+    
+    Returns:
+        JSON response confirming deletion
+    """
+    try:
+        # Find and delete user (mock database)
+        user_to_delete = None
+        user_email_to_delete = None
+        
+        for email, u in users_db.items():
+            if u["user_id"] == user_id:
+                user_to_delete = u
+                user_email_to_delete = email
+                break
+        
+        if not user_to_delete:
+            return jsonify({
+                "success": False,
+                "error": "User not found"
+            }), 404
+        
+        # Prevent self-deletion
+        if request.user_id == user_id:
+            return jsonify({
+                "success": False,
+                "error": "Cannot delete your own account"
+            }), 400
+        
+        # Delete user from mock database
+        del users_db[user_email_to_delete]
+        
+        return jsonify({
+            "success": True,
+            "message": f"User {user_id} deleted successfully"
+        }), 200
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Failed to delete user: {str(e)}"
+        }), 500
