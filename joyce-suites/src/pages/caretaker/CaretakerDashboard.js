@@ -8,6 +8,8 @@ import RoomsPage from './RoomsPage';
 import NotificationsPage from './NotificationsPage';
 import './CaretakerDashboard.css';
 
+const API_BASE = process.env.REACT_APP_API_URL || '/api/caretaker';
+
 const CaretakerDashboard = () => {
   const navigate = useNavigate();
   const [activePage, setActivePage] = useState('dashboard');
@@ -28,7 +30,7 @@ const CaretakerDashboard = () => {
   // API call helper
   const apiCall = async (endpoint, options = {}) => {
     try {
-      const response = await fetch(`/api/caretaker${endpoint}`, {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
@@ -196,7 +198,6 @@ const CaretakerDashboard = () => {
           await Promise.all([fetchAvailableRooms(), fetchOccupiedRooms()]);
           break;
         case 'notifications':
-          // Notifications page doesn't need initial data fetch
           break;
         default:
           break;
@@ -209,7 +210,7 @@ const CaretakerDashboard = () => {
   // Handle Logout
   const handleLogout = async () => {
     try {
-      await fetch('/api/caretaker/logout', {
+      await fetch(`${API_BASE}/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -282,11 +283,11 @@ const CaretakerDashboard = () => {
 
         <nav className="sidebar-nav">
           {[
-            { id: 'dashboard', label: '📊 Dashboard' },
-            { id: 'maintenance', label: '🔧 Maintenance' },
-            { id: 'payments', label: '💳 Payments' },
-            { id: 'rooms', label: '🏠 Rooms' },
-            { id: 'notifications', label: '🔔 Notifications' }
+            { id: 'dashboard', label: 'Dashboard' },
+            { id: 'maintenance', label: 'Maintenance' },
+            { id: 'payments', label: 'Payments' },
+            { id: 'rooms', label: 'Rooms' },
+            { id: 'notifications', label: 'Notifications' }
           ].map(item => (
             <button
               key={item.id}
