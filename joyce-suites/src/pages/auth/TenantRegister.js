@@ -113,7 +113,7 @@ const TenantRegister = () => {
       uploadData.append('idDocument', formData.idDocument);
       uploadData.append('role', 'tenant');
 
-      const response = await fetch('/api/auth/register-tenant', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         body: uploadData
       });
