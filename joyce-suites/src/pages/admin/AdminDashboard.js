@@ -1,120 +1,239 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, LogOut, X, Bell, Users, DollarSign, Home, Send, Eye, Edit, Trash2, Filter } from 'lucide-react';
+import { Menu, LogOut, X, Bell, Eye, Edit, Trash2, Filter } from 'lucide-react';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activePage, setActivePage] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Sample Data - Tenants
-  const [tenants, setTenants] = useState([
-    { id: 1, name: 'John Mwangi', room: '101', status: 'Active', rentPaid: true, amount: 15000 },
-    { id: 2, name: 'Sarah Kipchoge', room: '102', status: 'Active', rentPaid: false, amount: 20000 },
-    { id: 3, name: 'Michael Okonkwo', room: '103', status: 'Inactive', rentPaid: false, amount: 15000 },
-    { id: 4, name: 'Grace Adeyemi', room: '104', status: 'Active', rentPaid: true, amount: 20000 },
-    { id: 5, name: 'Peter Musyoka', room: '105', status: 'Active', rentPaid: false, amount: 15000 },
-  ]);
+  // State for all data
+  const [overview, setOverview] = useState(null);
+  const [tenants, setTenants] = useState([]);
+  const [contracts, setContracts] = useState([]);
+  const [paymentReport, setPaymentReport] = useState(null);
+  const [occupancyReport, setOccupancyReport] = useState(null);
 
-  // Sample Data - Caretakers
-  const [caretakers, setCaretakers] = useState([
-    { id: 1, name: 'James Kipchoge', email: 'james@joyce.com', phone: '+254712345678', status: 'Active', property: 'Main Building' },
-    { id: 2, name: 'Faith Odhiambo', email: 'faith@joyce.com', phone: '+254712345679', status: 'Active', property: 'Annex Building' },
-  ]);
+  const token = localStorage.getItem('token');
+  const userRole = localStorage.getItem('userRole');
 
-  // Sample Data - Payments
-  const [payments, setPayments] = useState([
-    { id: 1, tenant: 'John Mwangi', amount: 15000, date: '2025-10-15', status: 'Paid' },
-    { id: 2, tenant: 'Grace Adeyemi', amount: 20000, date: '2025-10-16', status: 'Paid' },
-    { id: 3, tenant: 'Sarah Kipchoge', amount: 20000, date: '2025-10-18', status: 'Pending' },
-    { id: 4, tenant: 'Peter Musyoka', amount: 15000, date: '2025-10-10', status: 'Overdue' },
-  ]);
+  // API call helper
+  const apiCall = async (endpoint, options = {}) => {
+    try {
+      const response = await fetch(`/api/admin${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...options.headers,
+        },
+      });
 
-  // Notification State
-  const [notification, setNotification] = useState({
-    recipient: 'all',
-    type: 'caretaker',
-    subject: '',
-    message: '',
-  });
+      if (response.status === 401) {
+        localStorage.clear();
+        navigate('/login');
+        return null;
+      }
 
-  const [notifications, setNotifications] = useState([
-    { id: 1, to: 'James Kipchoge', message: 'Please collect pending payments', date: '2025-10-19' },
-    { id: 2, to: 'All Tenants', message: 'Rent due on 1st of each month', date: '2025-10-18' },
-  ]);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
 
-  // Calculate Dashboard Stats
-  const stats = {
-    totalTenants: tenants.length,
-    occupiedUnits: tenants.filter(t => t.status === 'Active').length,
-    vacantUnits: tenants.filter(t => t.status === 'Inactive').length,
-    unpaidBalances: tenants.filter(t => !t.rentPaid).length,
-    totalRentCollected: payments.filter(p => p.status === 'Paid').reduce((acc, p) => acc + p.amount, 0),
-    pendingPayments: payments.filter(p => p.status === 'Pending').reduce((acc, p) => acc + p.amount, 0),
-    overduePayments: payments.filter(p => p.status === 'Overdue').reduce((acc, p) => acc + p.amount, 0),
-    totalCaretakers: caretakers.length,
-  };
-
-  // Handle Send Notification
-  const handleSendNotification = () => {
-    if (notification.subject && notification.message) {
-      const newNotif = {
-        id: notifications.length + 1,
-        to: notification.recipient === 'all' ? `All ${notification.type}s` : notification.recipient,
-        message: notification.message,
-        date: new Date().toISOString().split('T')[0],
-      };
-      setNotifications([...notifications, newNotif]);
-      setNotification({ recipient: 'all', type: 'caretaker', subject: '', message: '' });
+      return await response.json();
+    } catch (err) {
+      setError(err.message);
+      console.error('API Error:', err);
+      throw err;
     }
   };
 
-  // Handle Caretaker Edit
-  const handleEditCaretaker = (id) => {
-    alert(`Edit caretaker ${id}`);
+  // Fetch admin overview
+  const fetchOverview = async () => {
+    setLoading(true);
+    try {
+      const data = await apiCall('/overview');
+      if (data && data.overview) {
+        setOverview(data.overview);
+      }
+    } catch (err) {
+      console.error('Failed to fetch overview');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Handle Caretaker Delete
-  const handleDeleteCaretaker = (id) => {
-    setCaretakers(caretakers.filter(c => c.id !== id));
+  // Fetch tenants
+  const fetchTenants = async () => {
+    setLoading(true);
+    try {
+      const data = await apiCall('/tenants?page=1&per_page=10');
+      if (data && data.tenants) {
+        setTenants(data.tenants);
+      }
+    } catch (err) {
+      console.error('Failed to fetch tenants');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Fetch contracts
+  const fetchContracts = async () => {
+    setLoading(true);
+    try {
+      const data = await apiCall('/contracts?page=1&per_page=10');
+      if (data && data.contracts) {
+        setContracts(data.contracts);
+      }
+    } catch (err) {
+      console.error('Failed to fetch contracts');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch payment report
+  const fetchPaymentReport = async () => {
+    setLoading(true);
+    try {
+      const data = await apiCall('/payments/report');
+      if (data && data.report) {
+        setPaymentReport(data.report);
+      }
+    } catch (err) {
+      console.error('Failed to fetch payment report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch occupancy report
+  const fetchOccupancyReport = async () => {
+    setLoading(true);
+    try {
+      const data = await apiCall('/occupancy/report');
+      if (data && data.report) {
+        setOccupancyReport(data.report);
+      }
+    } catch (err) {
+      console.error('Failed to fetch occupancy report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete tenant
+  const handleDeleteTenant = async (tenantId) => {
+    if (!window.confirm('Are you sure you want to delete this tenant?')) {
+      return;
+    }
+
+    try {
+      const data = await apiCall(`/tenant/delete/${tenantId}`, { method: 'DELETE' });
+      if (data && data.success) {
+        setTenants(tenants.filter(t => t.tenant_id !== tenantId));
+      }
+    } catch (err) {
+      console.error('Failed to delete tenant');
+    }
+  };
+
+  // Fetch data on page change
+  useEffect(() => {
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    // Verify user is admin
+    if (userRole !== 'admin') {
+      navigate('/login');
+      return;
+    }
+
+    const fetchPageData = async () => {
+      switch (activePage) {
+        case 'dashboard':
+          await Promise.all([fetchOverview(), fetchPaymentReport(), fetchOccupancyReport()]);
+          break;
+        case 'tenants':
+          await fetchTenants();
+          break;
+        case 'contracts':
+          await fetchContracts();
+          break;
+        case 'reports':
+          await Promise.all([fetchPaymentReport(), fetchOccupancyReport()]);
+          break;
+        default:
+          break;
+      }
+    };
+
+    fetchPageData();
+  }, [activePage, token, userRole, navigate]);
 
   // Handle Logout
-  const handleLogout = () => {
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      localStorage.clear();
+      navigate('/login');
+    }
   };
 
   // Render Page Content
   const renderContent = () => {
     switch (activePage) {
       case 'dashboard':
-        return <DashboardPage stats={stats} payments={payments} tenants={tenants} />;
-      case 'tenants':
-        return <TenantsPage tenants={tenants} />;
-      case 'caretakers':
         return (
-          <CaretakersPage 
-            caretakers={caretakers}
-            onEdit={handleEditCaretaker}
-            onDelete={handleDeleteCaretaker}
+          <DashboardPage 
+            overview={overview} 
+            paymentReport={paymentReport}
+            occupancyReport={occupancyReport}
+            loading={loading}
           />
         );
-      case 'payments':
-        return <PaymentsPage payments={payments} />;
-      case 'notifications':
+      case 'tenants':
         return (
-          <NotificationsPage
-            notification={notification}
-            setNotification={setNotification}
-            onSend={handleSendNotification}
-            notifications={notifications}
-            caretakers={caretakers}
-            tenants={tenants}
+          <TenantsPage 
+            tenants={tenants} 
+            loading={loading}
+            onDelete={handleDeleteTenant}
+          />
+        );
+      case 'contracts':
+        return <ContractsPage contracts={contracts} loading={loading} />;
+      case 'reports':
+        return (
+          <ReportsPage 
+            paymentReport={paymentReport}
+            occupancyReport={occupancyReport}
+            loading={loading}
           />
         );
       default:
-        return <DashboardPage stats={stats} payments={payments} tenants={tenants} />;
+        return (
+          <DashboardPage 
+            overview={overview} 
+            paymentReport={paymentReport}
+            occupancyReport={occupancyReport}
+            loading={loading}
+          />
+        );
     }
   };
 
@@ -134,11 +253,10 @@ const AdminDashboard = () => {
 
         <nav className="sidebar-nav">
           {[
-            { id: 'dashboard', label: '📊 Dashboard', icon: '📊' },
-            { id: 'tenants', label: '👥 Tenants', icon: '👥' },
-            { id: 'caretakers', label: '🔑 Caretakers', icon: '🔑' },
-            { id: 'payments', label: '💳 Payments', icon: '💳' },
-            { id: 'notifications', label: '🔔 Notifications', icon: '🔔' }
+            { id: 'dashboard', label: '📊 Dashboard' },
+            { id: 'tenants', label: '👥 Tenants' },
+            { id: 'contracts', label: '📋 Contracts' },
+            { id: 'reports', label: '📈 Reports' }
           ].map(item => (
             <button
               key={item.id}
@@ -148,7 +266,6 @@ const AdminDashboard = () => {
                 setSidebarOpen(false);
               }}
             >
-              <span className="nav-icon">{item.icon}</span>
               {item.label}
             </button>
           ))}
@@ -173,10 +290,17 @@ const AdminDashboard = () => {
           <div className="header-right">
             <button className="notification-btn">
               <Bell size={20} />
-              <span className="notification-badge">3</span>
             </button>
           </div>
         </header>
+
+        {/* Error Message */}
+        {error && (
+          <div className="error-banner">
+            <span>{error}</span>
+            <button onClick={() => setError('')}>×</button>
+          </div>
+        )}
 
         {/* Content Area */}
         <section className="admin-content-area">
@@ -196,112 +320,128 @@ const AdminDashboard = () => {
 };
 
 // Dashboard Page Component
-const DashboardPage = ({ stats, payments, tenants }) => (
-  <>
-    <h2 className="page-title">System Overview</h2>
-    
-    <div className="dashboard-grid">
-      <DashboardCard 
-        title="Total Tenants" 
-        value={stats.totalTenants} 
-        icon="👥" 
-        color="primary"
-        subtext={`${stats.occupiedUnits} active`}
-      />
-      <DashboardCard 
-        title="Occupied Units" 
-        value={stats.occupiedUnits} 
-        icon="🏠" 
-        color="success"
-        subtext={`${stats.vacantUnits} vacant`}
-      />
-      <DashboardCard 
-        title="Rent Collected" 
-        value={`KSh ${(stats.totalRentCollected / 1000).toFixed(0)}K`} 
-        icon="💰" 
-        color="success"
-        subtext="This month"
-      />
-      <DashboardCard 
-        title="Pending Payments" 
-        value={`KSh ${(stats.pendingPayments / 1000).toFixed(0)}K`} 
-        icon="⏳" 
-        color="warning"
-        subtext={`${payments.filter(p => p.status === 'Pending').length} payments`}
-      />
-      <DashboardCard 
-        title="Overdue Balance" 
-        value={`KSh ${(stats.overduePayments / 1000).toFixed(0)}K`} 
-        icon="⚠️" 
-        color="danger"
-        subtext={`${payments.filter(p => p.status === 'Overdue').length} overdue`}
-      />
-      <DashboardCard 
-        title="Active Caretakers" 
-        value={stats.totalCaretakers} 
-        
-        color="primary"
-        subtext="Managing properties"
-      />
-    </div>
-
-    {/* Recent Transactions */}
-    <div className="section">
-      <h3 className="section-title">Recent Payment Transactions</h3>
-      <table className="data-table">
-        <thead className="table-header">
-          <tr>
-            <th>Tenant Name</th>
-            <th>Amount</th>
-            <th>Payment Date</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {payments.slice(0, 5).map(payment => (
-            <tr key={payment.id} className="table-row">
-              <td>{payment.tenant}</td>
-              <td>KSh {payment.amount.toLocaleString()}</td>
-              <td>{payment.date}</td>
-              <td>
-                <span className={`status-badge status-${payment.status.toLowerCase()}`}>
-                  {payment.status}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-
-    {/* Financial Summary */}
-    <div className="financial-summary">
-      <h3 className="section-title">Financial Summary</h3>
-      <div className="summary-grid">
-        <div className="summary-card">
-          <span className="summary-label">Total Revenue</span>
-          <span className="summary-value">KSh {(stats.totalRentCollected).toLocaleString()}</span>
-        </div>
-        <div className="summary-card">
-          <span className="summary-label">Pending Amount</span>
-          <span className="summary-value warning">KSh {(stats.pendingPayments).toLocaleString()}</span>
-        </div>
-        <div className="summary-card">
-          <span className="summary-label">Overdue Amount</span>
-          <span className="summary-value danger">KSh {(stats.overduePayments).toLocaleString()}</span>
-        </div>
+const DashboardPage = ({ overview, paymentReport, occupancyReport, loading }) => {
+  if (loading || !overview) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Loading dashboard...</p>
       </div>
-    </div>
-  </>
-);
+    );
+  }
+
+  return (
+    <>
+      <h2 className="page-title">System Overview</h2>
+      
+      <div className="dashboard-grid">
+        <DashboardCard 
+          title="Total Tenants" 
+          value={overview.total_tenants} 
+          icon="👥" 
+          color="primary"
+        />
+        <DashboardCard 
+          title="Occupied Units" 
+          value={overview.occupied_rooms} 
+          icon="🏠" 
+          color="success"
+          subtext={`${overview.available_rooms} vacant`}
+        />
+        <DashboardCard 
+          title="Total Rooms" 
+          value={overview.total_rooms} 
+          icon="🏢" 
+          color="info"
+        />
+        <DashboardCard 
+          title="Active Contracts" 
+          value={overview.total_contracts} 
+          icon="📋" 
+          color="warning"
+        />
+      </div>
+
+      {/* Payment Summary */}
+      {paymentReport && (
+        <div className="section">
+          <h3 className="section-title">Payment Summary</h3>
+          <div className="summary-grid">
+            <div className="summary-card">
+              <span className="summary-label">Expected Revenue</span>
+              <span className="summary-value">
+                KSh {paymentReport.summary.expected_monthly_revenue.toLocaleString()}
+              </span>
+            </div>
+            <div className="summary-card success">
+              <span className="summary-label">Collected</span>
+              <span className="summary-value">
+                KSh {paymentReport.summary.payments_collected.toLocaleString()}
+              </span>
+            </div>
+            <div className="summary-card info">
+              <span className="summary-label">Active Contracts</span>
+              <span className="summary-value">
+                {paymentReport.summary.total_active_contracts}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Occupancy Summary */}
+      {occupancyReport && (
+        <div className="section">
+          <h3 className="section-title">Occupancy Status</h3>
+          <div className="summary-grid">
+            <div className="summary-card">
+              <span className="summary-label">Total Rooms</span>
+              <span className="summary-value">
+                {occupancyReport.summary.total_rooms}
+              </span>
+            </div>
+            <div className="summary-card success">
+              <span className="summary-label">Occupied</span>
+              <span className="summary-value">
+                {occupancyReport.summary.occupied_rooms}
+              </span>
+            </div>
+            <div className="summary-card warning">
+              <span className="summary-label">Vacant</span>
+              <span className="summary-value">
+                {occupancyReport.summary.vacant_rooms}
+              </span>
+            </div>
+            <div className="summary-card info">
+              <span className="summary-label">Occupancy Rate</span>
+              <span className="summary-value">
+                {occupancyReport.summary.occupancy_rate}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
 
 // Tenants Page Component
-const TenantsPage = ({ tenants }) => {
-  const [filterStatus, setFilterStatus] = useState('All');
+const TenantsPage = ({ tenants, loading, onDelete }) => {
+  const [filterStatus, setFilterStatus] = useState('active');
   
-  const filtered = filterStatus === 'All' 
-    ? tenants 
-    : tenants.filter(t => t.status === filterStatus);
+  const filtered = tenants.filter(t => {
+    if (filterStatus === 'active') return t.is_active;
+    return !t.is_active;
+  });
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Loading tenants...</p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -309,16 +449,15 @@ const TenantsPage = ({ tenants }) => {
       
       <div className="filter-section">
         <label className="filter-label">
-          <Filter size={16} /> Filter by Status:
+          <Filter size={16} /> Filter:
         </label>
         <select 
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
           className="filter-select"
         >
-          <option>All</option>
-          <option>Active</option>
-          <option>Inactive</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
         </select>
       </div>
 
@@ -327,30 +466,26 @@ const TenantsPage = ({ tenants }) => {
         <table className="data-table">
           <thead className="table-header">
             <tr>
-              <th>Tenant Name</th>
-              <th>Room Number</th>
+              <th>Full Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Room ID</th>
               <th>Status</th>
-              <th>Rent Paid</th>
-              <th>Rent Amount</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map(tenant => (
-              <tr key={tenant.id} className="table-row">
-                <td>{tenant.name}</td>
-                <td>#{tenant.room}</td>
+              <tr key={tenant.tenant_id} className="table-row">
+                <td>{tenant.full_name}</td>
+                <td>{tenant.email}</td>
+                <td>{tenant.phone}</td>
+                <td>#{tenant.room_id || 'N/A'}</td>
                 <td>
-                  <span className={`status-badge status-${tenant.status.toLowerCase()}`}>
-                    {tenant.status}
+                  <span className={`status-badge status-${tenant.is_active ? 'active' : 'inactive'}`}>
+                    {tenant.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
-                <td>
-                  <span className={`status-badge ${tenant.rentPaid ? 'status-paid' : 'status-pending'}`}>
-                    {tenant.rentPaid ? 'Paid' : 'Pending'}
-                  </span>
-                </td>
-                <td>KSh {tenant.amount.toLocaleString()}</td>
                 <td>
                   <div className="action-buttons">
                     <button className="btn btn-sm btn-primary">
@@ -358,6 +493,12 @@ const TenantsPage = ({ tenants }) => {
                     </button>
                     <button className="btn btn-sm btn-secondary">
                       <Edit size={14} />
+                    </button>
+                    <button 
+                      className="btn btn-sm btn-danger"
+                      onClick={() => onDelete(tenant.tenant_id)}
+                    >
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </td>
@@ -370,71 +511,26 @@ const TenantsPage = ({ tenants }) => {
   );
 };
 
-// Caretakers Page Component
-const CaretakersPage = ({ caretakers, onEdit, onDelete }) => (
-  <>
-    <h2 className="page-title">Manage Caretakers</h2>
-    
-    <button className="btn btn-primary" style={{ marginBottom: '20px' }}>
-      + Add New Caretaker
-    </button>
+// Contracts Page Component
+const ContractsPage = ({ contracts, loading }) => {
+  const [filterStatus, setFilterStatus] = useState('all');
 
-    <div className="section">
-      <h3 className="section-title">Active Caretakers</h3>
-      <div className="caretaker-list">
-        {caretakers.map(caretaker => (
-          <div key={caretaker.id} className="caretaker-card">
-            <div className="caretaker-header">
-              <div>
-                <h4 className="caretaker-name">{caretaker.name}</h4>
-                <p className="caretaker-property">{caretaker.property}</p>
-              </div>
-              <span className="status-badge status-active">Active</span>
-            </div>
-            
-            <div className="caretaker-details">
-              <div className="detail-item">
-                <span className="detail-icon"></span>
-                <span className="detail-value">{caretaker.email}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-icon"></span>
-                <span className="detail-value">{caretaker.phone}</span>
-              </div>
-            </div>
-
-            <div className="caretaker-actions">
-              <button 
-                className="btn btn-primary"
-                onClick={() => onEdit(caretaker.id)}
-              >
-                <Edit size={14} /> Edit
-              </button>
-              <button 
-                className="btn btn-danger"
-                onClick={() => onDelete(caretaker.id)}
-              >
-                <Trash2 size={14} /> Delete
-              </button>
-            </div>
-          </div>
-        ))}
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Loading contracts...</p>
       </div>
-    </div>
-  </>
-);
+    );
+  }
 
-// Payments Page Component
-const PaymentsPage = ({ payments }) => {
-  const [filterStatus, setFilterStatus] = useState('All');
-  
-  const filtered = filterStatus === 'All' 
-    ? payments 
-    : payments.filter(p => p.status === filterStatus);
+  const filtered = filterStatus === 'all' 
+    ? contracts 
+    : contracts.filter(c => c.status === filterStatus);
 
   return (
     <>
-      <h2 className="page-title">Payment Management</h2>
+      <h2 className="page-title">Lease Contracts</h2>
       
       <div className="filter-section">
         <label className="filter-label">
@@ -445,38 +541,40 @@ const PaymentsPage = ({ payments }) => {
           onChange={(e) => setFilterStatus(e.target.value)}
           className="filter-select"
         >
-          <option>All</option>
-          <option>Paid</option>
-          <option>Pending</option>
-          <option>Overdue</option>
+          <option value="all">All</option>
+          <option value="active">Active</option>
+          <option value="expired">Expired</option>
+          <option value="pending">Pending</option>
         </select>
       </div>
 
       <div className="section">
-        <h3 className="section-title">All Payments ({filtered.length})</h3>
+        <h3 className="section-title">All Contracts ({filtered.length})</h3>
         <table className="data-table">
           <thead className="table-header">
             <tr>
-              <th>Tenant</th>
-              <th>Amount</th>
-              <th>Date</th>
+              <th>Contract ID</th>
+              <th>Tenant ID</th>
+              <th>Room ID</th>
+              <th>Start Date</th>
+              <th>End Date</th>
+              <th>Rent Amount</th>
               <th>Status</th>
-              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map(payment => (
-              <tr key={payment.id} className="table-row">
-                <td>{payment.tenant}</td>
-                <td>KSh {payment.amount.toLocaleString()}</td>
-                <td>{payment.date}</td>
+            {filtered.map(contract => (
+              <tr key={contract.contract_id} className="table-row">
+                <td>{contract.contract_id}</td>
+                <td>{contract.tenant_id}</td>
+                <td>#{contract.room_id}</td>
+                <td>{new Date(contract.start_date).toLocaleDateString()}</td>
+                <td>{new Date(contract.end_date).toLocaleDateString()}</td>
+                <td>KSh {contract.rent_amount.toLocaleString()}</td>
                 <td>
-                  <span className={`status-badge status-${payment.status.toLowerCase()}`}>
-                    {payment.status}
+                  <span className={`status-badge status-${contract.status}`}>
+                    {contract.status}
                   </span>
-                </td>
-                <td>
-                  <button className="btn btn-sm btn-primary">View</button>
                 </td>
               </tr>
             ))}
@@ -487,116 +585,85 @@ const PaymentsPage = ({ payments }) => {
   );
 };
 
-// Notifications Page Component
-const NotificationsPage = ({ notification, setNotification, onSend, notifications, caretakers, tenants }) => (
-  <>
-    <h2 className="page-title">Send Notifications</h2>
-    
-    <div className="section">
-      <h3 className="section-title">Compose Message</h3>
-      
-      <div className="form-group">
-        <label className="form-label">Send To *</label>
-        <div className="radio-group">
-          <label className="radio-option">
-            <input 
-              type="radio" 
-              value="all" 
-              checked={notification.recipient === 'all'}
-              onChange={(e) => setNotification({ ...notification, recipient: e.target.value })}
-            />
-            All Users
-          </label>
-          <label className="radio-option">
-            <input 
-              type="radio" 
-              value="specific" 
-              checked={notification.recipient === 'specific'}
-              onChange={(e) => setNotification({ ...notification, recipient: e.target.value })}
-            />
-            Specific User
-          </label>
-        </div>
+// Reports Page Component
+const ReportsPage = ({ paymentReport, occupancyReport, loading }) => {
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Loading reports...</p>
       </div>
+    );
+  }
 
-      {notification.recipient === 'specific' && (
-        <div className="form-group">
-          <label className="form-label">Select User *</label>
-          <select className="form-select">
-            <option>-- Select a user --</option>
-            {caretakers.map(c => (
-              <option key={c.id}>{c.name} (Caretaker)</option>
-            ))}
-            {tenants.map(t => (
-              <option key={t.id}>{t.name} (Tenant)</option>
-            ))}
-          </select>
+  return (
+    <>
+      <h2 className="page-title">Reports</h2>
+
+      {/* Payment Report */}
+      {paymentReport && (
+        <div className="section">
+          <h3 className="section-title">Payment Report</h3>
+          <div className="summary-grid">
+            <div className="summary-card">
+              <span className="summary-label">Expected Revenue</span>
+              <span className="summary-value">
+                KSh {paymentReport.summary.expected_monthly_revenue.toLocaleString()}
+              </span>
+            </div>
+            <div className="summary-card success">
+              <span className="summary-label">Collected</span>
+              <span className="summary-value">
+                KSh {paymentReport.summary.payments_collected.toLocaleString()}
+              </span>
+            </div>
+            <div className="summary-card info">
+              <span className="summary-label">Active Contracts</span>
+              <span className="summary-value">
+                {paymentReport.summary.total_active_contracts}
+              </span>
+            </div>
+          </div>
+          <p className="report-date">Generated: {new Date(paymentReport.date_generated).toLocaleString()}</p>
         </div>
       )}
 
-      <div className="form-group">
-        <label className="form-label">User Type *</label>
-        <select 
-          value={notification.type}
-          onChange={(e) => setNotification({ ...notification, type: e.target.value })}
-          className="form-select"
-        >
-          <option>caretaker</option>
-          <option>tenant</option>
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">Subject *</label>
-        <input 
-          type="text"
-          value={notification.subject}
-          onChange={(e) => setNotification({ ...notification, subject: e.target.value })}
-          placeholder="Enter message subject"
-          className="form-input"
-        />
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">Message *</label>
-        <textarea 
-          value={notification.message}
-          onChange={(e) => setNotification({ ...notification, message: e.target.value })}
-          placeholder="Enter your message here..."
-          className="form-textarea"
-          rows="6"
-        />
-        <small style={{ color: '#6b7280', display: 'block', marginTop: '6px' }}>
-          {notification.message.length} / 500 characters
-        </small>
-      </div>
-
-      <button 
-        className="btn btn-primary"
-        onClick={onSend}
-        style={{ width: '100%', justifyContent: 'center', padding: '12px 20px' }}
-      >
-        <Send size={16} /> Send Notification
-      </button>
-    </div>
-
-    {/* Sent Notifications */}
-    <div className="section">
-      <h3 className="section-title">Notification History</h3>
-      <div className="notification-list">
-        {notifications.map(notif => (
-          <div key={notif.id} className="notification-item">
-            <div className="notification-header">
-              <h4 className="notification-recipient">📬 To: {notif.to}</h4>
-              <span className="notification-date">{notif.date}</span>
+      {/* Occupancy Report */}
+      {occupancyReport && (
+        <div className="section">
+          <h3 className="section-title">Occupancy Report</h3>
+          <div className="summary-grid">
+            <div className="summary-card">
+              <span className="summary-label">Total Rooms</span>
+              <span className="summary-value">
+                {occupancyReport.summary.total_rooms}
+              </span>
             </div>
-            <p className="notification-message">{notif.message}</p>
+            <div className="summary-card success">
+              <span className="summary-label">Occupied</span>
+              <span className="summary-value">
+                {occupancyReport.summary.occupied_rooms}
+              </span>
+            </div>
+            <div className="summary-card warning">
+              <span className="summary-label">Vacant</span>
+              <span className="summary-value">
+                {occupancyReport.summary.vacant_rooms}
+              </span>
+            </div>
+            <div className="summary-card info">
+              <span className="summary-label">Occupancy Rate</span>
+              <span className="summary-value">
+                {occupancyReport.summary.occupancy_rate}
+              </span>
+            </div>
           </div>
-        ))}
-      </div>
-    </div>
-  </>
-);
+          <p className="report-date">Generated: {new Date(occupancyReport.date_generated).toLocaleString()}</p>
+        </div>
+      )}
+    </>
+  );
+};
 
 // Dashboard Card Component
 const DashboardCard = ({ title, value, icon, color, subtext }) => (

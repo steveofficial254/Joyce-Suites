@@ -1,104 +1,267 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, X, Bell, LogOut } from 'lucide-react';
 import DashboardPage from './DashboardPage';
-import TenantPage from './TenantPage';
-import PaymentPage from './PaymentPage';
-import BalancesPage from './BalancesPage';
-import CommentsPage from './CommentsPage';
+import MaintenancePage from './MaintenancePage';
+import PaymentsPage from './PaymentsPage';
+import RoomsPage from './RoomsPage';
+import NotificationsPage from './NotificationsPage';
 import './CaretakerDashboard.css';
 
 const CaretakerDashboard = () => {
   const navigate = useNavigate();
   const [activePage, setActivePage] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Sample Data - Tenants
-  const [tenants, setTenants] = useState([
-    { id: 1, name: 'John Mwangi', room: '101', type: 'Single', rent: 15000, status: 'Paid', balance: 0 },
-    { id: 2, name: 'Sarah Kipchoge', room: '102', type: 'Double', rent: 20000, status: 'Pending', balance: 20000 },
-    { id: 3, name: 'Michael Okonkwo', room: '103', type: 'Single', rent: 15000, status: 'Overdue', balance: 45000 },
-    { id: 4, name: 'Grace Adeyemi', room: '104', type: 'Double', rent: 20000, status: 'Paid', balance: 0 },
-    { id: 5, name: 'Peter Musyoka', room: '105', type: 'Single', rent: 15000, status: 'Pending', balance: 30000 },
-  ]);
+  // State for all data
+  const [dashboardData, setDashboardData] = useState(null);
+  const [maintenanceRequests, setMaintenanceRequests] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [availableRooms, setAvailableRooms] = useState([]);
+  const [occupiedRooms, setOccupiedRooms] = useState([]);
 
-  // Sample Data - Payments
-  const [payments, setPayments] = useState([
-    { id: 1, tenant: 'John Mwangi', room: '101', amount: 15000, date: '2025-10-15', proof: 'proof1.jpg', status: 'Pending' },
-    { id: 2, tenant: 'Sarah Kipchoge', room: '102', amount: 20000, date: '2025-10-18', proof: 'proof2.jpg', status: 'Pending' },
-  ]);
+  const token = localStorage.getItem('token');
+  const userRole = localStorage.getItem('userRole');
 
-  // Sample Data - Comments
-  const [comments, setComments] = useState([
-    { id: 1, tenant: 'Michael Okonkwo', room: '103', comment: 'Overdue for 2 months. Follow up needed.', date: '2025-10-19', author: 'Admin' },
-    { id: 2, tenant: 'Grace Adeyemi', room: '104', comment: 'Good tenant, rent paid on time.', date: '2025-10-18', author: 'Caretaker' },
-  ]);
+  // API call helper
+  const apiCall = async (endpoint, options = {}) => {
+    try {
+      const response = await fetch(`/api/caretaker${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...options.headers,
+        },
+      });
 
-  // Calculate Stats
-  const stats = {
-    totalTenants: tenants.length,
-    paidThisMonth: tenants.filter(t => t.status === 'Paid').length,
-    pendingPayments: tenants.filter(t => t.status === 'Pending').length,
-    overdueAccounts: tenants.filter(t => t.status === 'Overdue').length,
-  };
+      if (response.status === 401) {
+        localStorage.clear();
+        navigate('/login');
+        return null;
+      }
 
-  // Payment Actions
-  const confirmPayment = (paymentId) => {
-    const payment = payments.find(p => p.id === paymentId);
-    setPayments(payments.map(p => 
-      p.id === paymentId ? { ...p, status: 'Confirmed' } : p
-    ));
-    setTenants(tenants.map(t => 
-      t.name === payment.tenant 
-        ? { ...t, status: 'Paid', balance: 0 }
-        : t
-    ));
-  };
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
 
-  const markPending = (paymentId) => {
-    setPayments(payments.map(p => 
-      p.id === paymentId ? { ...p, status: 'Pending' } : p
-    ));
-  };
-
-  // Comment Actions
-  const addComment = (tenantId, commentText) => {
-    if (commentText.trim()) {
-      const tenant = tenants.find(t => t.id === parseInt(tenantId));
-      setComments([...comments, {
-        id: comments.length + 1,
-        tenant: tenant?.name,
-        room: tenant?.room,
-        comment: commentText,
-        date: new Date().toISOString().split('T')[0],
-        author: 'Caretaker'
-      }]);
+      return await response.json();
+    } catch (err) {
+      setError(err.message);
+      console.error('API Error:', err);
+      throw err;
     }
   };
 
+  // Fetch dashboard data
+  const fetchDashboard = async () => {
+    setLoading(true);
+    try {
+      const data = await apiCall('/dashboard');
+      if (data && data.dashboard) {
+        setDashboardData(data.dashboard);
+      }
+    } catch (err) {
+      console.error('Failed to fetch dashboard');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch maintenance requests
+  const fetchMaintenance = async (filters = {}) => {
+    setLoading(true);
+    try {
+      const query = new URLSearchParams(filters).toString();
+      const data = await apiCall(`/maintenance?${query}`);
+      if (data && data.maintenance_requests) {
+        setMaintenanceRequests(data.maintenance_requests);
+      }
+    } catch (err) {
+      console.error('Failed to fetch maintenance requests');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update maintenance status
+  const updateMaintenanceStatus = async (reqId, updates) => {
+    try {
+      const data = await apiCall(`/maintenance/update/${reqId}`, {
+        method: 'POST',
+        body: JSON.stringify(updates),
+      });
+      if (data && data.maintenance_request) {
+        setMaintenanceRequests(prev =>
+          prev.map(m => m.request_id === reqId ? data.maintenance_request : m)
+        );
+        return data;
+      }
+    } catch (err) {
+      console.error('Failed to update maintenance request');
+      throw err;
+    }
+  };
+
+  // Fetch pending payments
+  const fetchPendingPayments = async (filters = {}) => {
+    setLoading(true);
+    try {
+      const query = new URLSearchParams(filters).toString();
+      const data = await apiCall(`/payments/pending?${query}`);
+      if (data && data.pending_payments && data.pending_payments.tenants) {
+        setPayments(data.pending_payments.tenants);
+      }
+    } catch (err) {
+      console.error('Failed to fetch pending payments');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch available rooms
+  const fetchAvailableRooms = async (filters = {}) => {
+    setLoading(true);
+    try {
+      const query = new URLSearchParams(filters).toString();
+      const data = await apiCall(`/rooms/available?${query}`);
+      if (data && data.available_rooms) {
+        setAvailableRooms(data.available_rooms);
+      }
+    } catch (err) {
+      console.error('Failed to fetch available rooms');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch occupied rooms
+  const fetchOccupiedRooms = async (filters = {}) => {
+    setLoading(true);
+    try {
+      const query = new URLSearchParams(filters).toString();
+      const data = await apiCall(`/rooms/occupied?${query}`);
+      if (data && data.occupied_rooms) {
+        setOccupiedRooms(data.occupied_rooms);
+      }
+    } catch (err) {
+      console.error('Failed to fetch occupied rooms');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Send notification
+  const sendNotification = async (notificationData) => {
+    try {
+      const data = await apiCall('/tenant/notify', {
+        method: 'POST',
+        body: JSON.stringify(notificationData),
+      });
+      return data;
+    } catch (err) {
+      console.error('Failed to send notification');
+      throw err;
+    }
+  };
+
+  // Fetch data on page change
+  useEffect(() => {
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    // Verify user is caretaker or admin
+    if (userRole !== 'caretaker' && userRole !== 'admin') {
+      navigate('/login');
+      return;
+    }
+
+    const fetchPageData = async () => {
+      switch (activePage) {
+        case 'dashboard':
+          await fetchDashboard();
+          break;
+        case 'maintenance':
+          await fetchMaintenance();
+          break;
+        case 'payments':
+          await fetchPendingPayments();
+          break;
+        case 'rooms':
+          await Promise.all([fetchAvailableRooms(), fetchOccupiedRooms()]);
+          break;
+        case 'notifications':
+          // Notifications page doesn't need initial data fetch
+          break;
+        default:
+          break;
+      }
+    };
+
+    fetchPageData();
+  }, [activePage, token, userRole, navigate]);
+
   // Handle Logout
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userId');
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/caretaker/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      localStorage.clear();
+      navigate('/login');
+    }
   };
 
   // Render Page Content
   const renderContent = () => {
     switch (activePage) {
       case 'dashboard':
-        return <DashboardPage stats={stats} tenants={tenants} />;
-      case 'tenants':
-        return <TenantPage tenants={tenants} />;
+        return <DashboardPage data={dashboardData} loading={loading} />;
+      case 'maintenance':
+        return (
+          <MaintenancePage 
+            requests={maintenanceRequests} 
+            loading={loading}
+            onUpdateStatus={updateMaintenanceStatus}
+          />
+        );
       case 'payments':
-        return <PaymentPage payments={payments} onConfirm={confirmPayment} onMarkPending={markPending} />;
-      case 'balances':
-        return <BalancesPage tenants={tenants} />;
-      case 'comments':
-        return <CommentsPage comments={comments} tenants={tenants} onAddComment={addComment} />;
+        return (
+          <PaymentsPage 
+            tenants={payments} 
+            loading={loading}
+            onRefresh={fetchPendingPayments}
+          />
+        );
+      case 'rooms':
+        return (
+          <RoomsPage 
+            availableRooms={availableRooms}
+            occupiedRooms={occupiedRooms}
+            loading={loading}
+          />
+        );
+      case 'notifications':
+        return (
+          <NotificationsPage 
+            onSendNotification={sendNotification}
+            loading={loading}
+          />
+        );
       default:
-        return <DashboardPage stats={stats} tenants={tenants} />;
+        return <DashboardPage data={dashboardData} loading={loading} />;
     }
   };
 
@@ -120,10 +283,10 @@ const CaretakerDashboard = () => {
         <nav className="sidebar-nav">
           {[
             { id: 'dashboard', label: '📊 Dashboard' },
-            { id: 'tenants', label: '👥 Tenants' },
+            { id: 'maintenance', label: '🔧 Maintenance' },
             { id: 'payments', label: '💳 Payments' },
-            { id: 'balances', label: '💰 Balances' },
-            { id: 'comments', label: '💬 Comments' }
+            { id: 'rooms', label: '🏠 Rooms' },
+            { id: 'notifications', label: '🔔 Notifications' }
           ].map(item => (
             <button
               key={item.id}
@@ -131,6 +294,7 @@ const CaretakerDashboard = () => {
               onClick={() => {
                 setActivePage(item.id);
                 setSidebarOpen(false);
+                setError(null);
               }}
             >
               {item.label}
@@ -158,10 +322,22 @@ const CaretakerDashboard = () => {
           <div className="header-right">
             <button className="notification-btn" aria-label="Notifications">
               <Bell size={20} />
-              <span className="notification-badge">3</span>
+              {dashboardData?.pending_notifications > 0 && (
+                <span className="notification-badge">
+                  {dashboardData.pending_notifications}
+                </span>
+              )}
             </button>
           </div>
         </header>
+
+        {/* Error Message */}
+        {error && (
+          <div className="error-banner">
+            <span>{error}</span>
+            <button onClick={() => setError(null)}>×</button>
+          </div>
+        )}
 
         {/* Content Area */}
         <section className="caretaker-content-area">

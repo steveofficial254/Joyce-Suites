@@ -21,57 +21,64 @@ const TenantLogin = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  // 🧹 Always clear any previous tokens before login attempt
-  localStorage.removeItem('token');
-  localStorage.removeItem('userRole');
-  localStorage.removeItem('userId');
-
-  setError('');
-  setLoading(true);
-
-  try {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formData, role: 'tenant' }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      // 🚨 Ensure full cleanup on bad response
-      localStorage.removeItem('token');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('userId');
-
-      setError(data.message || 'Login failed');
-      return;
-    }
-
-    // ✅ Successful login
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('userRole', 'tenant');
-    localStorage.setItem('userId', data.userId);
-
-    if (data.leaseSigned) {
-      navigate('/tenant/dashboard');
-    } else {
-      navigate('/lease-agreement');
-    }
-  } catch (err) {
-    // 🚨 Network or unexpected error — always clear again
+    // 🧹 Always clear any previous tokens before login attempt
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userId');
 
-    setError(err.message || 'Network error');
-  } finally {
-    setLoading(false);
-  }
-};
-;
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // 🚨 Ensure full cleanup on bad response
+        localStorage.removeItem('token');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userId');
+
+        setError(data.error || data.message || 'Login failed');
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Check if user role is tenant
+      if (data.user.role !== 'tenant') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userId');
+
+        setError('Tenant access required. Please use your tenant credentials.');
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Successful login
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('userRole', 'tenant');
+      localStorage.setItem('userId', data.user.user_id);
+
+      // Navigate to tenant dashboard
+      navigate('/tenant/dashboard');
+    } catch (err) {
+      // 🚨 Network or unexpected error — always clear again
+      localStorage.removeItem('token');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userId');
+
+      setError(err.message || 'Network error. Please try again.');
+      setLoading(false);
+    }
+  };
 
   return (
     <div
