@@ -21,38 +21,45 @@ const CaretakerLogin = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError('');
-  setLoading(true);
+    e.preventDefault();
+    setError('');
+    setLoading(true);
 
-  try {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formData, role: 'caretaker' })
-    });
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    // ✅ Check response.ok FIRST and RETURN if not OK
-    if (!response.ok) {
-      setError(data.message || 'Login failed');
+      // ✅ Check response.ok FIRST and RETURN if not OK
+      if (!response.ok) {
+        setError(data.error || data.message || 'Login failed');
+        setLoading(false);
+        return; // ✅ STOP HERE - prevents navigation on error
+      }
+
+      // ✅ Check if user role is caretaker
+      if (data.user.role !== 'caretaker') {
+        setError('Caretaker access required. Please use your caretaker credentials.');
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Only execute below if response.ok is true and role is caretaker
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('userRole', 'caretaker');
+      localStorage.setItem('userId', data.user.user_id);
+
+      navigate('/caretaker/dashboard');
+    } catch (err) {
+      setError(err.message || 'Login failed. Please try again.');
       setLoading(false);
-      return; // ✅ STOP HERE - prevents navigation on error
     }
+  };
 
-    // ✅ Only execute below if response.ok is true
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('userRole', 'caretaker');
-    localStorage.setItem('userId', data.userId);
-
-    navigate('/caretaker/dashboard');
-  } catch (err) {
-    setError(err.message || 'Login failed. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
   return (
     <div className="login-container" style={{ backgroundImage: `url(${backgroundImage})` }}>
       <div className="login-overlay"></div>

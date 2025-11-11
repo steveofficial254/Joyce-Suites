@@ -29,18 +29,27 @@ const AdminLogin = () => {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, role: 'admin' })
+        body: JSON.stringify(formData)
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
+        setError(data.error || data.message || 'Login failed');
+        setLoading(false);
+        return;
+      }
+
+      // Check if user role is admin
+      if (data.user.role !== 'admin') {
+        setError('Admin access required. Please use your admin credentials.');
+        setLoading(false);
+        return;
       }
 
       localStorage.setItem('token', data.token);
       localStorage.setItem('userRole', 'admin');
-      localStorage.setItem('userId', data.userId);
+      localStorage.setItem('userId', data.user.user_id);
 
       navigate('/admin/dashboard');
     } catch (err) {

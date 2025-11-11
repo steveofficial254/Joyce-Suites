@@ -1,3 +1,7 @@
+// ============================================
+// TENANT PAYMENTS COMPONENT
+// ============================================
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './TenantPayment.css';
@@ -6,131 +10,114 @@ import logo from '../../assets/image1.png';
 const TenantPayments = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [payments, setPayments] = useState([]);
-  const [balance, setBalance] = useState(0);
+  const [summary, setSummary] = useState({});
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    fetchPayments();
-  }, [filter]);
+    fetchPayments(currentPage, statusFilter);
+  }, [statusFilter, currentPage]);
 
-  const fetchPayments = async () => {
+  const fetchPayments = async (page = 1, status = 'all') => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/tenant/payments?filter=${filter}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      let url = `/api/tenant/payments?page=${page}&per_page=10`;
+      if (status !== 'all') {
+        url += `&status=${status}`;
+      }
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
       
       const data = await response.json();
       
-      if (response.ok) {
-        setPayments(data.payments);
-        setBalance(data.balance);
-      } else {
-        throw new Error(data.message);
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load payments');
       }
-    } catch (error) {
-      console.error('Error fetching payments:', error);
-      // Mock data for demo
-      setPayments([
-        {
-          id: 1,
-          date: '2024-10-01',
-          amount: 5500,
-          accountNumber: '0758999322',
-          reference: 'MPESA-REF-12345',
-          status: 'Completed',
-          balance: 0,
-          method: 'M-Pesa'
-        },
-        {
-          id: 2,
-          date: '2024-09-01',
-          amount: 5500,
-          accountNumber: '0758999322',
-          reference: 'MPESA-REF-12344',
-          status: 'Completed',
-          balance: 0,
-          method: 'M-Pesa'
-        },
-        {
-          id: 3,
-          date: '2024-08-01',
-          amount: 5500,
-          accountNumber: '0123456789',
-          reference: 'BANK-TRF-67890',
-          status: 'Completed',
-          balance: 0,
-          method: 'Bank Transfer'
-        },
-        {
-          id: 4,
-          date: '2024-11-05',
-          amount: 5500,
-          accountNumber: 'Pending',
-          reference: 'Pending',
-          status: 'Pending',
-          balance: 5500,
-          method: 'Pending'
-        }
-      ]);
-      setBalance(5500);
+
+      setPayments(data.payments || []);
+      setSummary(data.summary || {});
+      setError('');
+    } catch (err) {
+      console.error('Error fetching payments:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const getFilteredPayments = () => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+  const handlePayNow = (payment) => {
+    setSelectedPayment(payment);
+    setShowPaymentModal(true);
+  };
 
-    switch(filter) {
-      case 'thisMonth':
-        return payments.filter(p => {
-          const date = new Date(p.date);
-          return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-        });
-      case 'lastMonth':
-        return payments.filter(p => {
-          const date = new Date(p.date);
-          const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-          const year = currentMonth === 0 ? currentYear - 1 : currentYear;
-          return date.getMonth() === lastMonth && date.getFullYear() === year;
-        });
-      default:
-        return payments;
+  const handleMpesaPayment = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/tenant/payments/mpesa', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          amount: selectedPayment.amount,
+          phone: '+254712345678', // Get from user input
+          payment_month: selectedPayment.month
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'M-Pesa payment failed');
+      }
+
+      alert('M-Pesa STK push sent to your phone. Complete the transaction.');
+      setShowPaymentModal(false);
+      setSelectedPayment(null);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await fetch('/api/tenant/logout', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      localStorage.clear();
+      navigate('/login');
     }
   };
 
   const getStatusBadge = (status) => {
-    const statusClasses = {
-      'Completed': 'status-completed',
-      'Pending': 'status-pending',
-      'Failed': 'status-failed',
-      'Processing': 'status-processing'
+    const statusMap = {
+      'paid': 'status-paid',
+      'pending': 'status-pending',
+      'overdue': 'status-overdue'
     };
-    return statusClasses[status] || 'status-pending';
+    return statusMap[status?.toLowerCase()] || 'status-pending';
   };
-
-  const handlePayNow = () => {
-    setShowPaymentModal(true);
-  };
-
-  const handleDownloadReceipt = (payment) => {
-    // Generate PDF receipt
-    console.log('Downloading receipt for:', payment);
-    alert(`Downloading receipt for payment #${payment.id}`);
-  };
-
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
-  };
-
-  const filteredPayments = getFilteredPayments();
 
   if (loading) {
     return (
@@ -164,18 +151,18 @@ const TenantPayments = () => {
             Profile
           </a>
           <a href="/tenant/maintenance" className="nav-item">
-            <span className="nav-icon"></span>
+            <span className="nav-icon">🔧</span>
             Maintenance
           </a>
           <a href="/tenant/lease" className="nav-item">
-            <span className="nav-icon"></span>
+            <span className="nav-icon">📄</span>
             My Lease
           </a>
         </nav>
 
         <div className="sidebar-footer">
           <button onClick={handleLogout} className="logout-btn">
-            <span className="nav-icon"></span>
+            <span className="nav-icon">🚪</span>
             Logout
           </button>
         </div>
@@ -190,54 +177,65 @@ const TenantPayments = () => {
             <p className="breadcrumb">Home / Payments</p>
           </div>
           <div className="topbar-right">
-            <button className="btn btn-primary" onClick={handlePayNow}>
-               Pay Rent Now
+            <button className="btn btn-primary" onClick={() => setShowPaymentModal(true)}>
+              💳 Make Payment
             </button>
           </div>
         </header>
 
-        {/* Balance Summary */}
-        <div className="balance-section">
-          <div className="balance-card">
-            <div className="balance-info">
-              <h3>Current Balance</h3>
-              <p className={`balance-amount ${balance === 0 ? 'paid' : 'due'}`}>
-                KSh {balance.toLocaleString()}
-              </p>
-              <span className="balance-status">
-                {balance === 0 ? '✓ All payments up to date' : '⚠ Payment due'}
-              </span>
-            </div>
-            {balance > 0 && (
-              <button className="btn btn-warning" onClick={handlePayNow}>
-                Pay KSh {balance.toLocaleString()}
-              </button>
-            )}
+        {error && <div className="alert alert-error">{error}</div>}
+
+        {/* Payment Summary */}
+        <div className="payment-stats">
+          <div className="stat-item">
+            <span className="stat-label">Total Paid</span>
+            <span className="stat-value">
+              KSh {(summary.total_paid || 0).toLocaleString()}
+            </span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">Pending Amount</span>
+            <span className="stat-value pending">
+              KSh {(summary.total_pending || 0).toLocaleString()}
+            </span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">Total Transactions</span>
+            <span className="stat-value">
+              {summary.total_transactions || 0}
+            </span>
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Payments Content */}
         <div className="payments-content">
+          {/* Filters */}
           <div className="filters-section">
             <h3>Payment History</h3>
             <div className="filter-buttons">
               <button 
-                className={`filter-btn ${filter === 'thisMonth' ? 'active' : ''}`}
-                onClick={() => setFilter('thisMonth')}
-              >
-                This Month
-              </button>
-              <button 
-                className={`filter-btn ${filter === 'lastMonth' ? 'active' : ''}`}
-                onClick={() => setFilter('lastMonth')}
-              >
-                Last Month
-              </button>
-              <button 
-                className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-                onClick={() => setFilter('all')}
+                className={`filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
+                onClick={() => { setStatusFilter('all'); setCurrentPage(1); }}
               >
                 All
+              </button>
+              <button 
+                className={`filter-btn ${statusFilter === 'paid' ? 'active' : ''}`}
+                onClick={() => { setStatusFilter('paid'); setCurrentPage(1); }}
+              >
+                Paid
+              </button>
+              <button 
+                className={`filter-btn ${statusFilter === 'pending' ? 'active' : ''}`}
+                onClick={() => { setStatusFilter('pending'); setCurrentPage(1); }}
+              >
+                Pending
+              </button>
+              <button 
+                className={`filter-btn ${statusFilter === 'overdue' ? 'active' : ''}`}
+                onClick={() => { setStatusFilter('overdue'); setCurrentPage(1); }}
+              >
+                Overdue
               </button>
             </div>
           </div>
@@ -247,51 +245,40 @@ const TenantPayments = () => {
             <table className="payments-table">
               <thead>
                 <tr>
-                  <th>Date</th>
+                  <th>Month</th>
                   <th>Amount</th>
-                  <th>Account Number</th>
-                  <th>Reference</th>
+                  <th>Due Date</th>
                   <th>Status</th>
-                  <th>Balance</th>
+                  <th>Payment Method</th>
+                  <th>Reference</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredPayments.length > 0 ? (
-                  filteredPayments.map((payment) => (
-                    <tr key={payment.id}>
-                      <td>{new Date(payment.date).toLocaleDateString('en-GB')}</td>
+                {payments.length > 0 ? (
+                  payments.map((payment) => (
+                    <tr key={payment.payment_id}>
+                      <td>{payment.month}</td>
                       <td className="amount">KSh {payment.amount.toLocaleString()}</td>
-                      <td>{payment.accountNumber}</td>
-                      <td className="reference">{payment.reference}</td>
+                      <td>{new Date(payment.due_date).toLocaleDateString('en-GB')}</td>
                       <td>
                         <span className={`status-badge ${getStatusBadge(payment.status)}`}>
-                          {payment.status}
+                          {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                         </span>
                       </td>
-                      <td className={payment.balance === 0 ? 'balance-clear' : 'balance-due'}>
-                        KSh {payment.balance.toLocaleString()}
-                      </td>
+                      <td>{payment.payment_method || '-'}</td>
+                      <td className="reference">{payment.transaction_ref || '-'}</td>
                       <td className="actions">
-                        {payment.status === 'Completed' ? (
-                          <button 
-                            className="action-btn download"
-                            onClick={() => handleDownloadReceipt(payment)}
-                            title="Download Receipt"
-                          >
-                             Receipt
-                          </button>
-                        ) : payment.status === 'Pending' ? (
+                        {payment.status === 'pending' || payment.status === 'overdue' ? (
                           <button 
                             className="action-btn pay"
-                            onClick={handlePayNow}
-                            title="Pay Now"
+                            onClick={() => handlePayNow(payment)}
                           >
-                             Pay Now
+                            💳 Pay
                           </button>
                         ) : (
-                          <button className="action-btn view" title="View Details">
-                            👁️ View
+                          <button className="action-btn view" disabled>
+                            ✓ Paid
                           </button>
                         )}
                       </td>
@@ -300,37 +287,12 @@ const TenantPayments = () => {
                 ) : (
                   <tr>
                     <td colSpan="7" className="no-data">
-                      No payments found for the selected period
+                      No payments found
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
-          </div>
-
-          {/* Payment Stats */}
-          <div className="payment-stats">
-            <div className="stat-item">
-              <span className="stat-label">Total Paid</span>
-              <span className="stat-value">
-                KSh {payments
-                  .filter(p => p.status === 'Completed')
-                  .reduce((sum, p) => sum + p.amount, 0)
-                  .toLocaleString()}
-              </span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Payments Made</span>
-              <span className="stat-value">
-                {payments.filter(p => p.status === 'Completed').length}
-              </span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Pending</span>
-              <span className="stat-value pending">
-                {payments.filter(p => p.status === 'Pending').length}
-              </span>
-            </div>
           </div>
         </div>
 
@@ -341,33 +303,38 @@ const TenantPayments = () => {
               <button className="modal-close" onClick={() => setShowPaymentModal(false)}>
                 ×
               </button>
-              <h2>Payment Instructions</h2>
+              <h2>Make Payment</h2>
               
+              {selectedPayment && (
+                <div className="payment-details">
+                  <p><strong>Month:</strong> {selectedPayment.month}</p>
+                  <p><strong>Amount:</strong> KSh {selectedPayment.amount.toLocaleString()}</p>
+                  <p><strong>Due Date:</strong> {new Date(selectedPayment.due_date).toLocaleDateString()}</p>
+                </div>
+              )}
+
               <div className="payment-options">
                 <div className="payment-option">
                   <h3>📱 M-Pesa Paybill</h3>
                   <div className="payment-details">
-                    <p><strong>Phone Number:</strong> 0758 999322</p>
-                    <p><strong>Amount:</strong> KSh {balance.toLocaleString()}</p>
-                    <p><strong>Account Name:</strong> JOYCE MUTHONI</p>
+                    <p><strong>Phone:</strong> 0758 999322</p>
+                    <p><strong>Account:</strong> JOYCE MUTHONI</p>
                   </div>
+                  <button className="btn btn-primary" onClick={handleMpesaPayment}>
+                    Pay via M-Pesa
+                  </button>
                 </div>
 
                 <div className="payment-option">
                   <h3>🏦 Bank Transfer</h3>
                   <div className="payment-details">
                     <p><strong>Bank:</strong> Equity Bank</p>
-                    <p><strong>Account Number:</strong> 0123456789</p>
-                    <p><strong>Account Name:</strong> Joyce Muthoni Mathea</p>
-                    <p><strong>Amount:</strong> KSh {balance.toLocaleString()}</p>
+                    <p><strong>Account:</strong> 0123456789</p>
                   </div>
+                  <button className="btn btn-secondary">
+                    Copy Details
+                  </button>
                 </div>
-              </div>
-
-              <div className="upload-proof">
-                <h4>Upload Payment Proof</h4>
-                <input type="file" accept="image/*,.pdf" className="file-input" />
-                <button className="btn btn-primary">Submit Payment Proof</button>
               </div>
             </div>
           </div>

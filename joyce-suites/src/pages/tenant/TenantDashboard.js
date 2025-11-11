@@ -2,11 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './TenantDashboard.css';
 import logo from '../../assets/image1.png';
-import TenantPayment from './TenantPayment';
-import TenantProfile from './TenantProfile';
 
-
-// Import apartment images (image4 to image22)
+// Import apartment images
 import apartment1 from '../../assets/image12.jpg';
 import apartment2 from '../../assets/image21.jpg';
 import apartment3 from '../../assets/image22.jpg';
@@ -17,10 +14,11 @@ import apartment6 from '../../assets/image9.jpg';
 const TenantDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [tenantData, setTenantData] = useState(null);
-  const [notifications, setNotifications] = useState(3);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [notifications, setNotifications] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [error, setError] = useState('');
 
   const apartmentImages = [
     apartment1, apartment2, apartment3, 
@@ -28,7 +26,7 @@ const TenantDashboard = () => {
   ];
 
   useEffect(() => {
-    fetchTenantData();
+    fetchDashboardData();
     
     // Auto-slide apartment images
     const interval = setInterval(() => {
@@ -38,77 +36,61 @@ const TenantDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const fetchTenantData = async () => {
+  const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
       const response = await fetch('/api/tenant/dashboard', {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       
       const data = await response.json();
       
-      if (response.ok) {
-        setTenantData(data);
-      } else {
-        throw new Error(data.message);
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load dashboard');
       }
-    } catch (error) {
-      console.error('Error fetching tenant data:', error);
-      // Mock data for demo
-      setTenantData({
-        fullName: 'John Doe',
-        email: 'john.doe@example.com',
-        roomNumber: '12',
-        roomType: 'Bedsitter',
-        monthlyRent: 5500,
-        rentDue: 5500,
-        dueDate: '2024-11-05',
-        depositStatus: 'Paid',
-        depositAmount: 5900,
-        balance: 0,
-        photo: null,
-        paymentAccount: getPaymentAccount('12')
-      });
+
+      setDashboardData(data.dashboard);
+      setNotifications(data.dashboard.notifications.unread_count);
+      setError('');
+    } catch (err) {
+      console.error('Error fetching dashboard:', err);
+      setError(err.message);
+      // Set timeout to redirect to login after 3 seconds
+      setTimeout(() => {
+        if (err.message.includes('Unauthorized') || err.message.includes('Token')) {
+          localStorage.clear();
+          navigate('/login');
+        }
+      }, 3000);
     } finally {
       setLoading(false);
     }
   };
 
-  const getPaymentAccount = (roomNumber) => {
-    const room = parseInt(roomNumber);
-    // Rooms 1-10 pay to Joyce Muthoni, 11-26 pay to Lawrence Mathea
-    if (room >= 1 && room <= 10) {
-      return {
-        name: 'JOYCE MUTHONI',
-        mpesa: '0758 999322',
-        bank: 'Equity Bank',
-        accountNumber: '0123456789',
-        accountName: 'Joyce Muthoni Mathea'
-      };
-    } else {
-      return {
-        name: 'LAWRENCE MATHEA',
-        mpesa: '0712 345678',
-        bank: 'KCB Bank',
-        accountNumber: '9876543210',
-        accountName: 'Lawrence Mathea'
-      };
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
-  };
-
-  const getStatusColor = (status) => {
-    switch(status.toLowerCase()) {
-      case 'paid': return '#4CAF50';
-      case 'pending': return '#FF9800';
-      case 'overdue': return '#E53935';
-      default: return '#757575';
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await fetch('/api/tenant/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      localStorage.clear();
+      navigate('/login');
     }
   };
 
@@ -117,6 +99,34 @@ const TenantDashboard = () => {
       <div className="loading-screen">
         <div className="spinner"></div>
         <p>Loading Dashboard...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-screen">
+        <div className="error-message">
+          <h2>⚠️ Error</h2>
+          <p>{error}</p>
+          <button onClick={() => navigate('/login')} className="btn btn-primary">
+            Return to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="error-screen">
+        <div className="error-message">
+          <h2>No Dashboard Data</h2>
+          <p>Unable to load your dashboard. Please try again.</p>
+          <button onClick={fetchDashboardData} className="btn btn-primary">
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -132,19 +142,19 @@ const TenantDashboard = () => {
 
         <nav className="sidebar-nav">
           <a href="/tenant/dashboard" className="nav-item active">
-            <span className="nav-icon">📊</span>
+            <span className="nav-icon"></span>
             Dashboard
           </a>
           <a href="/tenant/payments" className="nav-item">
-            <span className="nav-icon">💳</span>
+            <span className="nav-icon"></span>
             Payments
           </a>
           <a href="/tenant/profile" className="nav-item">
-            <span className="nav-icon">👤</span>
+            <span className="nav-icon"></span>
             Profile
           </a>
           <a href="/tenant/maintenance" className="nav-item">
-            <span className="nav-icon">🔧</span>
+            <span className="nav-icon"></span>
             Maintenance
           </a>
           <a href="/tenant/lease" className="nav-item">
@@ -186,16 +196,8 @@ const TenantDashboard = () => {
                 <div className="notifications-dropdown">
                   <h3>Notifications</h3>
                   <div className="notification-item">
-                    <p>Rent due on November 5th</p>
-                    <span className="notification-time">2 days ago</span>
-                  </div>
-                  <div className="notification-item">
-                    <p>Maintenance request completed</p>
-                    <span className="notification-time">1 week ago</span>
-                  </div>
-                  <div className="notification-item">
-                    <p>Welcome to Joyce Suits!</p>
-                    <span className="notification-time">2 weeks ago</span>
+                    <p>Unread: {notifications}</p>
+                    <span className="notification-time">Total: {dashboardData.notifications.total_notifications}</span>
                   </div>
                 </div>
               )}
@@ -206,115 +208,78 @@ const TenantDashboard = () => {
             </button>
 
             <div className="user-avatar">
-              {tenantData.photo ? (
-                <img src={tenantData.photo} alt="Avatar" />
-              ) : (
-                <div className="avatar-placeholder">
-                  {tenantData.fullName.charAt(0)}
-                </div>
-              )}
+              <div className="avatar-placeholder">
+                {dashboardData.welcome.charAt(12) || 'U'}
+              </div>
             </div>
           </div>
         </header>
 
         {/* Welcome Section */}
         <div className="welcome-section">
-          <h2>Welcome back, {tenantData.fullName}! 👋</h2>
+          <h2>{dashboardData.welcome} </h2>
           <p>Here's what's happening with your apartment today.</p>
         </div>
 
         {/* Stats Cards */}
         <div className="stats-grid">
           <div className="stat-card primary">
-            <div className="stat-icon">🏠</div>
+            <div className="stat-icon"></div>
             <div className="stat-content">
               <h3>Room Details</h3>
-              <p className="stat-value">Room {tenantData.roomNumber}</p>
-              <p className="stat-label">{tenantData.roomType}</p>
+              <p className="stat-value">Room {dashboardData.room_info.room_number}</p>
+              <p className="stat-label">Monthly: KSh {dashboardData.room_info.monthly_rent.toLocaleString()}</p>
             </div>
           </div>
 
           <div className="stat-card warning">
-            <div className="stat-icon">💰</div>
+            <div className="stat-icon"></div>
             <div className="stat-content">
-              <h3>Rent Due</h3>
-              <p className="stat-value">KSh {tenantData.rentDue.toLocaleString()}</p>
-              <p className="stat-label">Due: {new Date(tenantData.dueDate).toLocaleDateString()}</p>
+              <h3>Pending Amount</h3>
+              <p className="stat-value">KSh {dashboardData.payment_summary.pending_amount.toLocaleString()}</p>
+              <p className="stat-label">{dashboardData.payment_summary.overdue_payments} overdue</p>
             </div>
           </div>
 
           <div className="stat-card success">
-            <div className="stat-icon">✅</div>
+            <div className="stat-icon"></div>
             <div className="stat-content">
-              <h3>Deposit Status</h3>
-              <p className="stat-value">{tenantData.depositStatus}</p>
-              <p className="stat-label">KSh {tenantData.depositAmount.toLocaleString()}</p>
+              <h3>Total Paid</h3>
+              <p className="stat-value">KSh {dashboardData.payment_summary.total_paid.toLocaleString()}</p>
+              <p className="stat-label">Year to date</p>
             </div>
           </div>
 
           <div className="stat-card info">
-            <div className="stat-icon">📊</div>
+            <div className="stat-icon"></div>
             <div className="stat-content">
-              <h3>Current Balance</h3>
-              <p className="stat-value" style={{ color: tenantData.balance === 0 ? '#4CAF50' : '#E53935' }}>
-                KSh {tenantData.balance.toLocaleString()}
-              </p>
-              <p className="stat-label">{tenantData.balance === 0 ? 'All Clear!' : 'Outstanding'}</p>
+              <h3>Maintenance</h3>
+              <p className="stat-value">{dashboardData.maintenance_summary.pending_requests}</p>
+              <p className="stat-label">Pending requests</p>
             </div>
           </div>
         </div>
 
-        {/* Payment Account Section */}
-        <div className="payment-accounts-section">
-          <h3>Payment Information - Room {tenantData.roomNumber}</h3>
-          <div className="payment-cards">
-            <div className="payment-card mpesa">
-              <div className="payment-header">
-                <span className="payment-icon">📱</span>
-                <h4>M-Pesa Paybill</h4>
-              </div>
-              <div className="payment-details">
-                <div className="payment-item">
-                  <span className="label">Account Name:</span>
-                  <span className="value">{tenantData.paymentAccount.name}</span>
-                </div>
-                <div className="payment-item">
-                  <span className="label">Phone Number:</span>
-                  <span className="value">{tenantData.paymentAccount.mpesa}</span>
-                </div>
-                <div className="payment-item">
-                  <span className="label">Amount:</span>
-                  <span className="value amount">KSh {tenantData.monthlyRent.toLocaleString()}</span>
-                </div>
-              </div>
-              <button className="btn btn-primary" onClick={() => navigate('/tenant/payments')}>
-                Pay via M-Pesa
-              </button>
-            </div>
-
-            <div className="payment-card bank">
-              <div className="payment-header">
-                <span className="payment-icon">🏦</span>
-                <h4>Bank Transfer</h4>
-              </div>
-              <div className="payment-details">
-                <div className="payment-item">
-                  <span className="label">Bank:</span>
-                  <span className="value">{tenantData.paymentAccount.bank}</span>
-                </div>
-                <div className="payment-item">
-                  <span className="label">Account Number:</span>
-                  <span className="value">{tenantData.paymentAccount.accountNumber}</span>
-                </div>
-                <div className="payment-item">
-                  <span className="label">Account Name:</span>
-                  <span className="value">{tenantData.paymentAccount.accountName}</span>
-                </div>
-              </div>
-              <button className="btn btn-secondary" onClick={() => navigate('/tenant/payments')}>
-                View Payment History
-              </button>
-            </div>
+        {/* Quick Actions */}
+        <div className="quick-actions">
+          <h3>Quick Actions</h3>
+          <div className="action-buttons">
+            <button className="action-btn" onClick={() => navigate('/tenant/payments')}>
+              <span className="action-icon">💳</span>
+              <span>Make Payment</span>
+            </button>
+            <button className="action-btn" onClick={() => navigate('/tenant/maintenance')}>
+              <span className="action-icon"></span>
+              <span>Request Maintenance</span>
+            </button>
+            <button className="action-btn" onClick={() => navigate('/tenant/lease')}>
+              <span className="action-icon">📄</span>
+              <span>View Lease</span>
+            </button>
+            <button className="action-btn" onClick={() => navigate('/tenant/profile')}>
+              <span className="action-icon"></span>
+              <span>Update Profile</span>
+            </button>
           </div>
         </div>
 
@@ -367,29 +332,6 @@ const TenantDashboard = () => {
                 />
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="quick-actions">
-          <h3>Quick Actions</h3>
-          <div className="action-buttons">
-            <button className="action-btn" onClick={() => navigate('/tenant/payments')}>
-              <span className="action-icon">💳</span>
-              <span>Make Payment</span>
-            </button>
-            <button className="action-btn" onClick={() => navigate('/tenant/maintenance')}>
-              <span className="action-icon">🔧</span>
-              <span>Request Maintenance</span>
-            </button>
-            <button className="action-btn" onClick={() => navigate('/tenant/lease')}>
-              <span className="action-icon">📄</span>
-              <span>View Lease</span>
-            </button>
-            <button className="action-btn" onClick={() => navigate('/tenant/profile')}>
-              <span className="action-icon">👤</span>
-              <span>Update Profile</span>
-            </button>
           </div>
         </div>
 
