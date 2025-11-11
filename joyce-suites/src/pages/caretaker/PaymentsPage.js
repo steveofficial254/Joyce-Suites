@@ -63,7 +63,7 @@ const PaymentsPage = ({ tenants, loading, onRefresh }) => {
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-icon-bg warning">
-            💰
+            <span className="stat-icon">$</span>
           </div>
           <div className="stat-content">
             <span className="stat-label">Total Outstanding</span>
@@ -85,7 +85,7 @@ const PaymentsPage = ({ tenants, loading, onRefresh }) => {
 
         <div className="stat-card">
           <div className="stat-icon-bg info">
-            📊
+            <span className="stat-icon">#</span>
           </div>
           <div className="stat-content">
             <span className="stat-label">Tenants in Arrears</span>
