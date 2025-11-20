@@ -43,5 +43,20 @@ class MaintenanceRequest(BaseModel, SerializerMixin):
             raise ValueError(f"Invalid priority: {value}. Must be one of {MAINTENANCE_PRIORITIES}")
         return value
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "status": self.status,
+            "priority": self.priority,
+            "property_id": self.property_id,
+            "reported_by_id": self.reported_by_id,
+            "assigned_to_id": self.assigned_to_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "property_name": self.property.name if self.property else None
+        }
+
     def __repr__(self):
         return f"<MaintenanceRequest {self.id} - {self.status} - {self.priority}>"

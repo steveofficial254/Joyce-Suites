@@ -1,0 +1,46 @@
+[2025-11-20 15:13:57,673] INFO in app: 🚀 Joyce Suites API started - Env: development
+[2025-11-20 15:13:57,858] INFO in app: ✅ Database tables created successfully.
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.1, pluggy-1.6.0 -- /home/chei/.local/share/virtualenvs/Joyce-Suites-KHm_dnkw/bin/python
+cachedir: .pytest_cache
+rootdir: /home/chei/client-projects/Joyce-Suites/backend
+configfile: pytest.ini
+collecting ... collected 3 items
+
+backend/tests/test_tenant_real.py::TestTenant::test_dashboard_access [2025-11-20 15:13:57,984] INFO in app: 🚀 Joyce Suites API started - Env: development
+[2025-11-20 15:13:58,104] INFO in app: ✅ Database tables created successfully.
+PASSED
+backend/tests/test_tenant_real.py::TestTenant::test_lease_details PASSED
+backend/tests/test_tenant_real.py::TestTenant::test_maintenance_request 
+Maintenance request failed: {'error': 'Failed to create request: maximum recursion depth exceeded', 'success': False}
+FAILED
+
+=================================== FAILURES ===================================
+_____________________ TestTenant.test_maintenance_request ______________________
+backend/tests/test_tenant_real.py:147: in test_maintenance_request
+    assert response.status_code == 201
+E   assert 500 == 201
+E    +  where 500 = <WrapperTestResponse 96 bytes [500 INTERNAL SERVER ERROR]>.status_code
+=============================== warnings summary ===============================
+tests/test_tenant_real.py::TestTenant::test_dashboard_access
+tests/test_tenant_real.py::TestTenant::test_dashboard_access
+tests/test_tenant_real.py::TestTenant::test_lease_details
+tests/test_tenant_real.py::TestTenant::test_maintenance_request
+  /home/chei/client-projects/Joyce-Suites/backend/routes/auth_routes.py:78: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "iat": datetime.utcnow(),
+
+tests/test_tenant_real.py::TestTenant::test_dashboard_access
+tests/test_tenant_real.py::TestTenant::test_dashboard_access
+tests/test_tenant_real.py::TestTenant::test_lease_details
+tests/test_tenant_real.py::TestTenant::test_maintenance_request
+  /home/chei/client-projects/Joyce-Suites/backend/routes/auth_routes.py:79: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+
+tests/test_tenant_real.py::TestTenant::test_dashboard_access
+  /home/chei/client-projects/Joyce-Suites/backend/routes/tenant_routes.py:46: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    user = User.query.get(request.user_id)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED backend/tests/test_tenant_real.py::TestTenant::test_maintenance_request
+=================== 1 failed, 2 passed, 9 warnings in 3.76s ====================

@@ -79,6 +79,10 @@ class User(BaseModel, SerializerMixin):
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}".strip()
+
     @validates('role')
     def validate_role(self, key, value):
         if value not in USER_ROLES:

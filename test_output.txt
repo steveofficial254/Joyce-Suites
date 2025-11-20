@@ -1,0 +1,74 @@
+[2025-11-20 15:06:34,260] INFO in app: 🚀 Joyce Suites API started - Env: development
+[2025-11-20 15:06:34,524] INFO in app: ✅ Database tables created successfully.
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.1, pluggy-1.6.0 -- /home/chei/.local/share/virtualenvs/Joyce-Suites-KHm_dnkw/bin/python
+cachedir: .pytest_cache
+rootdir: /home/chei/client-projects/Joyce-Suites/backend
+configfile: pytest.ini
+collecting ... collected 5 items
+
+backend/tests/test_auth_real.py::TestAuth::test_register_success [2025-11-20 15:06:34,736] INFO in app: 🚀 Joyce Suites API started - Env: development
+[2025-11-20 15:06:34,889] INFO in app: ✅ Database tables created successfully.
+Registration Error: 'User' object has no attribute 'full_name'
+
+Registration failed: {'error': "Registration failed: 'User' object has no attribute 'full_name'", 'success': False}
+FAILED
+backend/tests/test_auth_real.py::TestAuth::test_register_duplicate_email Registration Error: 'User' object has no attribute 'full_name'
+PASSED
+backend/tests/test_auth_real.py::TestAuth::test_login_success Registration Error: 'User' object has no attribute 'full_name'
+
+Login setup (registration) failed: {'error': "Registration failed: 'User' object has no attribute 'full_name'", 'success': False}
+
+Login failed: {'error': "Login failed: 'User' object has no attribute 'full_name'", 'success': False}
+FAILED
+backend/tests/test_auth_real.py::TestAuth::test_login_invalid_credentials Registration Error: 'User' object has no attribute 'full_name'
+PASSED
+backend/tests/test_auth_real.py::TestAuth::test_profile_access Registration Error: 'User' object has no attribute 'full_name'
+FAILED
+
+=================================== FAILURES ===================================
+________________________ TestAuth.test_register_success ________________________
+backend/tests/test_auth_real.py:24: in test_register_success
+    assert response.status_code == 201
+E   assert 500 == 201
+E    +  where 500 = <WrapperTestResponse 101 bytes [500 INTERNAL SERVER ERROR]>.status_code
+------------------------------ Captured log setup ------------------------------
+INFO     app:app.py:204 🚀 Joyce Suites API started - Env: development
+INFO     app:app.py:50 ✅ Database tables created successfully.
+_________________________ TestAuth.test_login_success __________________________
+backend/tests/test_auth_real.py:89: in test_login_success
+    assert response.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <WrapperTestResponse 94 bytes [500 INTERNAL SERVER ERROR]>.status_code
+_________________________ TestAuth.test_profile_access _________________________
+backend/tests/test_auth_real.py:133: in test_profile_access
+    token = login_res.get_json()['token']
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'token'
+=============================== warnings summary ===============================
+tests/test_auth_real.py::TestAuth::test_register_success
+tests/test_auth_real.py::TestAuth::test_register_duplicate_email
+tests/test_auth_real.py::TestAuth::test_login_success
+tests/test_auth_real.py::TestAuth::test_login_success
+tests/test_auth_real.py::TestAuth::test_login_invalid_credentials
+tests/test_auth_real.py::TestAuth::test_profile_access
+tests/test_auth_real.py::TestAuth::test_profile_access
+  /home/chei/client-projects/Joyce-Suites/backend/routes/auth_routes.py:78: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "iat": datetime.utcnow(),
+
+tests/test_auth_real.py::TestAuth::test_register_success
+tests/test_auth_real.py::TestAuth::test_register_duplicate_email
+tests/test_auth_real.py::TestAuth::test_login_success
+tests/test_auth_real.py::TestAuth::test_login_success
+tests/test_auth_real.py::TestAuth::test_login_invalid_credentials
+tests/test_auth_real.py::TestAuth::test_profile_access
+tests/test_auth_real.py::TestAuth::test_profile_access
+  /home/chei/client-projects/Joyce-Suites/backend/routes/auth_routes.py:79: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED backend/tests/test_auth_real.py::TestAuth::test_register_success - ass...
+FAILED backend/tests/test_auth_real.py::TestAuth::test_login_success - assert...
+FAILED backend/tests/test_auth_real.py::TestAuth::test_profile_access - KeyEr...
+=================== 3 failed, 2 passed, 14 warnings in 5.51s ===================

@@ -62,10 +62,20 @@ def db_session(app):
 def clear_blacklist(app):
     """Clear the token blacklist before each test to avoid cross-test contamination."""
     # Import here to avoid circular imports
-    from routes.auth_routes import blacklisted_tokens
-    blacklisted_tokens.clear()
-    yield
-    blacklisted_tokens.clear()
+    # Note: In the new implementation, we might use a DB model for blacklist
+    # But for now, if we still use the set in auth_routes (which we plan to remove),
+    # we should handle it. Since we are rewriting auth_routes, this might become obsolete
+    # but keeping it safe for now if we keep the set temporarily.
+    try:
+        from routes.auth_routes import blacklisted_tokens
+        if isinstance(blacklisted_tokens, set):
+            blacklisted_tokens.clear()
+            yield
+            blacklisted_tokens.clear()
+        else:
+            yield
+    except ImportError:
+        yield
 
 
 @pytest.fixture(autouse=True)
@@ -122,8 +132,11 @@ def admin_user(client):
         'confirm_password': 'Admin@123456',
         'full_name': 'Admin User',
         'phone': '+254712345678',
-        'role': 'admin'
+        'role': 'admin',
+        'idNumber': '12345678'
     }
+    # We use the API to register so it goes through the route handler
+    # This depends on auth_routes being fixed to use DB
     response = client.post('/api/auth/register', json=user_data)
     
     return {
@@ -133,6 +146,7 @@ def admin_user(client):
         'phone': user_data['phone'],
         'role': user_data['role']
     }
+
 
 
 @pytest.fixture
@@ -144,7 +158,8 @@ def caretaker_user(client):
         'confirm_password': 'Caretaker@123456',
         'full_name': 'Caretaker User',
         'phone': '+254723456789',
-        'role': 'caretaker'
+        'role': 'caretaker',
+        'idNumber': '23456789'
     }
     response = client.post('/api/auth/register', json=user_data)
     
@@ -153,7 +168,8 @@ def caretaker_user(client):
         'password': user_data['password'],
         'full_name': user_data['full_name'],
         'phone': user_data['phone'],
-        'role': user_data['role']
+        'role': user_data['role'],
+        'idNumber': user_data['idNumber']
     }
 
 
@@ -166,7 +182,8 @@ def tenant_user(client):
         'confirm_password': 'Tenant@123456',
         'full_name': 'Tenant User',
         'phone': '+254734567890',
-        'role': 'tenant'
+        'role': 'tenant',
+        'idNumber': '34567890'
     }
     response = client.post('/api/auth/register', json=user_data)
     
@@ -177,6 +194,7 @@ def tenant_user(client):
         'phone': user_data['phone'],
         'role': user_data['role']
     }
+
 
 
 @pytest.fixture
@@ -200,32 +218,3 @@ def get_jwt_token(client, email, password):
     })
     data = response.get_json()
     return data.get('token') if data and data.get('success') else None
-=======
-import pytest
-from app import create_app
-
-@pytest.fixture
-def app():
-    """
-    Creates a Flask app instance for testing.
-    """
-    app = create_app()
-    app.config.update({
-        "TESTING": True,  # Enable testing mode
-    })
-    return app
-
-@pytest.fixture
-def client(app):
-    """
-    Test client for sending HTTP requests.
-    """
-    return app.test_client()
-
-@pytest.fixture
-def runner(app):
-    """
-    Test runner for invoking CLI commands.
-    """
-    return app.test_cli_runner()
->>>>>>> main
