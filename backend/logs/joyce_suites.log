@@ -49,3 +49,26 @@
 2025-11-20 17:01:31,439 - INFO - ✅ Database tables created (development mode)
 2025-11-20 17:03:50,647 - INFO - 🚀 Joyce Suites API started - Env: development
 2025-11-20 17:03:50,755 - INFO - ✅ Database tables created (development mode)
+2025-11-20 17:21:55,107 - INFO - 🚀 Joyce Suites API started - Env: development
+2025-11-20 17:21:55,187 - INFO - ✅ Database tables created (development mode)
+2025-11-20 17:23:03,615 - INFO - 🚀 Joyce Suites API started - Env: development
+2025-11-20 17:23:03,698 - INFO - ✅ Database tables created (development mode)
+2025-11-20 17:23:06,689 - INFO - 🚀 Joyce Suites API started - Env: development
+2025-11-20 17:23:06,788 - INFO - ✅ Database tables created (development mode)
+2025-11-20 17:24:09,761 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+2025-11-20 17:24:14,249 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+2025-11-20 17:27:16,641 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: curl/8.5.0
+2025-11-20 17:28:27,828 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+2025-11-20 17:29:25,077 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+2025-11-20 17:30:04,559 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+2025-11-20 17:31:20,044 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: curl/8.5.0
+2025-11-20 17:32:10,375 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: curl/8.5.0
+2025-11-20 17:32:32,454 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: curl/8.5.0
+2025-11-20 17:33:18,444 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+2025-11-20 17:33:58,638 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: curl/8.5.0
+2025-11-20 17:34:52,334 - INFO - 🚀 Joyce Suites API started - Env: development
+2025-11-20 17:34:52,443 - INFO - ✅ Database tables created (development mode)
+2025-11-20 17:35:45,568 - INFO - OPTIONS /api/auth/login | IP: 127.0.0.1 | User-Agent: curl/8.5.0
+2025-11-20 17:37:13,508 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+2025-11-20 17:37:47,458 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+2025-11-20 17:42:59,594 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
