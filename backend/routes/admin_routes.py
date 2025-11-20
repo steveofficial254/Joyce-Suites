@@ -1,590 +1,400 @@
+"""
+Admin Routes Module
+
+Handles admin-specific operations:
+- Dashboard overview
+- Tenant management (CRUD)
+- Contract management
+- Reports generation
+"""
+
 from flask import Blueprint, request, jsonify
 from functools import wraps
-from datetime import datetime, timezone
-from typing import Dict, Any, Optional, Tuple
+from datetime import datetime
+from sqlalchemy import func
+
+from models.base import db
+from models.user import User
+from models.lease import Lease
+from models.payment import Payment
+from models.maintenance import MaintenanceRequest
+from models.property import Property
 from routes.auth_routes import token_required
-import re # Used for phone number validation
 
-
-# Blueprint initialization
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
-
 def admin_required(f):
-    """
-    Decorator to require admin role and valid token.
-    
-    This decorator:
-    1. Applies token_required to validate the JWT token
-    2. Checks that the user role is 'admin'
-    3. Ensures request.user_id and request.user_role are set
-    
-    Args:
-        f: Flask route function
-    
-    Returns:
-        Wrapped function
-    """
+    """Decorator to require admin role."""
     @wraps(f)
     @token_required
     def decorated(*args, **kwargs):
-        # At this point, token_required has already validated the token
-        # and set request.user_id and request.user_role
-        
-        # Check if user is an admin
-        if not hasattr(request, "user_role") or request.user_role != "admin":
+        if request.user_role != "admin":
             return jsonify({
                 "success": False,
                 "error": "Forbidden: Admin access required"
             }), 403
-        
-        # Token is valid and user is an admin, call the route handler
         return f(*args, **kwargs)
-    
     return decorated
-
-
-# Mock database (replace with SQLAlchemy models in production)
-tenants_db = {
-    1: {
-        "tenant_id": 1,
-        "full_name": "John Doe",
-        "email": "john.doe@example.com",
-        "phone": "+254712345678",
-        "room_id": 101,
-        "id_number": "12345678",
-        "occupation": "Software Engineer",
-        "emergency_contact": "Jane Doe",
-        "emergency_phone": "+254712345679",
-        "created_at": "2024-06-15T10:00:00+00:00",
-        "updated_at": "2024-06-15T10:00:00+00:00",
-        "is_active": True
-    },
-    2: {
-        "tenant_id": 2,
-        "full_name": "Jane Smith",
-        "email": "jane.smith@example.com",
-        "phone": "+254723456789",
-        "room_id": 102,
-        "id_number": "87654321",
-        "occupation": "Accountant",
-        "emergency_contact": "John Smith",
-        "emergency_phone": "+254723456788",
-        "created_at": "2024-09-01T10:00:00+00:00",
-        "updated_at": "2024-09-01T10:00:00+00:00",
-        "is_active": True
-    }
-}
-
-contracts_db = {
-    1: {
-        "contract_id": "CNT001",
-        "tenant_id": 1,
-        "room_id": 101,
-        "start_date": "2024-06-15",
-        "end_date": "2025-06-15",
-        "rent_amount": 25000.00,
-        "status": "active",
-        "created_at": "2024-06-15T10:00:00+00:00",
-        "updated_at": "2024-06-15T10:00:00+00:00"
-    }
-}
-
-rooms_db = {
-    101: {
-        "room_id": 101,
-        "room_number": "101",
-        "floor": 1,
-        "room_type": "single",
-        "amenities": ["bed", "wardrobe", "desk"],
-        "rent_amount": 25000.00,
-        "is_occupied": True,
-        "tenant_id": 1,
-        "created_at": "2024-01-01T10:00:00+00:00"
-    },
-    102: {
-        "room_id": 102,
-        "room_number": "102",
-        "floor": 1,
-        "room_type": "single",
-        "amenities": ["bed", "wardrobe", "desk"],
-        "rent_amount": 22000.00,
-        "is_occupied": True,
-        "tenant_id": 2,
-        "created_at": "2024-01-01T10:00:00+00:00"
-    },
-    103: {
-        "room_id": 103,
-        "room_number": "103",
-        "floor": 1,
-        "room_type": "single",
-        "amenities": ["bed", "wardrobe", "desk"],
-        "rent_amount": 20000.00,
-        "is_occupied": False,
-        "tenant_id": None,
-        "created_at": "2024-01-01T10:00:00+00:00"
-    }
-}
-
-
-def validate_tenant_data(data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
-    """
-    Validate tenant data.
-    
-    Args:
-        data: Dictionary of tenant data.
-        
-    Returns:
-        A tuple (is_valid: bool, error_message: Optional[str]).
-    """
-    required_fields = ['full_name', 'email', 'phone', 'id_number']
-    
-    for field in required_fields:
-        if field not in data or not data[field]:
-            return False, f"Missing required field: {field}"
-            
-    # Simple email validation
-    if '@' not in data['email'] or '.' not in data['email']:
-        return False, "Invalid email format"
-        
-    # Simple phone validation (Kenyan format with country code expected by tests)
-    phone_pattern = re.compile(r'^\+\d{10,}$')
-    
-    # Validate primary phone
-    if 'phone' in data and not phone_pattern.match(data['phone']):
-        return False, "Invalid phone format. Must start with '+' and include country code (e.g., +2547...)."
-        
-    # Validate emergency phone if provided
-    if 'emergency_phone' in data and data['emergency_phone'] and not phone_pattern.match(data['emergency_phone']):
-        return False, "Invalid emergency phone format. Must start with '+' and include country code."
-
-    return True, None
-
-
-# --- Mock Services (simulating external service dependencies) ---
-
-class ContractService:
-    """Mock contract service for admin routes."""
-    def get_all_contracts(self, status: Optional[str] = None, page: int = 1, per_page: int = 10) -> Dict[str, Any]:
-        """Simulates fetching contracts with filtering and pagination."""
-        all_contracts = list(contracts_db.values())
-        
-        if status:
-            filtered_contracts = [c for c in all_contracts if c['status'] == status]
-        else:
-            filtered_contracts = all_contracts
-            
-        start = (page - 1) * per_page
-        end = start + per_page
-        
-        paginated_contracts = filtered_contracts[start:end]
-        
-        return {
-            "contracts": paginated_contracts,
-            "pagination": {
-                "total_items": len(filtered_contracts),
-                "total_pages": (len(filtered_contracts) + per_page - 1) // per_page,
-                "current_page": page,
-                "per_page": per_page
-            }
-        }
-
-contract_service = ContractService()
-
-
-class ReportService:
-    """Mock report service for admin routes."""
-    def generate_payment_report(self) -> Dict[str, Any]:
-        """Simulates generating a payment report."""
-        total_rent = sum(c['rent_amount'] for c in contracts_db.values())
-        
-        return {
-            "title": "Monthly Payment Report",
-            "date_generated": datetime.now(timezone.utc).isoformat(),
-            "summary": {
-                "total_active_contracts": len(contracts_db),
-                "expected_monthly_revenue": total_rent,
-                "payments_collected": total_rent 
-            },
-            "details": list(contracts_db.values())
-        }
-
-    def generate_occupancy_report(self) -> Dict[str, Any]:
-        """Simulates generating an occupancy report."""
-        total_rooms = len(rooms_db)
-        occupied_rooms = sum(1 for room in rooms_db.values() if room['is_occupied'])
-        
-        return {
-            "title": "Occupancy Report",
-            "date_generated": datetime.now(timezone.utc).isoformat(),
-            "summary": {
-                "total_rooms": total_rooms,
-                "occupied_rooms": occupied_rooms,
-                "vacant_rooms": total_rooms - occupied_rooms,
-                "occupancy_rate": f"{(occupied_rooms / total_rooms) * 100:.2f}%" if total_rooms else "0.00%"
-            },
-            "details": list(rooms_db.values())
-        }
-
-report_service = ReportService()
-
-# Helper function to get the next ID
-def get_next_tenant_id():
-    """Returns the next available tenant ID."""
-    return max(tenants_db.keys()) + 1 if tenants_db else 1
-
-# Helper function for pagination
-def paginate_data(data_list, page: int, per_page: int):
-    """Applies pagination logic to a list of data."""
-    start = (page - 1) * per_page
-    end = start + per_page
-    
-    paginated_data = data_list[start:end]
-    total_items = len(data_list)
-    total_pages = (total_items + per_page - 1) // per_page
-    
-    return {
-        "items": paginated_data,
-        "pagination": {
-            "total_items": total_items,
-            "total_pages": total_pages,
-            "current_page": page,
-            "per_page": per_page
-        }
-    }
-
-# ---
-# Route Handlers
-# ---
 
 @admin_bp.route("/overview", methods=["GET"])
 @admin_required
 def get_admin_overview():
-    """
-    Handles GET /api/admin/overview. (Failing test fixed here)
-    Returns key statistics for the admin dashboard.
-    """
+    """Get admin dashboard overview with key statistics."""
     try:
-        total_tenants = len(tenants_db)
-        total_rooms = len(rooms_db)
-        occupied_rooms = sum(1 for room in rooms_db.values() if room.get('is_occupied'))
-        available_rooms = total_rooms - occupied_rooms
-        total_contracts = len(contracts_db)
+        # Count total tenants
+        total_tenants = User.query.filter_by(role='tenant').count()
         
-        overview_data = {
-            "total_tenants": total_tenants,
-            "total_rooms": total_rooms,
-            "occupied_rooms": occupied_rooms,
-            "available_rooms": available_rooms,
-            "total_contracts": total_contracts,
-            # Mock placeholder data
-            "payment_status": {
-                "overdue_count": 0,
-                "due_soon_count": 1,
-                "collected_this_month": 50000 
-            }
-        }
+        # Count active leases
+        active_leases = Lease.query.filter_by(status='active').count()
+        
+        # Count pending maintenance requests
+        pending_maintenance = MaintenanceRequest.query.filter_by(status='pending').count()
+        
+        # Calculate total revenue (sum of successful payments)
+        total_revenue = db.session.query(func.sum(Payment.amount))\
+            .filter_by(status='successful').scalar() or 0
+        
+        # Get recent tenants (last 5)
+        recent_tenants = User.query.filter_by(role='tenant')\
+            .order_by(User.created_at.desc()).limit(5).all()
         
         return jsonify({
             "success": True,
-            "message": "Admin overview retrieved successfully",
-            "overview": overview_data
+            "overview": {
+                "total_tenants": total_tenants,
+                "active_leases": active_leases,
+                "pending_maintenance": pending_maintenance,
+                "total_revenue": float(total_revenue),
+                "recent_tenants": [
+                    {
+                        "id": t.id,
+                        "name": t.full_name,
+                        "email": t.email,
+                        "room_number": t.room_number,
+                        "created_at": t.created_at.isoformat() if t.created_at else None
+                    } for t in recent_tenants
+                ]
+            }
         }), 200
-        
-    except Exception as e:
-        print(f"ERROR in get_admin_overview: {e}")
-        return jsonify({
-            "success": False,
-            "error": "Internal Server Error during overview generation"
-        }), 500
 
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Overview error: {str(e)}"}), 500
 
 @admin_bp.route("/tenants", methods=["GET"])
 @admin_required
 def get_all_tenants():
-    """
-    Handles GET /api/admin/tenants.
-    Returns a list of all tenants with pagination.
-    """
+    """Get list of all tenants with pagination."""
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         
-        # Only list active tenants in a real app, but for tests, we list all
-        all_tenants = list(tenants_db.values())
+        tenants_query = User.query.filter_by(role='tenant')
         
-        paged_data = paginate_data(all_tenants, page, per_page)
+        # Pagination
+        pagination = tenants_query.paginate(page=page, per_page=per_page, error_out=False)
+        
+        tenants_list = [
+            {
+                "id": t.id,
+                "name": t.full_name,
+                "email": t.email,
+                "phone": t.phone_number,
+                "room_number": t.room_number,
+                "national_id": t.national_id,
+                "is_active": t.is_active,
+                "created_at": t.created_at.isoformat() if t.created_at else None
+            } for t in pagination.items
+        ]
         
         return jsonify({
             "success": True,
-            "message": "Tenants list retrieved successfully",
-            "tenants": paged_data['items'],
-            "pagination": paged_data['pagination']
+            "tenants": tenants_list,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": pagination.total,
+                "pages": pagination.pages
+            }
         }), 200
-        
-    except Exception as e:
-        print(f"ERROR in get_all_tenants: {e}")
-        return jsonify({
-            "success": False,
-            "error": "Internal Server Error"
-        }), 500
 
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to get tenants: {str(e)}"}), 500
 
 @admin_bp.route("/tenant/<int:tenant_id>", methods=["GET"])
 @admin_required
-def get_tenant_details(tenant_id: int):
-    """
-    Handles GET /api/admin/tenant/<tenant_id>.
-    Returns details for a specific tenant.
-    """
+def get_tenant_details(tenant_id):
+    """Get details for a specific tenant."""
     try:
-        tenant = tenants_db.get(tenant_id)
+        tenant = User.query.filter_by(id=tenant_id, role='tenant').first()
         
         if not tenant:
-            return jsonify({
-                "success": False,
-                "error": f"Tenant with ID {tenant_id} not found"
-            }), 404
-            
+            return jsonify({"success": False, "error": "Tenant not found"}), 404
+        
+        # Get tenant's lease
+        lease = Lease.query.filter_by(tenant_id=tenant_id, status='active').first()
+        
+        # Get payment history
+        payments = []
+        if lease:
+            payments = Payment.query.filter_by(lease_id=lease.id)\
+                .order_by(Payment.created_at.desc()).limit(10).all()
+        
+        # Get maintenance requests
+        maintenance = MaintenanceRequest.query.filter_by(reported_by_id=tenant_id)\
+            .order_by(MaintenanceRequest.created_at.desc()).limit(10).all()
+        
         return jsonify({
             "success": True,
-            "message": "Tenant details retrieved successfully",
-            "tenant": tenant
+            "tenant": {
+                "id": tenant.id,
+                "name": tenant.full_name,
+                "email": tenant.email,
+                "phone": tenant.phone_number,
+                "room_number": tenant.room_number,
+                "national_id": tenant.national_id,
+                "is_active": tenant.is_active,
+                "created_at": tenant.created_at.isoformat() if tenant.created_at else None,
+                "lease": lease.to_dict() if lease else None,
+                "recent_payments": [p.to_dict() for p in payments],
+                "recent_maintenance": [m.to_dict() for m in maintenance]
+            }
         }), 200
-        
-    except Exception as e:
-        print(f"ERROR in get_tenant_details: {e}")
-        return jsonify({
-            "success": False,
-            "error": "Internal Server Error"
-        }), 500
 
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to get tenant: {str(e)}"}), 500
 
 @admin_bp.route("/tenant/create", methods=["POST"])
 @admin_required
 def create_tenant():
-    """
-    Handles POST /api/admin/tenant/create.
-    Creates a new tenant.
-    """
-    data = request.get_json()
-    if not data:
-        return jsonify({"success": False, "error": "Missing JSON data"}), 400
-        
-    is_valid, error_msg = validate_tenant_data(data)
-    if not is_valid:
-        return jsonify({"success": False, "error": error_msg}), 400
-        
+    """Create a new tenant (admin-initiated)."""
     try:
-        new_id = get_next_tenant_id()
-        # FIX: Use datetime.now(timezone.utc) instead of UTC
-        current_time = datetime.now(timezone.utc).isoformat()
+        data = request.get_json()
         
-        new_tenant = {
-            "tenant_id": new_id,
-            "full_name": data['full_name'],
-            "email": data['email'],
-            "phone": data['phone'],
-            "room_id": data.get('room_id'),
-            "id_number": data['id_number'],
-            "occupation": data.get('occupation', 'N/A'),
-            "emergency_contact": data.get('emergency_contact'),
-            "emergency_phone": data.get('emergency_phone'),
-            "created_at": current_time,
-            "updated_at": current_time,
-            "is_active": True
-        }
+        required_fields = ['email', 'password', 'full_name', 'phone', 'national_id']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({"success": False, "error": f"{field} is required"}), 400
         
-        tenants_db[new_id] = new_tenant
+        # Check if email exists
+        if User.query.filter_by(email=data['email']).first():
+            return jsonify({"success": False, "error": "Email already exists"}), 409
         
-        # Mocking room association
-        room_id = data.get('room_id')
-        if room_id and room_id in rooms_db:
-            rooms_db[room_id]['is_occupied'] = True
-            rooms_db[room_id]['tenant_id'] = new_id
-
+        # Split full name
+        names = data['full_name'].split(' ', 1)
+        first_name = names[0]
+        last_name = names[1] if len(names) > 1 else ""
+        
+        # Generate username
+        username = data['email'].split('@')[0]
+        if User.query.filter_by(username=username).first():
+            import uuid
+            username = f"{username}_{str(uuid.uuid4())[:8]}"
+        
+        # Create tenant
+        new_tenant = User(
+            email=data['email'],
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            phone_number=data['phone'],
+            role='tenant',
+            national_id=int(data['national_id']),
+            room_number=data.get('room_number'),
+            is_active=True
+        )
+        new_tenant.password = data['password']
+        
+        db.session.add(new_tenant)
+        db.session.commit()
+        
         return jsonify({
             "success": True,
-            "message": f"Tenant {new_id} created successfully",
-            "tenant": new_tenant
+            "message": "Tenant created successfully",
+            "tenant": {
+                "id": new_tenant.id,
+                "name": new_tenant.full_name,
+                "email": new_tenant.email
+            }
         }), 201
-        
-    except Exception as e:
-        print(f"ERROR in create_tenant: {e}")
-        return jsonify({
-            "success": False,
-            "error": "Internal Server Error during tenant creation"
-        }), 500
 
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": f"Failed to create tenant: {str(e)}"}), 500
 
 @admin_bp.route("/tenant/update/<int:tenant_id>", methods=["PUT"])
 @admin_required
-def update_tenant(tenant_id: int):
-    """
-    Handles PUT /api/admin/tenant/update/<tenant_id>.
-    Updates an existing tenant.
-    """
-    data = request.get_json()
-    if not data:
-        return jsonify({"success": False, "error": "Missing JSON data"}), 400
-        
-    tenant = tenants_db.get(tenant_id)
-    if not tenant:
-        return jsonify({
-            "success": False,
-            "error": f"Tenant with ID {tenant_id} not found"
-        }), 404
-        
-    # Validation check for updated phone/email fields
-    phone_pattern = re.compile(r'^\+\d{10,}$')
-    
-    if 'email' in data:
-        if '@' not in data['email'] or '.' not in data['email']:
-            return jsonify({"success": False, "error": "Invalid email format"}), 400
-            
-    phone_fields = ['phone', 'emergency_phone']
-    for field in phone_fields:
-        if field in data and data[field] and not phone_pattern.match(data[field]):
-            return jsonify({"success": False, "error": "Invalid phone format. Must start with '+' and include country code."}), 400
-            
+def update_tenant(tenant_id):
+    """Update an existing tenant."""
     try:
-        # Update fields
-        for key, value in data.items():
-            if key in tenant:
-                tenant[key] = value
-                
-        # FIX: Use datetime.now(timezone.utc) instead of UTC
-        tenant["updated_at"] = datetime.now(timezone.utc).isoformat()
-        tenants_db[tenant_id] = tenant
+        tenant = User.query.filter_by(id=tenant_id, role='tenant').first()
+        
+        if not tenant:
+            return jsonify({"success": False, "error": "Tenant not found"}), 404
+        
+        data = request.get_json()
+        
+        # Update allowed fields
+        if 'full_name' in data:
+            names = data['full_name'].split(' ', 1)
+            tenant.first_name = names[0]
+            tenant.last_name = names[1] if len(names) > 1 else ""
+        
+        if 'phone' in data:
+            tenant.phone_number = data['phone']
+        
+        if 'room_number' in data:
+            tenant.room_number = data['room_number']
+        
+        if 'is_active' in data:
+            tenant.is_active = data['is_active']
+        
+        db.session.commit()
         
         return jsonify({
             "success": True,
-            "message": f"Tenant {tenant_id} updated successfully",
-            "tenant": tenant
+            "message": "Tenant updated successfully",
+            "tenant": {
+                "id": tenant.id,
+                "name": tenant.full_name,
+                "email": tenant.email,
+                "phone": tenant.phone_number,
+                "room_number": tenant.room_number,
+                "is_active": tenant.is_active
+            }
         }), 200
-        
-    except Exception as e:
-        print(f"ERROR in update_tenant: {e}")
-        return jsonify({
-            "success": False,
-            "error": "Internal Server Error during tenant update"
-        }), 500
 
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": f"Failed to update tenant: {str(e)}"}), 500
 
 @admin_bp.route("/tenant/delete/<int:tenant_id>", methods=["DELETE"])
 @admin_required
-def delete_tenant(tenant_id: int):
-    """
-    Handles DELETE /api/admin/tenant/delete/<tenant_id>.
-    Deletes a tenant (removes from mock db for test isolation).
-    """
-    tenant = tenants_db.get(tenant_id)
-    if not tenant:
-        return jsonify({
-            "success": False,
-            "error": f"Tenant with ID {tenant_id} not found"
-        }), 404
-        
+def delete_tenant(tenant_id):
+    """Delete a tenant."""
     try:
-        # In a real app, this is usually a soft delete (is_active=False), 
-        # but for the mock environment, we perform a hard delete to prevent ID conflicts
+        tenant = User.query.filter_by(id=tenant_id, role='tenant').first()
         
-        # Free up room if associated
-        room_id = tenant.get('room_id')
-        if room_id and room_id in rooms_db:
-             rooms_db[room_id]['is_occupied'] = False
-             rooms_db[room_id]['tenant_id'] = None
-                 
-        del tenants_db[tenant_id]
+        if not tenant:
+            return jsonify({"success": False, "error": "Tenant not found"}), 404
+        
+        # Check for active leases
+        active_lease = Lease.query.filter_by(tenant_id=tenant_id, status='active').first()
+        if active_lease:
+            return jsonify({
+                "success": False,
+                "error": "Cannot delete tenant with active lease"
+            }), 400
+        
+        db.session.delete(tenant)
+        db.session.commit()
         
         return jsonify({
             "success": True,
-            "message": f"Tenant {tenant_id} successfully deleted (removed from mock db)"
+            "message": "Tenant deleted successfully"
         }), 200
-        
-    except Exception as e:
-        print(f"ERROR in delete_tenant: {e}")
-        return jsonify({
-            "success": False,
-            "error": "Internal Server Error during tenant deletion"
-        }), 500
 
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": f"Failed to delete tenant: {str(e)}"}), 500
 
 @admin_bp.route("/contracts", methods=["GET"])
 @admin_required
 def get_all_contracts():
-    """
-    Handles GET /api/admin/contracts.
-    Returns a list of all contracts with filtering and pagination.
-    """
+    """Get all lease contracts with filtering."""
     try:
         status = request.args.get('status')
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         
-        # Uses the mock service
-        report_data = contract_service.get_all_contracts(status=status, page=page, per_page=per_page)
+        query = Lease.query
+        
+        if status:
+            query = query.filter_by(status=status)
+        
+        pagination = query.order_by(Lease.created_at.desc())\
+            .paginate(page=page, per_page=per_page, error_out=False)
+        
+        contracts = [
+            {
+                "id": lease.id,
+                "tenant_name": lease.tenant.full_name if lease.tenant else "Unknown",
+                "property_name": lease.property.name if lease.property else "Unknown",
+                "start_date": lease.start_date.isoformat() if lease.start_date else None,
+                "end_date": lease.end_date.isoformat() if lease.end_date else None,
+                "rent_amount": lease.rent_amount,
+                "status": lease.status
+            } for lease in pagination.items
+        ]
         
         return jsonify({
             "success": True,
-            "message": "Contracts retrieved successfully",
-            "contracts": report_data['contracts'],
-            "pagination": report_data['pagination']
+            "contracts": contracts,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": pagination.total,
+                "pages": pagination.pages
+            }
         }), 200
-        
-    except Exception as e:
-        print(f"ERROR in get_all_contracts: {e}")
-        return jsonify({
-            "success": False,
-            "error": "Internal Server Error"
-        }), 500
 
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to get contracts: {str(e)}"}), 500
 
 @admin_bp.route("/payments/report", methods=["GET"])
 @admin_required
 def get_payment_report():
-    """
-    Handles GET /api/admin/payments/report. (Failing test fixed here)
-    Generates and returns a payment report.
-    """
+    """Generate payment report."""
     try:
-        # This calls the mock report service
-        report_data = report_service.generate_payment_report()
+        # Get payment statistics
+        total_payments = Payment.query.count()
+        successful_payments = Payment.query.filter_by(status='successful').count()
+        pending_payments = Payment.query.filter_by(status='pending').count()
+        failed_payments = Payment.query.filter_by(status='failed').count()
+        
+        total_amount = db.session.query(func.sum(Payment.amount))\
+            .filter_by(status='successful').scalar() or 0
+        
+        # Get recent payments
+        recent = Payment.query.order_by(Payment.created_at.desc()).limit(20).all()
         
         return jsonify({
             "success": True,
-            "message": "Payment report generated successfully",
-            "report": report_data
+            "report": {
+                "total_payments": total_payments,
+                "successful": successful_payments,
+                "pending": pending_payments,
+                "failed": failed_payments,
+                "total_amount": float(total_amount),
+                "recent_payments": [p.to_dict() for p in recent]
+            }
         }), 200
-        
-    except Exception as e:
-        print(f"ERROR in get_payment_report: {e}")
-        return jsonify({
-            "success": False,
-            "error": "Internal Server Error during payment report generation"
-        }), 500
 
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to generate report: {str(e)}"}), 500
 
 @admin_bp.route("/occupancy/report", methods=["GET"])
 @admin_required
 def get_occupancy_report():
-    """
-    Handles GET /api/admin/occupancy/report. (Failing test fixed here)
-    Generates and returns an occupancy report.
-    """
+    """Generate occupancy report."""
     try:
-        # This calls the mock report service
-        report_data = report_service.generate_occupancy_report()
+        total_properties = Property.query.count()
+        occupied_properties = Property.query.filter_by(status='occupied').count()
+        vacant_properties = Property.query.filter_by(status='vacant').count()
+        
+        active_leases = Lease.query.filter_by(status='active').count()
+        
+        occupancy_rate = (occupied_properties / total_properties * 100) if total_properties > 0 else 0
         
         return jsonify({
             "success": True,
-            "message": "Occupancy report generated successfully",
-            "report": report_data
+            "report": {
+                "total_properties": total_properties,
+                "occupied": occupied_properties,
+                "vacant": vacant_properties,
+                "active_leases": active_leases,
+                "occupancy_rate": round(occupancy_rate, 2)
+            }
         }), 200
-        
+
     except Exception as e:
-        print(f"ERROR in get_occupancy_report: {e}")
-        return jsonify({
-            "success": False,
-            "error": "Internal Server Error during occupancy report generation"
-        }), 500
+        return jsonify({"success": False, "error": f"Failed to generate report: {str(e)}"}), 500
