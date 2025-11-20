@@ -227,19 +227,14 @@ def register():
             id_document.save(os.path.join(doc_save_path, filename))
             id_document_path = f"uploads/documents/{filename}"
 
-        # Create user
         # Split full name into first and last name
         names = full_name.split(' ', 1)
         first_name = names[0]
         last_name = names[1] if len(names) > 1 else ""
         
-        # Use email as username for now if not provided
-        username = email.split('@')[0]
-        # Ensure username is unique (simple append if needed, but for now assume unique email -> unique username prefix usually)
-        # Better: check if username exists
-        if User.query.filter_by(username=username).first():
-            import uuid
-            username = f"{username}_{str(uuid.uuid4())[:8]}"
+        # Auto-generate username from email (required by model but not exposed to user)
+        import uuid
+        username = f"{email.split('@')[0]}_{str(uuid.uuid4())[:8]}"
 
         new_user = User(
             email=email,

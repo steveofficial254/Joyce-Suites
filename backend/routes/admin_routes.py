@@ -184,11 +184,9 @@ def create_tenant():
         first_name = names[0]
         last_name = names[1] if len(names) > 1 else ""
         
-        # Generate username
-        username = data['email'].split('@')[0]
-        if User.query.filter_by(username=username).first():
-            import uuid
-            username = f"{username}_{str(uuid.uuid4())[:8]}"
+        # Auto-generate username from email (required by model but not exposed to user)
+        import uuid
+        username = f"{data['email'].split('@')[0]}_{str(uuid.uuid4())[:8]}"
         
         # Create tenant
         new_tenant = User(
