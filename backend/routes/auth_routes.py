@@ -291,11 +291,11 @@ def register():
 @auth_bp.route("/login", methods=["POST"])
 def login():
     """Authenticate user and return JWT token."""
-    # Rate limiting: 5 login attempts per minute per IP
-    from flask import current_app
-    limiter = getattr(current_app, 'limiter', None)
-    if limiter:
-        limiter.limit("5 per minute")(lambda: None)()
+    # Rate limiting temporarily disabled for debugging
+    # from flask import current_app
+    # limiter = getattr(current_app, 'limiter', None)
+    # if limiter:
+    #     limiter.limit("5 per minute")(lambda: None)()
     
     try:
         data = request.get_json()
