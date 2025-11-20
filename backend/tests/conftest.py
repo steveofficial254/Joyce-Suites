@@ -132,7 +132,8 @@ def admin_user(client):
         'confirm_password': 'Admin@123456',
         'full_name': 'Admin User',
         'phone': '+254712345678',
-        'role': 'admin'
+        'role': 'admin',
+        'idNumber': '12345678'
     }
     # We use the API to register so it goes through the route handler
     # This depends on auth_routes being fixed to use DB
@@ -147,6 +148,7 @@ def admin_user(client):
     }
 
 
+
 @pytest.fixture
 def caretaker_user(client):
     """Create a caretaker user for testing using the API."""
@@ -156,7 +158,8 @@ def caretaker_user(client):
         'confirm_password': 'Caretaker@123456',
         'full_name': 'Caretaker User',
         'phone': '+254723456789',
-        'role': 'caretaker'
+        'role': 'caretaker',
+        'idNumber': '23456789'
     }
     response = client.post('/api/auth/register', json=user_data)
     
@@ -165,7 +168,8 @@ def caretaker_user(client):
         'password': user_data['password'],
         'full_name': user_data['full_name'],
         'phone': user_data['phone'],
-        'role': user_data['role']
+        'role': user_data['role'],
+        'idNumber': user_data['idNumber']
     }
 
 
@@ -178,7 +182,8 @@ def tenant_user(client):
         'confirm_password': 'Tenant@123456',
         'full_name': 'Tenant User',
         'phone': '+254734567890',
-        'role': 'tenant'
+        'role': 'tenant',
+        'idNumber': '34567890'
     }
     response = client.post('/api/auth/register', json=user_data)
     
@@ -189,6 +194,7 @@ def tenant_user(client):
         'phone': user_data['phone'],
         'role': user_data['role']
     }
+
 
 
 @pytest.fixture
