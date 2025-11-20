@@ -12,6 +12,9 @@ flask-cors = "*"
 pytest = "*"
 pyjwt = "*"
 sqlalchemy-serializer = "*"
+flask-limiter = "*"
+bleach = "*"
+flask-wtf = "*"
 
 [dev-packages]
 
