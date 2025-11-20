@@ -141,6 +141,13 @@ def register():
     Register a new user (tenant, caretaker, or admin).
     Handles both JSON and FormData (multipart/form-data with file uploads).
     """
+    # Rate limiting is applied globally via app.limiter
+    # Additional endpoint-specific limit
+    limiter = getattr(current_app, 'limiter', None)
+    if limiter:
+        # 5 registrations per hour per IP
+        limiter.limit("5 per hour")(lambda: None)()
+    
     try:
         # Handle FormData (multipart/form-data)
         if request.form:
@@ -284,6 +291,12 @@ def register():
 @auth_bp.route("/login", methods=["POST"])
 def login():
     """Authenticate user and return JWT token."""
+    # Rate limiting: 5 login attempts per minute per IP
+    from flask import current_app
+    limiter = getattr(current_app, 'limiter', None)
+    if limiter:
+        limiter.limit("5 per minute")(lambda: None)()
+    
     try:
         data = request.get_json()
         

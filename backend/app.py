@@ -1,6 +1,9 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_migrate import Migrate
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 import os
 import logging
@@ -30,6 +33,8 @@ def create_app():
     # Initialize extensions
     db.init_app(app)
     Migrate(app, db)
+    
+    # CORS configuration
     CORS(app, resources={
         r"/api/*": {
             "origins": os.getenv("CORS_ORIGINS", "http://localhost:3000").split(","),
@@ -37,19 +42,43 @@ def create_app():
             "allow_headers": ["Content-Type", "Authorization"]
         }
     })
+    
+    # Rate limiting
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=["200 per day", "50 per hour"],
+        storage_uri="memory://"
+    )
+    app.limiter = limiter  # Store for use in routes
+    
+    # CSRF Protection (exempt API endpoints)
+    csrf = CSRFProtect(app)
+    csrf.exempt(auth_bp)
+    csrf.exempt(tenant_bp)
+    csrf.exempt(admin_bp)
+    csrf.exempt(caretaker_bp)
+    csrf.exempt(mpesa_bp)
+    csrf.exempt(payment_bp)
 
     configure_logging(app)
     register_blueprints(app)
     register_error_handlers(app)
     register_cli_commands(app)
+    register_security_headers(app)
+    register_request_logging(app)
 
-    # Automatically create database tables (for development only)
-    with app.app_context():
-        try:
-            db.create_all()
-            app.logger.info("✅ Database tables created successfully.")
-        except Exception as e:
-            app.logger.error(f"❌ Error creating database tables: {e}")
+    # Only auto-create tables in development/testing
+    # In production, use: flask db upgrade
+    if app.config.get('FLASK_ENV') in ['development', 'testing']:
+        with app.app_context():
+            try:
+                db.create_all()
+                app.logger.info("✅ Database tables created (development mode)")
+            except Exception as e:
+                app.logger.error(f"❌ Error creating database tables: {e}")
+    else:
+        app.logger.info("ℹ️  Production mode: Use 'flask db upgrade' for schema changes")
 
     return app
 
@@ -129,7 +158,10 @@ def register_cli_commands(app: Flask) -> None:
     """Register CLI commands for DB management."""
     @app.cli.command("init-db")
     def init_db():
-        """Initialize database tables."""
+        """Initialize database tables (development only)."""
+        if os.getenv("FLASK_ENV") == "production":
+            print("❌ Cannot run init-db in production. Use 'flask db upgrade' instead.")
+            return
         with app.app_context():
             db.create_all()
         print("✅ Database initialized successfully.")
@@ -137,6 +169,9 @@ def register_cli_commands(app: Flask) -> None:
     @app.cli.command("drop-db")
     def drop_db():
         """Drop all tables (use with caution)."""
+        if os.getenv("FLASK_ENV") == "production":
+            print("❌ Cannot run drop-db in production!")
+            return
         confirm = input("Are you sure you want to drop all tables? (y/n): ")
         if confirm.lower() == "y":
             with app.app_context():
@@ -147,44 +182,60 @@ def register_cli_commands(app: Flask) -> None:
 
     @app.cli.command("seed-db")
     def seed_db():
-        """Seed initial data."""
-        from werkzeug.security import generate_password_hash
-        from models.base import User
+        """Seed initial data (development/testing only)."""
+        if os.getenv("FLASK_ENV") == "production":
+            print("❌ Cannot seed database in production!")
+            print("   Create admin users manually with strong passwords.")
+            return
+            
+        from models.user import User
+        import uuid
 
         with app.app_context():
             if User.query.first():
                 print("Database already seeded.")
                 return
 
-            users = [
-                User(
-                    email="admin@joycesuites.com",
-                    password_hash=generate_password_hash("Admin@123456"),
-                    full_name="Admin User",
-                    phone="+254712000000",
-                    role="admin",
-                    is_active=True
-                ),
-                User(
-                    email="caretaker@joycesuites.com",
-                    password_hash=generate_password_hash("Caretaker@123456"),
-                    full_name="Caretaker User",
-                    phone="+254712000001",
-                    role="caretaker",
-                    is_active=True
-                ),
-                User(
-                    email="tenant@joycesuites.com",
-                    password_hash=generate_password_hash("Tenant@123456"),
-                    full_name="Sample Tenant",
-                    phone="+254712000002",
-                    role="tenant",
-                    is_active=True
-                )
-            ]
-            db.session.add_all(users)
+            # Create test users (development only)
+            admin = User(
+                email="admin@joycesuites.com",
+                username=f"admin_{str(uuid.uuid4())[:8]}",
+                first_name="Admin",
+                last_name="User",
+                phone_number="+254712000000",
+                role="admin",
+                national_id=10000000,
+                is_active=True
+            )
+            admin.password = "Admin@123456"
+            
+            caretaker = User(
+                email="caretaker@joycesuites.com",
+                username=f"caretaker_{str(uuid.uuid4())[:8]}",
+                first_name="Caretaker",
+                last_name="User",
+                phone_number="+254712000001",
+                role="caretaker",
+                national_id=10000001,
+                is_active=True
+            )
+            caretaker.password = "Caretaker@123456"
+            
+            tenant = User(
+                email="tenant@joycesuites.com",
+                username=f"tenant_{str(uuid.uuid4())[:8]}",
+                first_name="Sample",
+                last_name="Tenant",
+                phone_number="+254712000002",
+                role="tenant",
+                national_id=10000002,
+                is_active=True
+            )
+            tenant.password = "Tenant@123456"
+            
+            db.session.add_all([admin, caretaker, tenant])
             db.session.commit()
-            print("✅ Seeded admin, caretaker, and tenant users.")
+            print("✅ Seeded admin, caretaker, and tenant users (DEV ONLY).")
 
 
 def configure_logging(app: Flask) -> None:
@@ -214,6 +265,30 @@ def check_db_connection(app: Flask) -> bool:
         return False
 
 
+def register_security_headers(app: Flask) -> None:
+    """Add security headers to all responses."""
+    @app.after_request
+    def set_security_headers(response):
+        # Only add security headers in production
+        if app.config.get('FLASK_ENV') == 'production':
+            headers = app.config.get('SECURITY_HEADERS', {})
+            for header, value in headers.items():
+                response.headers[header] = value
+        return response
+
+
+def register_request_logging(app: Flask) -> None:
+    """Log all incoming requests for security auditing."""
+    @app.before_request
+    def log_request_info():
+        # Log request details (excluding sensitive data)
+        app.logger.info(
+            f"{request.method} {request.path} | "
+            f"IP: {request.remote_addr} | "
+            f"User-Agent: {request.headers.get('User-Agent', 'Unknown')[:50]}"
+        )
+
+
 # ✅ Expose app globally for Gunicorn / Render
 app = create_app()
 
@@ -224,9 +299,14 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
     debug = os.getenv("FLASK_DEBUG", "False").lower() == "true"
 
-    with app.app_context():
-        db.create_all()
-        app.logger.info("✅ Database verified before startup.")
+    # Only verify database in development
+    if os.getenv("FLASK_ENV") != "production":
+        with app.app_context():
+            try:
+                db.create_all()
+                app.logger.info("✅ Database verified before startup.")
+            except Exception as e:
+                app.logger.error(f"❌ Database verification failed: {e}")
 
     print(f"\n🌍 Joyce Suites API running on http://{host}:{port} (Env: {os.getenv('FLASK_ENV')})")
     app.run(host=host, port=port, debug=debug, use_reloader=debug)
