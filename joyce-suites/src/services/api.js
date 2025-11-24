@@ -3,23 +3,33 @@ import config from '../config';
 class ApiService {
   constructor() {
     this.baseURL = config.apiBaseUrl;
+    console.log('🔧 API Service initialized with baseURL:', this.baseURL);
   }
 
   // Generic request method
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
     
+    console.log('📡 API Request:', {
+      method: options.method || 'GET',
+      url: url,
+      endpoint: endpoint
+    });
+    
     const defaultOptions = {
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'include', // For session-based auth
+      credentials: 'include',
     };
 
     // Add authorization header if token exists
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('joyce-suites-token');
     if (token) {
       defaultOptions.headers['Authorization'] = `Bearer ${token}`;
+      console.log('✅ Token added to request:', token.substring(0, 30) + '...');
+    } else {
+      console.warn('⚠️  No token found in localStorage');
     }
 
     const requestOptions = {
@@ -39,6 +49,12 @@ class ApiService {
     try {
       const response = await fetch(url, requestOptions);
       
+      console.log('📊 Response Status:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url
+      });
+
       // Handle non-JSON responses
       const contentType = response.headers.get('content-type');
       let data;
@@ -50,12 +66,14 @@ class ApiService {
       }
 
       if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+        console.error('❌ API Error Response:', data);
+        throw new Error(data.message || data.error || `HTTP error! status: ${response.status}`);
       }
 
+      console.log('✅ API Success:', data);
       return data;
     } catch (error) {
-      console.error('API request failed:', error);
+      console.error('❌ API request failed:', error);
       throw error;
     }
   }
@@ -83,6 +101,7 @@ class ApiService {
     },
 
     getProfile: async () => {
+      console.log('👤 Calling getProfile with endpoint:', config.endpoints.auth.profile);
       return this.request(config.endpoints.auth.profile);
     },
 
@@ -103,7 +122,6 @@ class ApiService {
       });
     },
 
-    // For handling MPesa callbacks (if needed from frontend)
     handleCallback: async (callbackData) => {
       return this.request(config.endpoints.mpesa.callback, {
         method: 'POST',
@@ -148,7 +166,6 @@ class ApiService {
       return this.request(endpoint);
     },
 
-    // Add more caretaker-specific methods as needed
     updateTenant: async (tenantId, updateData) => {
       return this.request(`${config.endpoints.caretaker.tenants}/${tenantId}`, {
         method: 'PUT',
@@ -159,6 +176,11 @@ class ApiService {
 
   // Tenant endpoints
   tenant = {
+    getDashboard: async () => {
+      console.log('📊 Calling getDashboard with endpoint:', config.endpoints.tenant.dashboard);
+      return this.request(config.endpoints.tenant.dashboard);
+    },
+
     getProfile: async () => {
       return this.request(config.endpoints.tenant.profile);
     },

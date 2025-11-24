@@ -32,19 +32,24 @@ export function AuthProvider({ children }) {
         if (savedUser && savedToken) {
           const userData = JSON.parse(savedUser);
           
-          // Verify token is still valid by making a profile request
+          // Set user from localStorage first (don't wait for profile validation)
+          setUser(userData);
+          
+          // Try to validate token by making a profile request, but don't block if it fails
           try {
             const profile = await apiService.auth.getProfile();
-            setUser({ ...userData, ...profile });
+            setUser(prev => ({ ...prev, ...profile }));
           } catch (error) {
-            // Token is invalid, clear storage
-            console.error('Token validation failed:', error);
-            logout();
+            // Token validation failed, but we keep the user logged in with cached data
+            // This allows the app to continue working even if the profile endpoint is temporarily down
+            console.warn('Profile validation failed, using cached user data:', error);
           }
         }
       } catch (err) {
         console.error('Error initializing auth:', err);
-        logout();
+        // Clear invalid data
+        localStorage.removeItem(STORAGE_KEYS.USER);
+        localStorage.removeItem(STORAGE_KEYS.TOKEN);
       } finally {
         setLoading(false);
       }
@@ -123,10 +128,12 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      // Call logout endpoint if available
-      await apiService.auth.logout();
-    } catch (error) {
-      console.error('Error during logout:', error);
+      // Try to call logout endpoint, but don't fail if it's unreachable
+      try {
+        await apiService.auth.logout();
+      } catch (error) {
+        console.warn('Logout endpoint unreachable, clearing local data anyway:', error);
+      }
     } finally {
       // Clear local state regardless of API call success
       setUser(null);
@@ -169,8 +176,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
     } catch (error) {
       console.error('Error refreshing user data:', error);
-      // If refresh fails, log user out
-      logout();
+      // Don't log out on refresh failure, just warn
     }
   };
 

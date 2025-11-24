@@ -1,9 +1,5 @@
-// ============================================
-// TENANT PAYMENTS COMPONENT
-// ============================================
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // Import Link
 import './TenantPayment.css';
 import logo from '../../assets/image1.png';
 
@@ -17,12 +13,61 @@ const TenantPayments = () => {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [mpesaPhone, setMpesaPhone] = useState('');
+  
+  // State to hold actual tenant lease information
+  const [tenantInfo, setTenantInfo] = useState({ leaseId: null, roomNumber: null });
 
+  // 1. Initial Data Fetch (Payments & Summary)
   useEffect(() => {
     fetchPayments(currentPage, statusFilter);
   }, [statusFilter, currentPage]);
 
+  // 2. Fetch Tenant Lease Info on Component Mount
+  useEffect(() => {
+    fetchTenantLeaseInfo();
+  }, []); // Run once on mount
+
+  const fetchTenantLeaseInfo = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        // Will be redirected by fetchPayments or a higher-level component
+        return; 
+      }
+      
+      // Assumes this endpoint returns the active lease ID and room number
+      const response = await fetch('/api/tenant/lease/active', { 
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok || !data.lease_id || !data.room_number) {
+        console.warn('Could not load active lease information. Payment initiation will be disabled.');
+        // Do not throw error here, just prevent setting info
+        return; 
+      }
+      
+      setTenantInfo({ 
+          leaseId: data.lease_id, 
+          roomNumber: data.room_number 
+      });
+      
+    } catch (err) {
+      console.error('Error fetching tenant lease info:', err);
+      // Set an error state if critical info fetch fails
+      setError('Failed to load critical tenant data. Cannot initiate payments.');
+    }
+  };
+
+
   const fetchPayments = async (page = 1, status = 'all') => {
+    setLoading(true);
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -61,14 +106,32 @@ const TenantPayments = () => {
   };
 
   const handlePayNow = (payment) => {
+    if (!tenantInfo.leaseId || !tenantInfo.roomNumber) {
+        setError('Cannot initiate payment. Active lease information is missing.');
+        return;
+    }
+    
     setSelectedPayment(payment);
     setShowPaymentModal(true);
+    setMpesaPhone('');
   };
 
   const handleMpesaPayment = async () => {
+    if (!selectedPayment || !mpesaPhone) {
+      setError('Please select a payment and enter your M-Pesa phone number.');
+      return;
+    }
+
+    if (!tenantInfo.leaseId || !tenantInfo.roomNumber) {
+        setError('System error: Lease information is missing. Cannot proceed with payment.');
+        return;
+    }
+
+    setError('');
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/tenant/payments/mpesa', {
+      
+      const response = await fetch('/api/payments/initiate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -76,20 +139,24 @@ const TenantPayments = () => {
         },
         body: JSON.stringify({
           amount: selectedPayment.amount,
-          phone: '+254712345678', // Get from user input
-          payment_month: selectedPayment.month
+          phone_number: mpesaPhone,
+          // Using fetched state values instead of dummy data
+          lease_id: tenantInfo.leaseId, 
+          room_number: tenantInfo.roomNumber
         })
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'M-Pesa payment failed');
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'M-Pesa payment failed to initiate STK push.');
       }
 
-      alert('M-Pesa STK push sent to your phone. Complete the transaction.');
+      alert('M-Pesa STK push initiated successfully! Check your phone for the prompt.');
       setShowPaymentModal(false);
       setSelectedPayment(null);
+      setMpesaPhone('');
+      fetchPayments(currentPage, statusFilter);
     } catch (err) {
       setError(err.message);
     }
@@ -113,8 +180,10 @@ const TenantPayments = () => {
   const getStatusBadge = (status) => {
     const statusMap = {
       'paid': 'status-paid',
+      'successful': 'status-paid',
       'pending': 'status-pending',
-      'overdue': 'status-overdue'
+      'overdue': 'status-overdue',
+      'failed': 'status-failed'
     };
     return statusMap[status?.toLowerCase()] || 'status-pending';
   };
@@ -130,7 +199,6 @@ const TenantPayments = () => {
 
   return (
     <div className="tenant-dashboard">
-      {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-header">
           <img src={logo} alt="Logo" className="sidebar-logo" />
@@ -138,26 +206,27 @@ const TenantPayments = () => {
         </div>
 
         <nav className="sidebar-nav">
-          <a href="/tenant/dashboard" className="nav-item">
-            <span className="nav-icon"></span>
+          {/* FIX: Use Link component for internal navigation */}
+          <Link to="/tenant/dashboard" className="nav-item">
+            <span className="nav-icon">📊</span>
             Dashboard
-          </a>
-          <a href="/tenant/payments" className="nav-item active">
-            <span className="nav-icon"></span>
+          </Link>
+          <Link to="/tenant/payments" className="nav-item active">
+            <span className="nav-icon">💵</span>
             Payments
-          </a>
-          <a href="/tenant/profile" className="nav-item">
-            <span className="nav-icon"></span>
+          </Link>
+          <Link to="/tenant/profile" className="nav-item">
+            <span className="nav-icon">👤</span>
             Profile
-          </a>
-          <a href="/tenant/maintenance" className="nav-item">
+          </Link>
+          <Link to="/tenant/maintenance" className="nav-item">
             <span className="nav-icon">🔧</span>
             Maintenance
-          </a>
-          <a href="/tenant/lease" className="nav-item">
+          </Link>
+          <Link to="/tenant/lease" className="nav-item">
             <span className="nav-icon">📄</span>
             My Lease
-          </a>
+          </Link>
         </nav>
 
         <div className="sidebar-footer">
@@ -168,16 +237,22 @@ const TenantPayments = () => {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="main-content">
-        {/* Topbar */}
         <header className="topbar">
           <div className="topbar-left">
             <h1>Payments</h1>
             <p className="breadcrumb">Home / Payments</p>
           </div>
           <div className="topbar-right">
-            <button className="btn btn-primary" onClick={() => setShowPaymentModal(true)}>
+            <button 
+              className="btn btn-primary" 
+              onClick={() => {
+                const payable = payments.find(p => p.status === 'pending' || p.status === 'overdue');
+                handlePayNow(payable || { amount: summary.total_pending, month: 'Current', due_date: new Date().toISOString() });
+              }}
+              // Disable button if lease info is missing
+              disabled={!tenantInfo.leaseId || !tenantInfo.roomNumber} 
+            >
               💳 Make Payment
             </button>
           </div>
@@ -185,31 +260,28 @@ const TenantPayments = () => {
 
         {error && <div className="alert alert-error">{error}</div>}
 
-        {/* Payment Summary */}
         <div className="payment-stats">
           <div className="stat-item">
             <span className="stat-label">Total Paid</span>
-            <span className="stat-value">
+            <span className="stat-value paid">
               KSh {(summary.total_paid || 0).toLocaleString()}
             </span>
           </div>
           <div className="stat-item">
             <span className="stat-label">Pending Amount</span>
-            <span className="stat-value pending">
+            <span className="stat-value overdue">
               KSh {(summary.total_pending || 0).toLocaleString()}
             </span>
           </div>
           <div className="stat-item">
             <span className="stat-label">Total Transactions</span>
-            <span className="stat-value">
+            <span className="stat-value total">
               {summary.total_transactions || 0}
             </span>
           </div>
         </div>
 
-        {/* Payments Content */}
         <div className="payments-content">
-          {/* Filters */}
           <div className="filters-section">
             <h3>Payment History</h3>
             <div className="filter-buttons">
@@ -240,7 +312,6 @@ const TenantPayments = () => {
             </div>
           </div>
 
-          {/* Payments Table */}
           <div className="table-container">
             <table className="payments-table">
               <thead>
@@ -266,19 +337,21 @@ const TenantPayments = () => {
                           {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                         </span>
                       </td>
-                      <td>{payment.payment_method || '-'}</td>
+                      <td>{payment.payment_method || (payment.transaction_ref ? 'M-Pesa' : '-')}</td>
                       <td className="reference">{payment.transaction_ref || '-'}</td>
                       <td className="actions">
                         {payment.status === 'pending' || payment.status === 'overdue' ? (
                           <button 
                             className="action-btn pay"
                             onClick={() => handlePayNow(payment)}
+                            // Disable individual pay buttons if info is missing
+                            disabled={!tenantInfo.leaseId || !tenantInfo.roomNumber}
                           >
-                            💳 Pay
+                            Pay
                           </button>
                         ) : (
                           <button className="action-btn view" disabled>
-                            ✓ Paid
+                            Paid
                           </button>
                         )}
                       </td>
@@ -306,33 +379,52 @@ const TenantPayments = () => {
               <h2>Make Payment</h2>
               
               {selectedPayment && (
-                <div className="payment-details">
-                  <p><strong>Month:</strong> {selectedPayment.month}</p>
-                  <p><strong>Amount:</strong> KSh {selectedPayment.amount.toLocaleString()}</p>
-                  <p><strong>Due Date:</strong> {new Date(selectedPayment.due_date).toLocaleDateString()}</p>
+                <div className="payment-details-summary">
+                  <p><strong>Month:</strong> {selectedPayment.month || 'N/A'}</p>
+                  <p><strong>Amount:</strong> <span className="modal-amount">KSh {selectedPayment.amount.toLocaleString()}</span></p>
+                  {/* Displaying fetched/real values */}
+                  <p><strong>Lease:</strong> Lease ID {tenantInfo.leaseId || 'N/A'} (Room {tenantInfo.roomNumber || 'N/A'})</p>
                 </div>
               )}
 
+              {error && <div className="alert alert-error">{error}</div>}
+
               <div className="payment-options">
-                <div className="payment-option">
-                  <h3>📱 M-Pesa Paybill</h3>
-                  <div className="payment-details">
-                    <p><strong>Phone:</strong> 0758 999322</p>
-                    <p><strong>Account:</strong> JOYCE MUTHONI</p>
+                <div className="payment-option mpesa">
+                  <h3>M-Pesa STK Push</h3>
+                  <p className="help-text">We will send an STK push prompt to this number.</p>
+
+                  <div className="form-group">
+                    <label htmlFor="mpesa-phone">M-Pesa Phone (e.g., 2547XXXXXXXX):</label>
+                    <input 
+                      id="mpesa-phone"
+                      type="tel" 
+                      value={mpesaPhone}
+                      onChange={(e) => setMpesaPhone(e.target.value)}
+                      placeholder="2547..."
+                      required
+                    />
                   </div>
-                  <button className="btn btn-primary" onClick={handleMpesaPayment}>
-                    Pay via M-Pesa
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={handleMpesaPayment}
+                    // Disable button if lease info is missing or phone number is empty
+                    disabled={!tenantInfo.leaseId || !tenantInfo.roomNumber || !mpesaPhone} 
+                  >
+                    Initiate STK Push
                   </button>
                 </div>
 
-                <div className="payment-option">
-                  <h3>🏦 Bank Transfer</h3>
+                <div className="payment-option bank">
+                  <h3>Bank Transfer Details</h3>
                   <div className="payment-details">
                     <p><strong>Bank:</strong> Equity Bank</p>
-                    <p><strong>Account:</strong> 0123456789</p>
+                    <p><strong>Account Name:</strong> JOYCE SUITS LTD</p>
+                    <p><strong>Account No:</strong> 0123456789</p>
                   </div>
-                  <button className="btn btn-secondary">
-                    Copy Details
+                  <button className="btn btn-secondary" 
+					onClick={() => navigator.clipboard.writeText('0123456789').then(() => alert('Account number copied!'))}>
+                    Copy Account No.
                   </button>
                 </div>
               </div>
@@ -340,7 +432,6 @@ const TenantPayments = () => {
           </div>
         )}
 
-        {/* Footer */}
         <footer className="dashboard-footer">
           <div className="footer-content">
             <div className="footer-section">
@@ -354,9 +445,10 @@ const TenantPayments = () => {
             </div>
             <div className="footer-section">
               <h4>Quick Links</h4>
-              <a href="/tenant/dashboard">Dashboard</a>
-              <a href="/tenant/maintenance">Maintenance</a>
-              <a href="/tenant/profile">Profile</a>
+              {/* FIX: Use Link component for internal navigation */}
+              <Link to="/tenant/dashboard">Dashboard</Link>
+              <Link to="/tenant/maintenance">Maintenance</Link>
+              <Link to="/tenant/profile">Profile</Link>
             </div>
           </div>
           <div className="footer-bottom">
