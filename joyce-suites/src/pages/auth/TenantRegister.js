@@ -62,33 +62,61 @@ const TenantRegister = () => {
   };
 
   const validateForm = () => {
-    if (!formData.fullName.trim()) return setError('Full name is required'), false;
-    if (!formData.email.includes('@')) return setError('Valid email is required'), false;
+    if (!formData.fullName.trim()) {
+      setError('Full name is required');
+      return false;
+    }
+    if (!formData.email.includes('@')) {
+      setError('Valid email is required');
+      return false;
+    }
 
     // Kenyan phone number validation
     const phoneRegex = /^(\+254|0)[1-9]\d{8}$/;
     if (!formData.phone || !phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
-      return setError('Phone number must be in format +254XXXXXXXXX or 07XXXXXXXX'), false;
+      setError('Phone number must be in format +254XXXXXXXXX or 07XXXXXXXX');
+      return false;
     }
 
-    if (!formData.idNumber.trim()) return setError('ID number is required'), false;
-    if (!formData.roomNumber.trim()) return setError('Room number is required'), false;
+    if (!formData.idNumber.trim()) {
+      setError('ID number is required');
+      return false;
+    }
+    if (!formData.roomNumber.trim()) {
+      setError('Room number is required');
+      return false;
+    }
 
     // Password validation - must have uppercase, digit, and 8+ characters
     if (formData.password.length < 8) {
-      return setError('Password must be at least 8 characters'), false;
+      setError('Password must be at least 8 characters');
+      return false;
     }
     if (!/[A-Z]/.test(formData.password)) {
-      return setError('Password must contain at least one uppercase letter'), false;
+      setError('Password must contain at least one uppercase letter');
+      return false;
     }
     if (!/\d/.test(formData.password)) {
-      return setError('Password must contain at least one digit'), false;
+      setError('Password must contain at least one digit');
+      return false;
     }
 
-    if (formData.password !== formData.confirmPassword) return setError('Passwords do not match'), false;
-    if (!formData.photo) return setError('Photo is required'), false;
-    if (!formData.idDocument) return setError('ID document is required'), false;
-    if (!formData.terms) return setError('You must agree to the terms and conditions'), false;
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return false;
+    }
+    if (!formData.photo) {
+      setError('Photo is required');
+      return false;
+    }
+    if (!formData.idDocument) {
+      setError('ID document is required');
+      return false;
+    }
+    if (!formData.terms) {
+      setError('You must agree to the terms and conditions');
+      return false;
+    }
     return true;
   };
 
@@ -103,7 +131,7 @@ const TenantRegister = () => {
 
     try {
       const uploadData = new FormData();
-      uploadData.append('fullName', formData.fullName);
+      uploadData.append('full_name', formData.fullName);
       uploadData.append('email', formData.email);
       uploadData.append('phone', formData.phone);
       uploadData.append('idNumber', formData.idNumber);
@@ -116,13 +144,27 @@ const TenantRegister = () => {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         body: uploadData
+        // Don't set Content-Type header - browser will set it with boundary for FormData
       });
 
-      const data = await response.json();
+      // Handle response safely - check if response has content
+      let data = {};
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (parseError) {
+          console.error('Failed to parse JSON:', parseError);
+          data = { message: 'Invalid response from server' };
+        }
+      } else if (!response.ok) {
+        // If not ok and not JSON, create error from status
+        data = { message: `Server error: ${response.status} ${response.statusText}` };
+      }
 
       if (!response.ok) {
-        // Catch common backend messages like duplicate emails
-        const message = data.message || 'Registration failed';
+        const message = data.message || data.error || `Registration failed with status ${response.status}`;
         if (message.toLowerCase().includes('email')) {
           setError('Email already exists');
         } else {
@@ -131,15 +173,25 @@ const TenantRegister = () => {
         throw new Error(message);
       }
 
-      localStorage.setItem('tenantData', JSON.stringify({
-        ...formData,
-        id: data.tenantId,
-        unitData: data.unitData
-      }));
+      // Store authentication data on success with correct storage keys
+      if (data.token) {
+        localStorage.setItem('joyce-suites-token', data.token);
+        localStorage.setItem('joyce-suites-user', JSON.stringify({
+          ...data.user,
+          loginTime: new Date().toISOString()
+        }));
+        localStorage.setItem('userRole', data.user.role);
+      }
 
-      setSuccess('Registration successful! Redirecting to sign lease agreement...');
-      setTimeout(() => navigate('/lease-agreement'), 2000);
+      setSuccess('Registration successful! Redirecting to dashboard...');
+      // Add a small delay to ensure localStorage is saved before navigation
+      setTimeout(() => {
+        console.log('Navigating to dashboard with token:', data.token);
+        // Force a hard refresh to reload AuthContext from localStorage
+        window.location.href = '/tenant/dashboard';
+      }, 500);
     } catch (err) {
+      console.error('Registration error:', err);
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
@@ -214,17 +266,40 @@ const TenantRegister = () => {
               <h3>Personal Information</h3>
               <div className="form-group">
                 <label htmlFor="fullName">Full Name *</label>
-                <input type="text" id="fullName" name="fullName" value={formData.fullName} onChange={handleInputChange} required />
+                <input 
+                  type="text" 
+                  id="fullName" 
+                  name="fullName" 
+                  value={formData.fullName} 
+                  onChange={handleInputChange} 
+                  required 
+                />
               </div>
 
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="email">Email Address *</label>
-                  <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="example@email.com" required />
+                  <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    value={formData.email} 
+                    onChange={handleInputChange} 
+                    placeholder="example@email.com" 
+                    required 
+                  />
                 </div>
                 <div className="form-group">
                   <label htmlFor="phone">Phone Number *</label>
-                  <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="+254712345678 or 0712345678" required />
+                  <input 
+                    type="tel" 
+                    id="phone" 
+                    name="phone" 
+                    value={formData.phone} 
+                    onChange={handleInputChange} 
+                    placeholder="+254712345678 or 0712345678" 
+                    required 
+                  />
                   <small style={{ color: '#666', fontSize: '12px' }}>Format: +254XXXXXXXXX or 07XXXXXXXX</small>
                 </div>
               </div>
@@ -232,11 +307,25 @@ const TenantRegister = () => {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="idNumber">ID Number *</label>
-                  <input type="text" id="idNumber" name="idNumber" value={formData.idNumber} onChange={handleInputChange} required />
+                  <input 
+                    type="text" 
+                    id="idNumber" 
+                    name="idNumber" 
+                    value={formData.idNumber} 
+                    onChange={handleInputChange} 
+                    required 
+                  />
                 </div>
                 <div className="form-group">
                   <label htmlFor="roomNumber">Room Number *</label>
-                  <input type="text" id="roomNumber" name="roomNumber" value={formData.roomNumber} onChange={handleInputChange} required />
+                  <input 
+                    type="text" 
+                    id="roomNumber" 
+                    name="roomNumber" 
+                    value={formData.roomNumber} 
+                    onChange={handleInputChange} 
+                    required 
+                  />
                 </div>
               </div>
             </div>
@@ -247,19 +336,41 @@ const TenantRegister = () => {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="password">Password *</label>
-                  <input type="password" id="password" name="password" value={formData.password} onChange={handleInputChange} placeholder="Min 8 characters" required />
+                  <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    value={formData.password} 
+                    onChange={handleInputChange} 
+                    placeholder="Min 8 characters" 
+                    required 
+                  />
                   <small style={{ color: '#666', fontSize: '12px' }}>Must contain at least 8 characters, 1 uppercase letter, and 1 digit</small>
                 </div>
                 <div className="form-group">
                   <label htmlFor="confirmPassword">Confirm Password *</label>
-                  <input type="password" id="confirmPassword" name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} required />
+                  <input 
+                    type="password" 
+                    id="confirmPassword" 
+                    name="confirmPassword" 
+                    value={formData.confirmPassword} 
+                    onChange={handleInputChange} 
+                    required 
+                  />
                 </div>
               </div>
             </div>
 
             {/* Terms and Conditions */}
             <div className="form-group terms-group">
-              <input type="checkbox" id="terms" name="terms" checked={formData.terms} onChange={handleInputChange} required />
+              <input 
+                type="checkbox" 
+                id="terms" 
+                name="terms" 
+                checked={formData.terms} 
+                onChange={handleInputChange} 
+                required 
+              />
               <label htmlFor="terms">I agree to the Terms and Conditions and Privacy Policy</label>
             </div>
 
