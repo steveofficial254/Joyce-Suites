@@ -10,7 +10,7 @@ import apartment2 from '../../assets/image21.jpg';
 import apartment3 from '../../assets/image22.jpg';
 import apartment4 from '../../assets/image10.jpg';
 import apartment5 from '../../assets/image8.jpg';
-import apartment6 from '../../assets/image9.jpg';
+import apartment6 from '../../assets/image11.jpg';
 
 const TenantDashboard = () => {
   const navigate = useNavigate();
@@ -25,6 +25,8 @@ const TenantDashboard = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [paymentDetails, setPaymentDetails] = useState(null);
+  const [loadingPaymentDetails, setLoadingPaymentDetails] = useState(false);
   
   // Modal states
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -36,10 +38,14 @@ const TenantDashboard = () => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [signatureEmpty, setSignatureEmpty] = useState(true);
   const [leaseData, setLeaseData] = useState(null);
+  const [fullLeaseDetails, setFullLeaseDetails] = useState(null);
+  
+  // Room details state
+  const [roomDetails, setRoomDetails] = useState(null);
+  const [accountDetails, setAccountDetails] = useState(null);
   
   // Form states
   const [mpesaPhone, setMpesaPhone] = useState('');
-  const [paymentAmount, setPaymentAmount] = useState('');
   const [maintenanceForm, setMaintenanceForm] = useState({
     title: '',
     description: '',
@@ -51,6 +57,10 @@ const TenantDashboard = () => {
     reason: ''
   });
 
+  // ==================== NEW: Lease Gate State ====================
+  const [showLeaseGate, setShowLeaseGate] = useState(false);
+  const [leaseGateData, setLeaseGateData] = useState(null);
+
   const apartmentImages = [apartment1, apartment2, apartment3, apartment4, apartment5, apartment6];
 
   const currentDate = new Date();
@@ -61,7 +71,39 @@ const TenantDashboard = () => {
   });
 
   useEffect(() => {
-    fetchAllData();
+    // Check if we need to show lease gate after registration
+    const checkLeaseStatus = async () => {
+      const token = localStorage.getItem('joyce-suites-token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      try {
+        // First check if user just registered (has token but no dashboard data)
+        const justRegistered = localStorage.getItem('justRegistered') === 'true';
+        
+        if (justRegistered) {
+          localStorage.removeItem('justRegistered');
+          // Fetch dashboard data first
+          await fetchAllData();
+          
+          // Then check if lease needs signing
+          if (dashboardData && !dashboardData.lease_signed && dashboardData.has_lease) {
+            setShowLeaseGate(true);
+            fetchLeaseGateData();
+          }
+        } else {
+          await fetchAllData();
+        }
+      } catch (err) {
+        console.error('Error checking lease status:', err);
+        await fetchAllData();
+      }
+    };
+
+    checkLeaseStatus();
+
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % apartmentImages.length);
     }, 5000);
@@ -70,62 +112,397 @@ const TenantDashboard = () => {
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('joyce-suites-token');
+    
+    if (!token) {
+      setError('Authentication token not found. Please login again.');
+      setTimeout(() => navigate('/login'), 2000);
+      return null;
+    }
+    
     return {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     };
   };
 
+  // Determine account details based on room number
+  const getAccountDetails = (roomNumber) => {
+    const roomNum = parseInt(roomNumber);
+    
+    // Rooms that pay to Joyce Muthoni
+    const joyceRooms = [1, 2, 3, 4, 5, 6, 8, 9, 10];
+    // Rooms that pay to Lawrence Mathea
+    const lawrenceRooms = [11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26];
+    
+    // Room pricing and deposit rules
+    let rentAmount = 5000;
+    let depositAmount = 5400;
+    let roomType = 'bedsitter';
+    
+    if ([8, 9, 10, 17, 19, 20].includes(roomNum)) {
+      // 1-bedroom standard
+      rentAmount = 7500;
+      depositAmount = 7900;
+      roomType = 'one_bedroom';
+    } else if (roomNum === 18) {
+      // Special room 18
+      rentAmount = 7000;
+      depositAmount = 7400;
+      roomType = 'one_bedroom';
+    } else if ([12, 22].includes(roomNum)) {
+      // Bigger bedsitters
+      rentAmount = 5500;
+      depositAmount = 5900;
+      roomType = 'bedsitter';
+    } else if ([11, 13, 14, 15, 21, 23, 24, 25, 26].includes(roomNum)) {
+      // Standard bedsitters for Lawrence
+      rentAmount = 5000;
+      depositAmount = 5400;
+      roomType = 'bedsitter';
+    }
+    
+    // Determine landlord
+    let landlordName = '';
+    let paybill = '';
+    let accountNumber = '';
+    
+    if (joyceRooms.includes(roomNum)) {
+      landlordName = 'Joyce Muthoni Mathea';
+      paybill = '222111';
+      accountNumber = `JOYCE${roomNum.toString().padStart(3, '0')}`;
+    } else if (lawrenceRooms.includes(roomNum)) {
+      landlordName = 'Lawrence Mathea';
+      paybill = '222222';
+      accountNumber = `LAWRENCE${roomNum.toString().padStart(3, '0')}`;
+    } else {
+      landlordName = 'Not Assigned';
+      paybill = 'N/A';
+      accountNumber = 'N/A';
+    }
+    
+    return {
+      roomNumber: roomNum,
+      roomType,
+      rentAmount,
+      depositAmount,
+      landlordName,
+      paybill,
+      accountNumber,
+      fullAccountName: `${accountNumber} - ${landlordName}`
+    };
+  };
+
+  // ==================== NEW: Fetch Lease Gate Data ====================
+  const fetchLeaseGateData = async () => {
+    try {
+      const headers = getAuthHeaders();
+      if (!headers) return null;
+
+      console.log('Fetching lease gate data from:', `${config.apiBaseUrl}${config.endpoints.tenant.lease}`);
+      
+      const response = await fetch(
+        `${config.apiBaseUrl}${config.endpoints.tenant.lease}`,
+        { 
+          headers,
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Lease gate data response:', data);
+        
+        if (data.success) {
+          setLeaseGateData(data.lease);
+          return data.lease;
+        } else {
+          setError('Failed to load lease information for signing');
+          return null;
+        }
+      } else {
+        const errorText = await response.text();
+        console.error('Lease gate error response:', errorText);
+        setError('Failed to load lease information');
+        return null;
+      }
+    } catch (err) {
+      console.error('Error fetching lease gate data:', err);
+      setError('Network error loading lease information');
+      return null;
+    }
+  };
+
+  const fetchRoomDetails = async (unitNumber) => {
+    try {
+      const headers = getAuthHeaders();
+      if (!headers) {
+        // Use fallback if no token
+        const fallbackData = getAccountDetails(unitNumber);
+        setRoomDetails(fallbackData);
+        return fallbackData;
+      }
+
+      const endpoint = config.endpoints.tenant.roomDetails.replace(':unit_number', unitNumber);
+      console.log('Fetching room details from:', `${config.apiBaseUrl}${endpoint}`);
+      
+      const response = await fetch(
+        `${config.apiBaseUrl}${endpoint}`,
+        { 
+          method: 'GET',
+          headers,
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.room) {
+          setRoomDetails(data.room);
+          return data.room;
+        } else {
+          // If API returns success but no room data, use fallback
+          const fallbackData = getAccountDetails(unitNumber);
+          setRoomDetails(fallbackData);
+          return fallbackData;
+        }
+      } else if (response.status === 404) {
+        console.warn(`Room ${unitNumber} not found via API, using fallback data`);
+        const fallbackData = getAccountDetails(unitNumber);
+        setRoomDetails(fallbackData);
+        return fallbackData;
+      } else {
+        console.error(`Error fetching room details: ${response.status}`);
+        const fallbackData = getAccountDetails(unitNumber);
+        setRoomDetails(fallbackData);
+        return fallbackData;
+      }
+    } catch (err) {
+      console.error('Network error fetching room details:', err);
+      // Use fallback data on network errors
+      const fallbackData = getAccountDetails(unitNumber);
+      setRoomDetails(fallbackData);
+      return fallbackData;
+    }
+  };
+
+  const fetchLeaseData = async () => {
+    try {
+      const headers = getAuthHeaders();
+      if (!headers) return null;
+
+      console.log('Fetching lease data from:', `${config.apiBaseUrl}${config.endpoints.tenant.lease}`);
+      
+      const response = await fetch(
+        `${config.apiBaseUrl}${config.endpoints.tenant.lease}`,
+        { 
+          headers,
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Lease data response:', data);
+        
+        if (data.success) {
+          setFullLeaseDetails(data.lease);
+          return data.lease;
+        }
+        return null;
+      } else {
+        console.error('Error fetching lease:', response.status);
+        return null;
+      }
+    } catch (err) {
+      console.error('Error fetching lease:', err);
+      return null;
+    }
+  };
+
+  const fetchPaymentDetails = async () => {
+    setLoadingPaymentDetails(true);
+    try {
+      const headers = getAuthHeaders();
+      if (!headers) return;
+
+      console.log('Fetching payment details from:', `${config.apiBaseUrl}${config.endpoints.tenant.paymentDetails}`);
+      
+      const response = await fetch(
+        `${config.apiBaseUrl}${config.endpoints.tenant.paymentDetails}`,
+        { 
+          headers,
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Payment details response:', data);
+        
+        if (data.success) {
+          setPaymentDetails(data.payment_details);
+          setError('');
+        } else {
+          setError(data.error || 'Failed to load payment details');
+        }
+      } else {
+        try {
+          const errorData = await response.json();
+          if (errorData.error === 'No active lease found' || errorData.error?.includes('lease')) {
+            setError('Please sign your lease agreement before making payments.');
+          } else {
+            setError(errorData.error || 'Failed to load payment details');
+          }
+        } catch (parseError) {
+          setError('Failed to load payment details');
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching payment details:', err);
+      setError('Failed to load payment details. Check your connection.');
+    } finally {
+      setLoadingPaymentDetails(false);
+    }
+  };
+
   const fetchAllData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('joyce-suites-token');
+      setError('');
       
+      const token = localStorage.getItem('joyce-suites-token');
       if (!token) {
         navigate('/login');
         return;
       }
 
-      const dashRes = await fetch(`${config.apiBaseUrl}${config.endpoints.tenant.dashboard}`, {
-        headers: getAuthHeaders()
-      });
+      const headers = getAuthHeaders();
+      if (!headers) return;
+
+      // 1. Fetch dashboard data
+      console.log('1. Fetching dashboard from:', `${config.apiBaseUrl}${config.endpoints.tenant.dashboard}`);
+      const dashRes = await fetch(
+        `${config.apiBaseUrl}${config.endpoints.tenant.dashboard}`,
+        { 
+          headers,
+          credentials: 'include'
+        }
+      );
+
+      console.log('Dashboard response status:', dashRes.status);
       
       if (dashRes.ok) {
         const dashData = await dashRes.json();
-        setDashboardData(dashData.dashboard);
+        console.log('Dashboard data:', dashData);
+        
+        if (dashData.success) {
+          setDashboardData(dashData.dashboard);
+          
+          // Set account details based on room number
+          if (dashData.dashboard?.unit_number) {
+            const accountInfo = getAccountDetails(dashData.dashboard.unit_number);
+            setAccountDetails(accountInfo);
+            // Use fallback if room details fetch fails
+            const roomDetails = await fetchRoomDetails(dashData.dashboard.unit_number).catch(err => {
+              console.error('Room details error, using fallback:', err);
+              return getAccountDetails(dashData.dashboard.unit_number);
+            });
+            setRoomDetails(roomDetails);
+          }
+        } else {
+          setError(dashData.error || 'Failed to load dashboard data');
+        }
+      } else if (dashRes.status === 401) {
+        // Token expired or invalid
+        localStorage.clear();
+        navigate('/login');
+        return;
+      } else {
+        const errorText = await dashRes.text();
+        console.error('Dashboard error response:', errorText);
+        throw new Error(`Dashboard load failed: ${dashRes.status}`);
       }
 
-      const profileRes = await fetch(`${config.apiBaseUrl}${config.endpoints.auth.profile}`, {
-        headers: getAuthHeaders()
-      });
-      
-      if (profileRes.ok) {
-        const profData = await profileRes.json();
-        setProfileData(profData.user);
+      // 2. Fetch profile data - Use tenant profile endpoint instead of auth profile
+      try {
+        console.log('2. Fetching profile from:', `${config.apiBaseUrl}${config.endpoints.tenant.profile}`);
+        const profileRes = await fetch(
+          `${config.apiBaseUrl}${config.endpoints.tenant.profile}`,
+          { 
+            headers,
+            credentials: 'include'
+          }
+        );
+        
+        if (profileRes.ok) {
+          const profData = await profileRes.json();
+          console.log('Profile data:', profData);
+          
+          if (profData.success) {
+            setProfileData(profData.user);
+          }
+        }
+      } catch (profileErr) {
+        console.error('Error fetching profile:', profileErr);
       }
 
-      const paymentsRes = await fetch(`${config.apiBaseUrl}${config.endpoints.tenant.payments}`, {
-        headers: getAuthHeaders()
-      });
-      
-      if (paymentsRes.ok) {
-        const paysData = await paymentsRes.json();
-        setPaymentsData(paysData.payments || []);
+      // 3. Fetch payments
+      try {
+        console.log('3. Fetching payments from:', `${config.apiBaseUrl}${config.endpoints.tenant.payments}`);
+        const paymentsRes = await fetch(
+          `${config.apiBaseUrl}${config.endpoints.tenant.payments}`,
+          { 
+            headers,
+            credentials: 'include'
+          }
+        );
+        
+        if (paymentsRes.ok) {
+          const paysData = await paymentsRes.json();
+          console.log('Payments data:', paysData);
+          
+          if (paysData.success) {
+            setPaymentsData(paysData.payments || []);
+          }
+        }
+      } catch (paymentsErr) {
+        console.error('Error fetching payments:', paymentsErr);
       }
 
-      const vacateRes = await fetch(`${config.apiBaseUrl}${config.endpoints.tenant.vacateNotices}`, {
-        headers: getAuthHeaders()
-      });
-      
-      if (vacateRes.ok) {
-        const vacateData = await vacateRes.json();
-        setVacateNotices(vacateData.notices || []);
+      // 4. Fetch vacate notices
+      try {
+        console.log('4. Fetching vacate notices from:', `${config.apiBaseUrl}${config.endpoints.tenant.vacateNotices}`);
+        const vacateRes = await fetch(
+          `${config.apiBaseUrl}${config.endpoints.tenant.vacateNotices}`,
+          { 
+            headers,
+            credentials: 'include'
+          }
+        );
+        
+        if (vacateRes.ok) {
+          const vacateData = await vacateRes.json();
+          console.log('Vacate notices data:', vacateData);
+          
+          if (vacateData.success) {
+            setVacateNotices(vacateData.notices || []);
+          }
+        }
+      } catch (vacateErr) {
+        console.error('Error fetching vacate notices:', vacateErr);
       }
 
-      setError('');
+      // 5. Fetch full lease details
+      try {
+        await fetchLeaseData();
+      } catch (leaseErr) {
+        console.error('Error fetching lease:', leaseErr);
+      }
+
+      console.log('✅ All data fetched successfully');
     } catch (err) {
-      console.error('Error fetching data:', err);
-      setError(err.message || 'Failed to load dashboard');
+      console.error('❌ Fetch all data error:', err);
+      setError(err.message || 'Failed to load dashboard. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -133,11 +510,14 @@ const TenantDashboard = () => {
 
   const handleLogout = async () => {
     try {
-      const token = localStorage.getItem('joyce-suites-token');
-      await fetch(`${config.apiBaseUrl}${config.endpoints.auth.logout}`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
+      const headers = getAuthHeaders();
+      if (headers) {
+        await fetch(`${config.apiBaseUrl}${config.endpoints.auth.logout}`, {
+          method: 'POST',
+          headers,
+          credentials: 'include'
+        });
+      }
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
@@ -146,36 +526,108 @@ const TenantDashboard = () => {
     }
   };
 
-  // Lease signing handlers
-  const handleOpenLeaseModal = () => {
-    setLeaseData({
-      tenant: {
-        fullName: profileData?.full_name,
-        idNumber: profileData?.id_number,
-        phone: profileData?.phone,
-        email: profileData?.email,
-        roomNumber: dashboardData?.unit_number
-      },
-      unit: {
-        rent_amount: dashboardData?.rent_amount,
-        property_name: dashboardData?.property_name
-      },
-      landlord: {
-        name: 'JOYCE MUTHONI MATHEA',
-        phone: '0758 999322',
-        email: 'joycesuites@gmail.com'
-      }
-    });
+  // ==================== NEW: Handle Lease Gate Actions ====================
+  const handleLeaseGateSignLease = () => {
+    setShowLeaseGate(false);
+    handleOpenLeaseModal();
+  };
+
+  const handleLeaseGateSkip = () => {
+    setShowLeaseGate(false);
+    setActiveTab('dashboard');
+  };
+
+  const handleLeaseGateLogout = () => {
+    localStorage.clear();
+    navigate('/login');
+  };
+
+  const handleOpenPaymentModal = () => {
+    setShowPaymentModal(true);
+    setError('');
+    setMpesaPhone('');
+    fetchPaymentDetails();
+  };
+
+  const handleOpenLeaseModal = async () => {
+    setError('');
+    setSuccess('');
+    setTermsAccepted(false);
+    setSignatureEmpty(true);
+    setLoading(true);
+    
+    const leaseResponse = await fetchLeaseData();
+    
+    if (leaseResponse) {
+      const roomNum = leaseResponse.unit_number || dashboardData?.unit_number || 'N/A';
+      const accountInfo = getAccountDetails(roomNum);
+      
+      setLeaseData({
+        tenant: {
+          fullName: profileData?.full_name || 'N/A',
+          idNumber: profileData?.id_number || profileData?.national_id || 'N/A',
+          phone: profileData?.phone_number || profileData?.phone || 'N/A',
+          email: profileData?.email || 'N/A',
+          roomNumber: roomNum
+        },
+        unit: {
+          rent_amount: accountInfo?.rentAmount || dashboardData?.rent_amount || 0,
+          deposit_amount: accountInfo?.depositAmount || 0,
+          property_name: dashboardData?.property_name || `Room ${roomNum}`,
+          room_type: accountInfo?.roomType || 'N/A'
+        },
+        landlord: {
+          name: accountInfo?.landlordName || 'N/A',
+          phone: '0758 999322',
+          email: 'joycesuites@gmail.com',
+          paybill: accountInfo?.paybill || 'N/A',
+          account: accountInfo?.accountNumber || 'N/A'
+        },
+        lease: leaseResponse
+      });
+    } else {
+      const roomNum = dashboardData?.unit_number || profileData?.room_number || 'N/A';
+      const accountInfo = getAccountDetails(roomNum);
+      
+      setLeaseData({
+        tenant: {
+          fullName: profileData?.full_name || 'N/A',
+          idNumber: profileData?.id_number || profileData?.national_id || 'N/A',
+          phone: profileData?.phone_number || profileData?.phone || 'N/A',
+          email: profileData?.email || 'N/A',
+          roomNumber: roomNum
+        },
+        unit: {
+          rent_amount: accountInfo?.rentAmount || dashboardData?.rent_amount || 0,
+          deposit_amount: accountInfo?.depositAmount || 0,
+          property_name: dashboardData?.property_name || `Room ${roomNum}`,
+          room_type: accountInfo?.roomType || 'N/A'
+        },
+        landlord: {
+          name: accountInfo?.landlordName || 'N/A',
+          phone: '0758 999322',
+          email: 'joycesuites@gmail.com',
+          paybill: accountInfo?.paybill || 'N/A',
+          account: accountInfo?.accountNumber || 'N/A'
+        }
+      });
+    }
+    
+    setLoading(false);
     setShowLeaseModal(true);
   };
 
   const handleClearSignature = () => {
-    signatureRef.current?.clear();
-    setSignatureEmpty(true);
+    if (signatureRef.current) {
+      signatureRef.current.clear();
+      setSignatureEmpty(true);
+    }
   };
 
   const handleSignatureEnd = () => {
-    setSignatureEmpty(signatureRef.current?.isEmpty() || true);
+    if (signatureRef.current) {
+      setSignatureEmpty(signatureRef.current.isEmpty());
+    }
   };
 
   const handleSubmitLease = async (e) => {
@@ -196,41 +648,83 @@ const TenantDashboard = () => {
     setLoading(true);
 
     try {
-      const signatureDataUrl = signatureRef.current?.toDataURL();
-      const token = localStorage.getItem('joyce-suites-token');
+      const headers = getAuthHeaders();
+      if (!headers) return;
+
+      // Get signature as data URL with proper format
+      const signatureDataUrl = signatureRef.current?.toDataURL('image/png');
+      
+      if (!signatureDataUrl) {
+        setError('Failed to capture signature');
+        setLoading(false);
+        return;
+      }
 
       const leaseSubmission = {
         signature: signatureDataUrl,
-        signed_at: new Date().toISOString(),
         terms_accepted: true
       };
 
-      const response = await fetch(`${config.apiBaseUrl}${config.endpoints.tenant.leaseSgn}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(leaseSubmission)
+      console.log('Submitting lease to:', `${config.apiBaseUrl}${config.endpoints.tenant.leaseSign}`);
+      console.log('Lease submission data:', {
+        hasSignature: !!leaseSubmission.signature,
+        signatureLength: leaseSubmission.signature?.length,
+        terms_accepted: leaseSubmission.terms_accepted
       });
 
-      const data = await response.json();
+      const response = await fetch(
+        `${config.apiBaseUrl}${config.endpoints.tenant.leaseSign}`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(leaseSubmission),
+          credentials: 'include'
+        }
+      );
 
-      if (!response.ok) {
-        throw new Error(data.error || data.message || 'Failed to submit lease agreement');
+      console.log('Lease sign response status:', response.status);
+      
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse JSON:', parseError);
+        const text = await response.text();
+        console.error('Raw response:', text);
+        throw new Error('Invalid response from server');
       }
 
-      setSuccess('Lease agreement signed successfully!');
-      setTermsAccepted(false);
-      handleClearSignature();
+      if (!response.ok) {
+        console.error('Lease signing error response:', data);
+        
+        if (response.status === 404) {
+          throw new Error(`Lease signing endpoint not found (404). Please check backend routes.`);
+        } else if (response.status === 401) {
+          throw new Error('Session expired. Please login again.');
+        } else {
+          throw new Error(data.error || data.message || `Failed to submit lease (${response.status})`);
+        }
+      }
+
+      console.log('Lease signing success:', data);
       
+      setSuccess('✅ Lease signed successfully!');
+      
+      // Close modal and reload
       setTimeout(() => {
-        setSuccess('');
         setShowLeaseModal(false);
         fetchAllData();
+        setSuccess('You can now access all features!');
       }, 2000);
+
     } catch (err) {
+      console.error('Lease submission error:', err);
       setError(err.message || 'Failed to sign lease. Please try again.');
+      
+      // Provide troubleshooting steps
+      if (err.message.includes('404')) {
+        setError(`${err.message}\n\nTroubleshooting:\n1. Make sure backend is running\n2. Check if route is registered\n3. Restart Flask server`);
+      }
     } finally {
       setLoading(false);
     }
@@ -239,41 +733,44 @@ const TenantDashboard = () => {
   const handleInitiateMpesa = async (e) => {
     e.preventDefault();
     
-    if (!mpesaPhone || !paymentAmount) {
-      setError('Please enter phone number and amount');
+    if (!mpesaPhone) {
+      setError('Please enter phone number');
       return;
     }
 
-    if (parseFloat(paymentAmount) <= 0) {
-      setError('Amount must be greater than 0');
+    if (!paymentDetails) {
+      setError('Payment details not loaded');
       return;
     }
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('joyce-suites-token');
+      setError('');
       
-      const response = await fetch(`${config.apiBaseUrl}/api/payments/initiate`, {
+      const headers = getAuthHeaders();
+      if (!headers) return;
+
+      const response = await fetch(`${config.apiBaseUrl}${config.endpoints.payments.initiate}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({
           phone_number: mpesaPhone,
-          amount: parseFloat(paymentAmount),
-          room_number: dashboardData?.unit_number,
-          lease_id: 1
-        })
+          amount: paymentDetails.rent_amount,
+          room_number: paymentDetails.room_number,
+          lease_id: paymentDetails.lease_id,
+          paybill_number: accountDetails?.paybill,
+          account_number: accountDetails?.accountNumber
+        }),
+        credentials: 'include'
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        alert('STK Push sent! Check your M-Pesa prompt.');
+        setSuccess('STK Push sent! Check your M-Pesa prompt.');
         setShowPaymentModal(false);
         setMpesaPhone('');
-        setPaymentAmount('');
+        setPaymentDetails(null);
         setTimeout(() => fetchAllData(), 5000);
       } else {
         setError(data.error || 'Payment initiation failed');
@@ -295,28 +792,29 @@ const TenantDashboard = () => {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('joyce-suites-token');
       
-      const formData = new FormData();
-      formData.append('title', maintenanceForm.title);
-      formData.append('description', maintenanceForm.description);
-      formData.append('priority', maintenanceForm.priority);
-      if (maintenanceForm.file) {
-        formData.append('file', maintenanceForm.file);
-      }
+      const headers = getAuthHeaders();
+      if (!headers) return;
 
+      const requestData = {
+        title: maintenanceForm.title,
+        description: maintenanceForm.description,
+        priority: maintenanceForm.priority
+      };
+
+      console.log('Submitting maintenance to:', `${config.apiBaseUrl}${config.endpoints.tenant.requests}`);
+      
       const response = await fetch(`${config.apiBaseUrl}${config.endpoints.tenant.requests}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
+        headers,
+        body: JSON.stringify(requestData),
+        credentials: 'include'
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        alert('Maintenance request submitted successfully');
+        setSuccess('Maintenance request submitted successfully');
         setShowMaintenanceModal(false);
         setMaintenanceForm({ title: '', description: '', priority: 'normal', file: null });
         setError('');
@@ -350,24 +848,26 @@ const TenantDashboard = () => {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('joyce-suites-token');
+      
+      const headers = getAuthHeaders();
+      if (!headers) return;
+
+      console.log('Submitting vacate notice to:', `${config.apiBaseUrl}${config.endpoints.tenant.submitVacateNotice}`);
       
       const response = await fetch(`${config.apiBaseUrl}${config.endpoints.tenant.submitVacateNotice}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({
           intended_move_date: vacateForm.vacate_date,
           reason: vacateForm.reason
-        })
+        }),
+        credentials: 'include'
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        alert('Vacate notice submitted successfully');
+        setSuccess('Vacate notice submitted successfully');
         setShowVacateModal(false);
         setVacateForm({ vacate_date: '', reason: '' });
         setError('');
@@ -398,15 +898,21 @@ const TenantDashboard = () => {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('joyce-suites-token');
       
-      const response = await fetch(`${config.apiBaseUrl}${config.endpoints.tenant.cancelVacateNotice.replace(':notice_id', noticeId)}`, {
+      const headers = getAuthHeaders();
+      if (!headers) return;
+
+      const endpoint = config.endpoints.tenant.cancelVacateNotice.replace(':notice_id', noticeId);
+      console.log('Cancelling vacate notice at:', `${config.apiBaseUrl}${endpoint}`);
+      
+      const response = await fetch(`${config.apiBaseUrl}${endpoint}`, {
         method: 'POST',
-        headers: getAuthHeaders()
+        headers,
+        credentials: 'include'
       });
 
       if (response.ok) {
-        alert('Vacate notice cancelled successfully');
+        setSuccess('Vacate notice cancelled successfully');
         fetchAllData();
       } else {
         setError('Failed to cancel vacate notice');
@@ -418,6 +924,122 @@ const TenantDashboard = () => {
     }
   };
 
+  // ==================== Add Debug Console Logs ====================
+  useEffect(() => {
+    console.log('Dashboard State:', {
+      loading,
+      dashboardData,
+      profileData,
+      paymentsData: paymentsData.length,
+      vacateNotices: vacateNotices.length,
+      showLeaseGate,
+      leaseGateData,
+      paymentDetails,
+      fullLeaseDetails
+    });
+  }, [loading, dashboardData, profileData, paymentsData, vacateNotices, showLeaseGate, leaseGateData, paymentDetails, fullLeaseDetails]);
+
+  // ==================== NEW: Render Lease Gate ====================
+  if (showLeaseGate) {
+    return (
+      <div className="lease-gate-container">
+        <div className="lease-gate-card">
+          <div className="gate-header">
+            <h1 className="gate-title">
+              📋 Lease Agreement Required
+            </h1>
+            <p className="gate-subtitle">
+              Before accessing your dashboard, please review and sign your lease agreement.
+            </p>
+          </div>
+
+          {error && (
+            <div className="alert alert-error">
+              {error}
+            </div>
+          )}
+
+          {leaseGateData ? (
+            <div className="lease-summary">
+              <h3 className="summary-title">Lease Summary</h3>
+              <div className="summary-details">
+                <div className="detail-row">
+                  <span className="detail-label">Monthly Rent:</span>
+                  <span className="detail-value">
+                    KSh {leaseGateData.rent_amount?.toLocaleString() || '0'}
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Security Deposit:</span>
+                  <span className="detail-value">
+                    KSh {leaseGateData.deposit_amount?.toLocaleString() || '0'}
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Room Number:</span>
+                  <span className="detail-value">
+                    {leaseGateData.unit_number || 'N/A'}
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Property:</span>
+                  <span className="detail-value">
+                    {leaseGateData.property?.name || 'Joyce Suites Apartments'}
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Lease Status:</span>
+                  <span className="detail-value">
+                    {leaseGateData.signed_by_tenant ? '✅ Signed' : '❌ Not Signed'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="no-lease-message">
+              <h3>No Lease Found</h3>
+              <p>Your registration was successful, but no lease was created.</p>
+              <p>Please contact the caretaker to complete your lease setup.</p>
+            </div>
+          )}
+
+          <div className="gate-actions">
+            {leaseGateData && !leaseGateData.signed_by_tenant && (
+              <button
+                onClick={handleLeaseGateSignLease}
+                className="btn btn-primary btn-sign"
+              >
+                Review & Sign Lease Agreement
+              </button>
+            )}
+
+            <button
+              onClick={handleLeaseGateSkip}
+              className="btn btn-outline"
+            >
+              Skip for Now (Limited Access)
+            </button>
+
+            <button
+              onClick={handleLeaseGateLogout}
+              className="btn btn-secondary"
+            >
+              Logout
+            </button>
+          </div>
+
+          <div className="gate-footer">
+            <p className="footer-note">
+              <strong>Important:</strong> Full access to payment features and maintenance requests 
+              requires a signed lease agreement.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==================== Original Dashboard Render ====================
   if (loading && !dashboardData) {
     return (
       <div className="loading-screen">
@@ -459,425 +1081,611 @@ const TenantDashboard = () => {
   minVacateDate.setDate(minVacateDate.getDate() + 30);
   const minVacateDateString = minVacateDate.toISOString().split('T')[0];
 
+  // Get current room number and account details
+  const roomNumber = dashboardData?.unit_number || profileData?.room_number || 'Not Assigned';
+  const currentAccountDetails = accountDetails || getAccountDetails(roomNumber);
+  
+  const roomTypeDisplay = currentAccountDetails?.roomType === 'one_bedroom' ? '1-Bedroom' : 'Bedsitter';
+
   return (
     <div className="tenant-dashboard">
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <img src={logo} alt="Logo" className="sidebar-logo" />
-          <h2>Joyce Suits</h2>
-        </div>
-
-        <nav className="sidebar-nav">
-          <button 
-            className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dashboard')}
-          >
-            <span className="nav-icon">D</span>
-            Dashboard
-          </button>
-          <button 
-            className={`nav-item ${activeTab === 'payments' ? 'active' : ''}`}
-            onClick={() => setActiveTab('payments')}
-          >
-            <span className="nav-icon">P</span>
-            Payments
-          </button>
-          <button 
-            className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
-            onClick={() => setActiveTab('profile')}
-          >
-            <span className="nav-icon">U</span>
-            Profile
-          </button>
-          <button 
-            className={`nav-item ${activeTab === 'lease' ? 'active' : ''}`}
-            onClick={() => setActiveTab('lease')}
-          >
-            <span className="nav-icon">L</span>
-            Lease
-          </button>
-          <button 
-            className={`nav-item ${activeTab === 'vacate' ? 'active' : ''}`}
-            onClick={() => setActiveTab('vacate')}
-          >
-            <span className="nav-icon">V</span>
-            Vacate
-          </button>
-        </nav>
-
-        <div className="sidebar-footer">
-          <button onClick={handleLogout} className="logout-btn">
-            <span className="nav-icon">X</span>
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      <main className="main-content">
-        <header className="topbar">
-          <div className="topbar-left">
-            <h1>Joyce Suits Apartments</h1>
-            <p className="breadcrumb">Welcome, {dashboardData.tenant_name}!</p>
+      <div className="dashboard-wrapper">
+        <aside className="sidebar">
+          <div className="sidebar-header">
+            <img src={logo} alt="Logo" className="sidebar-logo" />
+            <h2>Joyce Suites</h2>
           </div>
 
-          <div className="topbar-right">
-            <div className="user-avatar">
-              <div className="avatar-placeholder">
-                {dashboardData.tenant_name?.charAt(0)?.toUpperCase() || 'T'}
-              </div>
-            </div>
+          <nav className="sidebar-nav">
+            <button 
+              className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+              onClick={() => setActiveTab('dashboard')}
+            >
+              <span className="nav-icon">D</span>
+              Dashboard
+            </button>
+            <button 
+              className={`nav-item ${activeTab === 'payments' ? 'active' : ''}`}
+              onClick={() => setActiveTab('payments')}
+            >
+              <span className="nav-icon">P</span>
+              Payments
+            </button>
+            <button 
+              className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+              onClick={() => setActiveTab('profile')}
+            >
+              <span className="nav-icon">U</span>
+              Profile
+            </button>
+            <button 
+              className={`nav-item ${activeTab === 'lease' ? 'active' : ''}`}
+              onClick={() => setActiveTab('lease')}
+            >
+              <span className="nav-icon">L</span>
+              Lease
+            </button>
+            <button 
+              className={`nav-item ${activeTab === 'vacate' ? 'active' : ''}`}
+              onClick={() => setActiveTab('vacate')}
+            >
+              <span className="nav-icon">V</span>
+              Vacate
+            </button>
+          </nav>
+
+          <div className="sidebar-footer">
+            <button onClick={handleLogout} className="logout-btn">
+              <span className="nav-icon">X</span>
+              Logout
+            </button>
           </div>
-        </header>
+        </aside>
 
-        {error && <div className="alert alert-error">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
+        <main className="main-content">
+          <header className="topbar">
+            <div className="topbar-left">
+              <h1>Joyce Suites Apartments</h1>
+              <p className="breadcrumb">Welcome, {dashboardData.tenant_name || 'Tenant'}!</p>
+            </div>
 
-        {activeTab === 'dashboard' && (
-          <div className="content">
-            <div className="stats-grid">
-              <div className="stat-card primary">
-                <div className="stat-icon">R</div>
-                <div className="stat-content">
-                  <h3>Room Details</h3>
-                  <p className="stat-value">Room {dashboardData.unit_number}</p>
-                  <p className="stat-label">Monthly: KSh {(dashboardData.rent_amount || 0).toLocaleString()}</p>
-                </div>
-              </div>
-
-              <div className="stat-card warning">
-                <div className="stat-icon">B</div>
-                <div className="stat-content">
-                  <h3>Outstanding Balance</h3>
-                  <p className="stat-value">KSh {(dashboardData.outstanding_balance || 0).toLocaleString()}</p>
-                  <p className="stat-label">Balance due</p>
-                </div>
-              </div>
-
-              <div className="stat-card success">
-                <div className="stat-icon">L</div>
-                <div className="stat-content">
-                  <h3>Lease Status</h3>
-                  <p className="stat-value">{dashboardData.lease_status || 'Active'}</p>
-                  <p className="stat-label">{dashboardData.property_name}</p>
-                </div>
-              </div>
-
-              <div className="stat-card info">
-                <div className="stat-icon">M</div>
-                <div className="stat-content">
-                  <h3>Maintenance</h3>
-                  <p className="stat-value">{dashboardData.active_maintenance_requests || 0}</p>
-                  <p className="stat-label">Pending requests</p>
+            <div className="topbar-right">
+              <div className="user-avatar">
+                <div className="avatar-placeholder">
+                  {(dashboardData.tenant_name?.charAt(0) || 'T').toUpperCase()}
                 </div>
               </div>
             </div>
+          </header>
 
-            <div className="quick-actions">
-              <h3>Quick Actions</h3>
-              <div className="action-buttons">
-                <button className="action-btn" onClick={() => setShowPaymentModal(true)}>
-                  <span className="action-icon">Pay</span>
-                  <span>Make Payment</span>
-                </button>
-                <button className="action-btn" onClick={() => setShowMaintenanceModal(true)}>
-                  <span className="action-icon">Fix</span>
-                  <span>Request Maintenance</span>
-                </button>
-                <button className="action-btn" onClick={() => setActiveTab('lease')}>
-                  <span className="action-icon">Doc</span>
-                  <span>View Lease</span>
-                </button>
-                <button className="action-btn" onClick={() => setActiveTab('profile')}>
-                  <span className="action-icon">Acc</span>
-                  <span>Update Profile</span>
-                </button>
-              </div>
-            </div>
+          {error && <div className="alert alert-error">{error}</div>}
+          {success && <div className="alert alert-success">{success}</div>}
 
-            <div className="gallery-section">
-              <h3>Apartment Gallery</h3>
-              <div className="gallery-container">
-                <div className="gallery-main">
-                  <img 
-                    src={apartmentImages[currentImageIndex]} 
-                    alt="Apartment" 
-                    className="gallery-image"
-                  />
-                  <div className="gallery-controls">
-                    <button 
-                      className="gallery-btn prev"
-                      onClick={() => setCurrentImageIndex((prev) => 
-                        prev === 0 ? apartmentImages.length - 1 : prev - 1
-                      )}
-                    >
-                      Previous
-                    </button>
-                    <button 
-                      className="gallery-btn next"
-                      onClick={() => setCurrentImageIndex((prev) => 
-                        (prev + 1) % apartmentImages.length
-                      )}
-                    >
-                      Next
-                    </button>
+          {activeTab === 'dashboard' && (
+            <div className="content">
+              <div className="stats-grid">
+                <div className="stat-card primary">
+                  <div className="stat-icon">R</div>
+                  <div className="stat-content">
+                    <h3>Room Details</h3>
+                    <p className="stat-value">Room {roomNumber}</p>
+                    <p className="stat-label">{roomTypeDisplay} | Monthly: KSh {currentAccountDetails?.rentAmount.toLocaleString()}</p>
                   </div>
-                  <div className="gallery-indicators">
-                    {apartmentImages.map((_, index) => (
-                      <span 
+                </div>
+
+                <div className="stat-card warning">
+                  <div className="stat-icon">B</div>
+                  <div className="stat-content">
+                    <h3>Outstanding Balance</h3>
+                    <p className="stat-value">KSh {(dashboardData.outstanding_balance || 0).toLocaleString()}</p>
+                    <p className="stat-label">Balance due</p>
+                  </div>
+                </div>
+
+                <div className="stat-card success">
+                  <div className="stat-icon">L</div>
+                  <div className="stat-content">
+                    <h3>Account Details</h3>
+                    <p className="stat-value">{currentAccountDetails?.accountNumber || 'N/A'}</p>
+                    <p className="stat-label">Paybill: {currentAccountDetails?.paybill || 'N/A'}</p>
+                  </div>
+                </div>
+
+                <div className="stat-card info">
+                  <div className="stat-icon">M</div>
+                  <div className="stat-content">
+                    <h3>Deposit</h3>
+                    <p className="stat-value">KSh {currentAccountDetails?.depositAmount.toLocaleString()}</p>
+                    <p className="stat-label">Refundable deposit</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="quick-actions">
+                <h3>Quick Actions</h3>
+                <div className="action-buttons">
+                  <button 
+                    className="action-btn" 
+                    onClick={handleOpenPaymentModal}
+                    disabled={!dashboardData.lease_signed}
+                  >
+                    <span className="action-icon">Pay</span>
+                    <span>Make Payment</span>
+                    {!dashboardData.lease_signed && (
+                      <span className="action-tooltip">Sign lease first</span>
+                    )}
+                  </button>
+                  <button className="action-btn" onClick={() => setShowMaintenanceModal(true)}>
+                    <span className="action-icon">Fix</span>
+                    <span>Request Maintenance</span>
+                  </button>
+                  <button className="action-btn" onClick={handleOpenLeaseModal}>
+                    <span className="action-icon">Doc</span>
+                    <span>{dashboardData.lease_signed ? 'View Lease' : 'Sign Lease'}</span>
+                  </button>
+                  <button className="action-btn" onClick={() => setActiveTab('profile')}>
+                    <span className="action-icon">Acc</span>
+                    <span>Update Profile</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="gallery-section">
+                <h3>Apartment Gallery</h3>
+                <div className="gallery-container">
+                  <div className="gallery-main">
+                    <img 
+                      src={apartmentImages[currentImageIndex]} 
+                      alt="Apartment" 
+                      className="gallery-image"
+                    />
+                    <div className="gallery-controls">
+                      <button 
+                        className="gallery-btn prev"
+                        onClick={() => setCurrentImageIndex((prev) => 
+                          prev === 0 ? apartmentImages.length - 1 : prev - 1
+                        )}
+                      >
+                        Previous
+                      </button>
+                      <button 
+                        className="gallery-btn next"
+                        onClick={() => setCurrentImageIndex((prev) => 
+                          (prev + 1) % apartmentImages.length
+                        )}
+                      >
+                        Next
+                      </button>
+                    </div>
+                    <div className="gallery-indicators">
+                      {apartmentImages.map((_, index) => (
+                        <span 
+                          key={index}
+                          className={`indicator ${index === currentImageIndex ? 'active' : ''}`}
+                          onClick={() => setCurrentImageIndex(index)}
+                        ></span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="gallery-thumbnails">
+                    {apartmentImages.map((img, index) => (
+                      <img 
                         key={index}
-                        className={`indicator ${index === currentImageIndex ? 'active' : ''}`}
+                        src={img} 
+                        alt={`Apartment ${index + 1}`}
+                        className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
                         onClick={() => setCurrentImageIndex(index)}
-                      ></span>
+                      />
                     ))}
                   </div>
                 </div>
-                <div className="gallery-thumbnails">
-                  {apartmentImages.map((img, index) => (
-                    <img 
-                      key={index}
-                      src={img} 
-                      alt={`Apartment ${index + 1}`}
-                      className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
-                      onClick={() => setCurrentImageIndex(index)}
-                    />
-                  ))}
-                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'payments' && (
-          <div className="content">
-            <div className="card">
-              <h3>Payment History</h3>
-              <div className="table-container">
-                <table className="payments-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                      <th>Transaction ID</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paymentsData.length > 0 ? (
-                      paymentsData.map((payment) => (
-                        <tr key={payment.id}>
-                          <td>{payment.created_at ? new Date(payment.created_at).toLocaleDateString() : 'N/A'}</td>
-                          <td>KSh {(payment.amount || 0).toLocaleString()}</td>
-                          <td><span className={`status-badge ${payment.status}`}>{payment.status}</span></td>
-                          <td>{payment.transaction_id || 'Pending'}</td>
-                        </tr>
-                      ))
-                    ) : (
+          {activeTab === 'payments' && (
+            <div className="content">
+              <div className="card">
+                <h3>Payment Details</h3>
+                <div className="payment-account-info">
+                  <div className="account-details">
+                    <h4>Your Payment Account</h4>
+                    <div className="detail-row">
+                      <span className="detail-label">Room Number:</span>
+                      <span className="detail-value">Room {roomNumber}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Account Number:</span>
+                      <span className="detail-value">{currentAccountDetails?.accountNumber || 'N/A'}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Paybill Number:</span>
+                      <span className="detail-value">{currentAccountDetails?.paybill || 'N/A'}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Landlord:</span>
+                      <span className="detail-value">{currentAccountDetails?.landlordName || 'N/A'}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Monthly Rent:</span>
+                      <span className="detail-value">KSh {currentAccountDetails?.rentAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Deposit Paid:</span>
+                      <span className="detail-value">KSh {currentAccountDetails?.depositAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Lease Status:</span>
+                      <span className="detail-value">
+                        <span className={dashboardData.lease_signed ? 'status-success' : 'status-warning'}>
+                          {dashboardData.lease_signed ? '✅ Signed' : '❌ Not Signed'}
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={handleOpenPaymentModal}
+                    className="btn btn-primary"
+                    style={{ marginTop: '20px' }}
+                    disabled={!dashboardData.lease_signed}
+                  >
+                    {dashboardData.lease_signed ? 'Make Payment Now' : 'Sign Lease First'}
+                  </button>
+                  {!dashboardData.lease_signed && (
+                    <p className="lease-required-note">
+                      <small>You need to sign your lease agreement before making payments.</small>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="card" style={{ marginTop: '24px' }}>
+                <h3>Payment History</h3>
+                <div className="table-container">
+                  <table className="payments-table">
+                    <thead>
                       <tr>
-                        <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
-                          No payments found
-                        </td>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Transaction ID</th>
+                        <th>Method</th>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <button className="btn btn-primary" onClick={() => setShowPaymentModal(true)}>
-                Make Payment
-              </button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'profile' && (
-          <div className="content">
-            <div className="card profile-card">
-              <h3>Profile Information</h3>
-              <div className="profile-info">
-                <div className="info-item">
-                  <label>Full Name</label>
-                  <p>{profileData?.full_name || 'N/A'}</p>
-                </div>
-                <div className="info-item">
-                  <label>Email</label>
-                  <p>{profileData?.email || 'N/A'}</p>
-                </div>
-                <div className="info-item">
-                  <label>Phone</label>
-                  <p>{profileData?.phone || 'N/A'}</p>
-                </div>
-                <div className="info-item">
-                  <label>ID Number</label>
-                  <p>{profileData?.id_number || 'N/A'}</p>
-                </div>
-                <div className="info-item">
-                  <label>Room Number</label>
-                  <p>{dashboardData.unit_number || 'N/A'}</p>
-                </div>
-                <div className="info-item">
-                  <label>Lease Status</label>
-                  <p>{dashboardData.lease_status || 'N/A'}</p>
+                    </thead>
+                    <tbody>
+                      {paymentsData.length > 0 ? (
+                        paymentsData.map((payment) => (
+                          <tr key={payment.id}>
+                            <td>{payment.created_at ? new Date(payment.created_at).toLocaleDateString() : 'N/A'}</td>
+                            <td>KSh {payment.amount ? payment.amount.toLocaleString() : '0'}</td>
+                            <td>
+                              <span className={`status-badge status-${payment.status?.toLowerCase() || 'pending'}`}>
+                                {payment.status || 'Pending'}
+                              </span>
+                            </td>
+                            <td>{payment.transaction_id || 'N/A'}</td>
+                            <td>{payment.payment_method || 'M-Pesa'}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>
+                            No payment history found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'lease' && (
-          <div className="content">
-            <div className="card">
-              <h3>Lease Information</h3>
-              {dashboardData ? (
+          {activeTab === 'profile' && profileData && (
+            <div className="content">
+              <div className="card">
+                <h3>My Profile</h3>
+                <div className="profile-info">
+                  <div className="profile-detail">
+                    <label>Full Name:</label>
+                    <p>{profileData.full_name || 'N/A'}</p>
+                  </div>
+                  <div className="profile-detail">
+                    <label>Email:</label>
+                    <p>{profileData.email || 'N/A'}</p>
+                  </div>
+                  <div className="profile-detail">
+                    <label>Phone Number:</label>
+                    <p>{profileData.phone_number || profileData.phone || 'N/A'}</p>
+                  </div>
+                  <div className="profile-detail">
+                    <label>National ID:</label>
+                    <p>{profileData.id_number || profileData.national_id || 'N/A'}</p>
+                  </div>
+                  <div className="profile-detail">
+                    <label>Room Number:</label>
+                    <p>Room {roomNumber}</p>
+                  </div>
+                  <div className="profile-detail">
+                    <label>Account Number:</label>
+                    <p>{currentAccountDetails?.accountNumber || 'N/A'}</p>
+                  </div>
+                  <div className="profile-detail">
+                    <label>Paybill Number:</label>
+                    <p>{currentAccountDetails?.paybill || 'N/A'}</p>
+                  </div>
+                  <div className="profile-detail">
+                    <label>Landlord:</label>
+                    <p>{currentAccountDetails?.landlordName || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'lease' && (
+            <div className="content">
+              <div className="card">
+                <h3>Lease Information</h3>
                 <div className="lease-info">
                   <div className="lease-detail-row">
                     <span className="lease-label">Room Number:</span>
-                    <span className="lease-value">{dashboardData.unit_number}</span>
+                    <span className="lease-value">Room {roomNumber}</span>
                   </div>
                   <div className="lease-detail-row">
-                    <span className="lease-label">Status:</span>
-                    <span className="lease-value">{dashboardData.lease_status || 'Active'}</span>
+                    <span className="lease-label">Room Type:</span>
+                    <span className="lease-value">{roomTypeDisplay}</span>
+                  </div>
+                  <div className="lease-detail-row">
+                    <span className="lease-label">Lease Status:</span>
+                    <span className="lease-value">
+                      {dashboardData.lease_signed ? '✅ Signed' : '❌ Not Signed'}
+                    </span>
                   </div>
                   <div className="lease-detail-row">
                     <span className="lease-label">Property:</span>
-                    <span className="lease-value">{dashboardData.property_name || 'N/A'}</span>
+                    <span className="lease-value">{dashboardData.property_name || 'Joyce Suites Apartments'}</span>
                   </div>
                   <div className="lease-detail-row">
                     <span className="lease-label">Monthly Rent:</span>
-                    <span className="lease-value">KSh {(dashboardData.rent_amount || 0).toLocaleString()}</span>
+                    <span className="lease-value">KSh {currentAccountDetails?.rentAmount.toLocaleString()}</span>
                   </div>
                   <div className="lease-detail-row">
-                    <span className="lease-label">Outstanding Balance:</span>
-                    <span className="lease-value">KSh {(dashboardData.outstanding_balance || 0).toLocaleString()}</span>
+                    <span className="lease-label">Deposit Amount:</span>
+                    <span className="lease-value">KSh {currentAccountDetails?.depositAmount.toLocaleString()}</span>
                   </div>
+                  <div className="lease-detail-row">
+                    <span className="lease-label">Landlord:</span>
+                    <span className="lease-value">{currentAccountDetails?.landlordName || 'N/A'}</span>
+                  </div>
+                  {fullLeaseDetails && (
+                    <>
+                      <div className="lease-detail-row">
+                        <span className="lease-label">Lease Start:</span>
+                        <span className="lease-value">
+                          {fullLeaseDetails.start_date ? new Date(fullLeaseDetails.start_date).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="lease-detail-row">
+                        <span className="lease-label">Lease End:</span>
+                        <span className="lease-value">
+                          {fullLeaseDetails.end_date ? new Date(fullLeaseDetails.end_date).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
-              ) : (
-                <p>No lease information available</p>
-              )}
-              <button onClick={handleOpenLeaseModal} className="btn btn-primary" style={{ marginTop: '16px' }}>
-                Sign Lease Agreement
-              </button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'vacate' && (
-          <div className="content">
-            <div className="vacate-container">
-              <div className="vacate-header">
-                <h3>Vacate Notices</h3>
-                <button onClick={() => setShowVacateModal(true)} className="btn btn-primary">
-                  Submit Vacate Notice
+                <button 
+                  onClick={handleOpenLeaseModal} 
+                  className="btn btn-primary" 
+                  style={{ marginTop: '16px' }}
+                  type="button"
+                >
+                  {dashboardData.lease_signed ? 'View Lease Agreement' : 'Sign Lease Agreement'}
                 </button>
               </div>
+            </div>
+          )}
 
-              {vacateNotices.length > 0 ? (
-                <div className="vacate-list">
-                  {vacateNotices.map(notice => (
-                    <div key={notice.id} className="vacate-card">
-                      <div className="vacate-header-row">
-                        <h4>Room {notice.lease?.room_number}</h4>
-                        <span className={`status-badge ${notice.status}`}>{notice.status}</span>
-                      </div>
-                      <div className="vacate-details">
-                        <div className="detail-item">
-                          <label>Intended Move Date</label>
-                          <p>{new Date(notice.intended_move_date).toLocaleDateString()}</p>
-                        </div>
-                        <div className="detail-item">
-                          <label>Notice Submitted</label>
-                          <p>{new Date(notice.notice_date).toLocaleDateString()}</p>
-                        </div>
-                        <div className="detail-item">
-                          <label>Days Until Move</label>
-                          <p>{notice.days_until_move}</p>
-                        </div>
-                      </div>
-                      {notice.reason && (
-                        <div className="vacate-reason">
-                          <label>Reason</label>
-                          <p>{notice.reason}</p>
-                        </div>
-                      )}
-                      {notice.admin_notes && (
-                        <div className="admin-notes">
-                          <label>Admin Notes</label>
-                          <p>{notice.admin_notes}</p>
-                        </div>
-                      )}
-                      {notice.status === 'pending' && (
-                        <button 
-                          onClick={() => handleCancelVacateNotice(notice.id)}
-                          className="btn btn-secondary"
-                          style={{ marginTop: '12px' }}
-                        >
-                          Cancel Notice
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-state">
-                  <p>No vacate notices submitted yet</p>
-                </div>
-              )}
+          {activeTab === 'vacate' && (
+            <div className="content">
+              <div className="card">
+                <h3>Vacate Notices</h3>
+                <button 
+                  onClick={() => setShowVacateModal(true)}
+                  className="btn btn-primary"
+                  style={{ marginBottom: '16px' }}
+                >
+                  Submit New Vacate Notice
+                </button>
+                
+                {vacateNotices.length > 0 ? (
+                  <div className="table-container">
+                    <table className="vacate-table">
+                      <thead>
+                        <tr>
+                          <th>Notice Date</th>
+                          <th>Intended Move Date</th>
+                          <th>Reason</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vacateNotices.map((notice) => (
+                          <tr key={notice.id}>
+                            <td>{notice.notice_date ? new Date(notice.notice_date).toLocaleDateString() : 'N/A'}</td>
+                            <td>{notice.intended_move_date ? new Date(notice.intended_move_date).toLocaleDateString() : 'N/A'}</td>
+                            <td>{notice.reason || 'No reason provided'}</td>
+                            <td>
+                              <span className={`status-badge status-${notice.status?.toLowerCase() || 'pending'}`}>
+                                {notice.status || 'Pending'}
+                              </span>
+                            </td>
+                            <td>
+                              {notice.status === 'pending' && (
+                                <button 
+                                  onClick={() => handleCancelVacateNotice(notice.id)}
+                                  className="btn btn-danger btn-sm"
+                                >
+                                  Cancel
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p style={{ textAlign: 'center', padding: '20px' }}>
+                    No vacate notices submitted
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Footer - Now outside the wrapper */}
+      <footer className="dashboard-footer">
+        <div className="footer-content">
+          <div className="footer-section">
+            <h4>Joyce Suites Apartments</h4>
+            <p>Quality student accommodation in a secure environment</p>
+            <p><strong>Office Hours:</strong> Mon-Fri 8:00 AM - 5:00 PM</p>
+            <p><strong>Emergency Contact:</strong> 0758 999322</p>
+          </div>
+          
+          <div className="footer-section">
+            <h4>Payment Information</h4>
+            <div className="payment-info">
+              <p><strong>Joyce Muthoni Mathea:</strong></p>
+              <p>Paybill: 222111</p>
+              <p>Account: Your room number</p>
+              <p style={{ marginTop: '10px' }}><strong>Lawrence Mathea:</strong></p>
+              <p>Paybill: 222222</p>
+              <p>Account: Your room number</p>
             </div>
           </div>
-        )}
-
-        <footer className="dashboard-footer">
-          <div className="footer-content">
-            <div className="footer-section">
-              <h4>Joyce Suits Apartments</h4>
-              <p>Your home, our care</p>
-            </div>
-            <div className="footer-section">
-              <h4>Contact</h4>
-              <p>Phone: 0758 999322</p>
-              <p>Email: joycesuites@gmail.com</p>
-            </div>
-            <div className="footer-section">
-              <h4>Quick Links</h4>
-              <p>Copyright 2024 Joyce Suits Apartments. All rights reserved.</p>
+          
+          <div className="footer-section">
+            <h4>Quick Links</h4>
+            <ul className="footer-links">
+              <li><button onClick={() => setActiveTab('dashboard')}>Dashboard</button></li>
+              <li><button onClick={() => setActiveTab('payments')}>Make Payment</button></li>
+              <li><button onClick={() => setShowMaintenanceModal(true)}>Maintenance Request</button></li>
+              <li><button onClick={() => setActiveTab('lease')}>Lease Agreement</button></li>
+            </ul>
+          </div>
+          
+          <div className="footer-section">
+            <h4>Contact Information</h4>
+            <p><strong>Email:</strong> joycesuites@gmail.com</p>
+            <p><strong>Phone:</strong> 0758 999322</p>
+            <p><strong>Address:</strong> Joyce Suites Apartments, Thika Road</p>
+            <p><strong>Website:</strong> www.joycesuites.com</p>
+          </div>
+        </div>
+        
+        <div className="footer-bottom">
+          <div className="footer-bottom-content">
+            <p>&copy; {new Date().getFullYear()} Joyce Suites Apartments. All rights reserved.</p>
+            <div className="footer-legal">
+              <span>Terms of Service</span>
+              <span className="separator">|</span>
+              <span>Privacy Policy</span>
+              <span className="separator">|</span>
+              <span>Version 1.0.0</span>
             </div>
           </div>
-        </footer>
-      </main>
+        </div>
+      </footer>
 
       {/* Payment Modal */}
       {showPaymentModal && (
         <div className="modal-overlay" onClick={() => setShowPaymentModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowPaymentModal(false)}>x</button>
+          <div className="modal modal-payment" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowPaymentModal(false)}>×</button>
             <h2>Make Payment via M-Pesa</h2>
-            <div>
-              <div className="form-group">
-                <label>Phone Number *</label>
-                <input 
-                  type="tel"
-                  placeholder="254712345678 or 0712345678"
-                  value={mpesaPhone}
-                  onChange={(e) => setMpesaPhone(e.target.value)}
-                  required
-                />
-                <small>Format: 254712345678 or 0712345678</small>
+            
+            {loadingPaymentDetails ? (
+              <div className="loading-payment">
+                <div className="spinner"></div>
+                <p>Loading payment details...</p>
               </div>
-              <div className="form-group">
-                <label>Amount (KSh) *</label>
-                <input 
-                  type="number" 
-                  placeholder="e.g., 5500"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  required
-                  min="1"
-                />
+            ) : paymentDetails ? (
+              <div className="payment-modal-content">
+                <div className="payment-summary">
+                  <h3>Payment Summary</h3>
+                  <div className="payment-detail">
+                    <span className="detail-label">Room Number:</span>
+                    <span className="detail-value">Room {roomNumber}</span>
+                  </div>
+                  <div className="payment-detail">
+                    <span className="detail-label">Account Number:</span>
+                    <span className="detail-value">{currentAccountDetails?.accountNumber}</span>
+                  </div>
+                  <div className="payment-detail">
+                    <span className="detail-label">Paybill Number:</span>
+                    <span className="detail-value">{currentAccountDetails?.paybill}</span>
+                  </div>
+                  <div className="payment-detail">
+                    <span className="detail-label">Amount to Pay:</span>
+                    <span className="detail-value amount">KSh {paymentDetails.rent_amount?.toLocaleString() || currentAccountDetails?.rentAmount.toLocaleString()}</span>
+                  </div>
+                  <div className="payment-note">
+                    <p><strong>Note:</strong> Use the Paybill number and your room number as the account number when making manual payments.</p>
+                  </div>
+                </div>
+
+                <div className="mpesa-form">
+                  <h3>Quick M-Pesa Payment</h3>
+                  <div className="form-group">
+                    <label>Your M-Pesa Phone Number *</label>
+                    <input 
+                      type="tel"
+                      placeholder="254712345678 or 0712345678"
+                      value={mpesaPhone}
+                      onChange={(e) => setMpesaPhone(e.target.value)}
+                      required
+                    />
+                    <small className="form-help">Enter the phone number registered with M-Pesa</small>
+                  </div>
+                  
+                  <div className="payment-instructions">
+                    <h4>How to pay manually:</h4>
+                    <ol>
+                      <li>Go to M-Pesa on your phone</li>
+                      <li>Select <strong>Lipa na M-Pesa</strong></li>
+                      <li>Select <strong>Pay Bill</strong></li>
+                      <li>Enter Paybill: <strong>{currentAccountDetails?.paybill}</strong></li>
+                      <li>Enter Account: <strong>{currentAccountDetails?.accountNumber}</strong></li>
+                      <li>Enter Amount: <strong>KSh {paymentDetails.rent_amount?.toLocaleString() || currentAccountDetails?.rentAmount.toLocaleString()}</strong></li>
+                      <li>Enter your M-Pesa PIN</li>
+                      <li>Confirm payment</li>
+                    </ol>
+                  </div>
+                  
+                  <button 
+                    onClick={handleInitiateMpesa} 
+                    className="btn btn-primary btn-block"
+                    disabled={loading || !mpesaPhone}
+                  >
+                    {loading ? 'Processing...' : 'Send STK Push to Pay Now'}
+                  </button>
+                </div>
               </div>
-              <div className="form-group">
-                <button onClick={handleInitiateMpesa} className="btn btn-primary" disabled={loading}>
-                  {loading ? 'Processing...' : 'Send STK Push'}
+            ) : (
+              <div className="no-lease-payment">
+                <h3>Payment Unavailable</h3>
+                <p>You need to sign your lease agreement before making payments.</p>
+                <button onClick={handleOpenLeaseModal} className="btn btn-primary">
+                  Go to Lease Signing
                 </button>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
@@ -885,35 +1693,35 @@ const TenantDashboard = () => {
       {/* Maintenance Modal */}
       {showMaintenanceModal && (
         <div className="modal-overlay" onClick={() => setShowMaintenanceModal(false)}>
-          <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowMaintenanceModal(false)}>x</button>
-            <h2>Request Maintenance or Enquiry</h2>
-            <div>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowMaintenanceModal(false)}>×</button>
+            <h2>Request Maintenance</h2>
+            <form onSubmit={handleSubmitMaintenance}>
               <div className="form-group">
-                <label>Title/Subject *</label>
+                <label>Title *</label>
                 <input 
-                  type="text" 
-                  placeholder="e.g., Broken Door Lock"
+                  type="text"
+                  placeholder="e.g., Leaking faucet in bathroom"
                   value={maintenanceForm.title}
-                  onChange={(e) => setMaintenanceForm({ ...maintenanceForm, title: e.target.value })}
+                  onChange={(e) => setMaintenanceForm({...maintenanceForm, title: e.target.value})}
                   required
                 />
               </div>
               <div className="form-group">
                 <label>Description *</label>
                 <textarea 
-                  placeholder="Describe the issue or inquiry in detail..."
+                  placeholder="Describe the issue in detail..."
                   value={maintenanceForm.description}
-                  onChange={(e) => setMaintenanceForm({ ...maintenanceForm, description: e.target.value })}
-                  rows="5"
+                  onChange={(e) => setMaintenanceForm({...maintenanceForm, description: e.target.value})}
+                  rows="4"
                   required
-                ></textarea>
+                />
               </div>
               <div className="form-group">
                 <label>Priority</label>
                 <select 
                   value={maintenanceForm.priority}
-                  onChange={(e) => setMaintenanceForm({ ...maintenanceForm, priority: e.target.value })}
+                  onChange={(e) => setMaintenanceForm({...maintenanceForm, priority: e.target.value})}
                 >
                   <option value="low">Low</option>
                   <option value="normal">Normal</option>
@@ -922,23 +1730,17 @@ const TenantDashboard = () => {
                 </select>
               </div>
               <div className="form-group">
-                <label>Attach File (Optional)</label>
+                <label>Attach Photo (Optional, max 5MB)</label>
                 <input 
-                  type="file" 
+                  type="file"
+                  accept="image/*"
                   onChange={handleMaintenanceFileChange}
-                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                 />
-                <small>Max 5MB. Accepted: PDF, Images, Documents</small>
               </div>
-              <div className="form-group form-actions">
-                <button onClick={() => setShowMaintenanceModal(false)} className="btn btn-secondary">
-                  Cancel
-                </button>
-                <button onClick={handleSubmitMaintenance} className="btn btn-primary" disabled={loading}>
-                  {loading ? 'Submitting...' : 'Submit Request'}
-                </button>
-              </div>
-            </div>
+              <button type="submit" className="btn btn-primary" disabled={loading}>
+                {loading ? 'Submitting...' : 'Submit Request'}
+              </button>
+            </form>
           </div>
         </div>
       )}
@@ -947,45 +1749,35 @@ const TenantDashboard = () => {
       {showVacateModal && (
         <div className="modal-overlay" onClick={() => setShowVacateModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowVacateModal(false)}>x</button>
+            <button className="modal-close" onClick={() => setShowVacateModal(false)}>×</button>
             <h2>Submit Vacate Notice</h2>
-            <div>
+            <form onSubmit={handleSubmitVacateNotice}>
               <div className="form-group">
-                <label>Intended Move Date *</label>
-                <p style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '8px' }}>
-                  Minimum 30 days from today
-                </p>
+                <label>Intended Vacate Date *</label>
                 <input 
-                  type="date" 
+                  type="date"
                   value={vacateForm.vacate_date}
-                  onChange={(e) => setVacateForm({ ...vacateForm, vacate_date: e.target.value })}
+                  onChange={(e) => setVacateForm({...vacateForm, vacate_date: e.target.value})}
                   min={minVacateDateString}
                   required
                 />
+                <small style={{ color: '#6B7280', marginTop: '4px', display: 'block' }}>
+                  Must be at least 30 days from today
+                </small>
               </div>
               <div className="form-group">
-                <label>Reason for Moving (Optional)</label>
+                <label>Reason (Optional)</label>
                 <textarea 
-                  placeholder="Tell us why you are moving"
+                  placeholder="Why are you vacating?"
                   value={vacateForm.reason}
-                  onChange={(e) => setVacateForm({ ...vacateForm, reason: e.target.value })}
-                  rows="4"
-                ></textarea>
+                  onChange={(e) => setVacateForm({...vacateForm, reason: e.target.value})}
+                  rows="3"
+                />
               </div>
-              <div style={{ padding: '12px', background: '#FEF3C7', borderRadius: '6px', marginBottom: '20px' }}>
-                <p style={{ margin: 0, fontSize: '0.9rem', color: '#92400E' }}>
-                  By submitting this notice, you are formally notifying your landlord of your intention to vacate. This is a binding commitment.
-                </p>
-              </div>
-              <div className="form-group form-actions">
-                <button onClick={() => setShowVacateModal(false)} className="btn btn-secondary">
-                  Cancel
-                </button>
-                <button onClick={handleSubmitVacateNotice} className="btn btn-primary" disabled={loading}>
-                  {loading ? 'Submitting...' : 'Submit Notice'}
-                </button>
-              </div>
-            </div>
+              <button type="submit" className="btn btn-primary" disabled={loading}>
+                {loading ? 'Submitting...' : 'Submit Vacate Notice'}
+              </button>
+            </form>
           </div>
         </div>
       )}
@@ -994,131 +1786,118 @@ const TenantDashboard = () => {
       {showLeaseModal && leaseData && (
         <div className="modal-overlay" onClick={() => setShowLeaseModal(false)}>
           <div className="modal modal-lease" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowLeaseModal(false)}>x</button>
-            
-            <div style={{ maxHeight: '80vh', overflowY: 'auto' }}>
-              <div className="lease-document-modal">
-                <div style={{ textAlign: 'center', marginBottom: '32px', borderBottom: '2px solid #E5E7EB', paddingBottom: '24px' }}>
-                  <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#7D1F3F', marginBottom: '8px' }}>Joyce Suits Apartments</h1>
-                  <h2 style={{ fontSize: '1.2rem', color: '#6B7280', fontWeight: '600' }}>House Lease Agreement</h2>
+            <button className="modal-close" onClick={() => setShowLeaseModal(false)}>×</button>
+            <div className="lease-modal-content">
+              <div className="lease-document">
+                <div className="lease-header">
+                  <h1>Joyce Suites Apartments</h1>
+                  <h2>House Lease Agreement</h2>
                 </div>
 
-                <div style={{ marginBottom: '24px', lineHeight: '1.8' }}>
-                  <p>This Lease Agreement is made and entered into on this <strong>{formattedDate}</strong>, by and between:</p>
+                <div className="lease-section">
+                  <p>This Lease Agreement is made and entered into on this <strong>{formattedDate}</strong></p>
                 </div>
 
-                <div style={{ marginBottom: '24px' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '12px', color: '#7D1F3F' }}>LANDLORD:</h3>
-                  <div style={{ background: '#F9FAFB', padding: '16px', borderRadius: '8px', borderLeft: '3px solid #7D1F3F' }}>
-                    <p style={{ margin: '8px 0' }}><strong>Joyce Suites</strong> ({leaseData.landlord.name})</p>
-                    <p style={{ margin: '8px 0' }}>Phone: {leaseData.landlord.phone}</p>
-                    <p style={{ margin: '8px 0' }}>Email: {leaseData.landlord.email}</p>
+                <div className="lease-section">
+                  <h3>LANDLORD:</h3>
+                  <div className="lease-party-details">
+                    <p><strong>{leaseData.landlord.name}</strong></p>
+                    <p>Phone: {leaseData.landlord.phone}</p>
+                    <p>Email: {leaseData.landlord.email}</p>
+                    <p>Paybill: {leaseData.landlord.paybill}</p>
+                    <p>Account: {leaseData.landlord.account}</p>
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '24px' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '12px', color: '#7D1F3F' }}>TENANT:</h3>
-                  <div style={{ background: '#F9FAFB', padding: '16px', borderRadius: '8px', borderLeft: '3px solid #7D1F3F' }}>
-                    <p style={{ margin: '8px 0' }}><strong>Name:</strong> {leaseData.tenant.fullName}</p>
-                    <p style={{ margin: '8px 0' }}><strong>ID No.:</strong> {leaseData.tenant.idNumber}</p>
-                    <p style={{ margin: '8px 0' }}><strong>Phone:</strong> {leaseData.tenant.phone}</p>
-                    <p style={{ margin: '8px 0' }}><strong>Email:</strong> {leaseData.tenant.email}</p>
+                <div className="lease-section">
+                  <h3>TENANT:</h3>
+                  <div className="lease-party-details">
+                    <p><strong>Name:</strong> {leaseData.tenant.fullName}</p>
+                    <p><strong>ID No.:</strong> {leaseData.tenant.idNumber}</p>
+                    <p><strong>Phone:</strong> {leaseData.tenant.phone}</p>
+                    <p><strong>Email:</strong> {leaseData.tenant.email}</p>
+                    <p><strong>Room Number:</strong> {leaseData.tenant.roomNumber}</p>
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '24px' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '12px', color: '#7D1F3F' }}>PROPERTY ADDRESS:</h3>
-                  <div style={{ background: '#F9FAFB', padding: '16px', borderRadius: '8px', borderLeft: '3px solid #7D1F3F' }}>
-                    <p style={{ margin: '8px 0' }}>Joyce Suites, Room: <strong>Room {leaseData.tenant.roomNumber}</strong></p>
+                <div className="lease-section">
+                  <h3>KEY TERMS:</h3>
+                  <div className="lease-terms">
+                    <p><strong>Monthly Rent:</strong> KSh {(leaseData.unit.rent_amount || 0).toLocaleString()}/=</p>
+                    <p><strong>Deposit:</strong> KSh {(leaseData.unit.deposit_amount || 0).toLocaleString()}/= (Refundable)</p>
+                    <p><strong>Room Type:</strong> {leaseData.unit.room_type?.replace('_', ' ').toUpperCase() || 'N/A'}</p>
+                    <p><strong>Payment Due:</strong> 5th day of each month</p>
+                    <p><strong>Lease Term:</strong> Month-to-month (30-day notice to terminate)</p>
+                    <p><strong>Property:</strong> {leaseData.unit.property_name}</p>
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '24px' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '12px', color: '#7D1F3F' }}>KEY TERMS:</h3>
-                  <div style={{ background: '#F9FAFB', padding: '16px', borderRadius: '8px', borderLeft: '3px solid #7D1F3F' }}>
-                    <p style={{ margin: '8px 0' }}><strong>Monthly Rent:</strong> KSh {(leaseData.unit.rent_amount || 0).toLocaleString()}/=</p>
-                    <p style={{ margin: '8px 0' }}><strong>Payment Due:</strong> 5th day of each month</p>
-                    <p style={{ margin: '8px 0' }}><strong>Lease Term:</strong> Month-to-month (30-day notice to terminate)</p>
-                    <p style={{ margin: '8px 0' }}><strong>Security Deposit:</strong> One month's rent</p>
+                <div className="lease-section">
+                  <h3>PAYMENT INFORMATION:</h3>
+                  <div className="payment-instructions">
+                    <p><strong>Paybill Number:</strong> {leaseData.landlord.paybill}</p>
+                    <p><strong>Account Number:</strong> {leaseData.landlord.account}</p>
+                    <p><strong>Manual Payment:</strong> Use the Paybill and Account number above to pay via M-Pesa</p>
+                    <p><strong>Auto-Payment:</strong> Available through tenant dashboard</p>
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '24px' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '12px', color: '#7D1F3F' }}>TERMS & CONDITIONS:</h3>
-                  <ul style={{ marginLeft: '24px', lineHeight: '1.8' }}>
+                <div className="lease-section">
+                  <h3>TERMS & CONDITIONS:</h3>
+                  <ul className="terms-list">
                     <li>Tenant shall maintain premises in clean and habitable condition</li>
                     <li>Any damage beyond normal wear and tear is Tenant's responsibility</li>
                     <li>Noise restrictions: 10 PM - 8 AM (quiet hours)</li>
                     <li>Tenant must provide 30 days' notice to vacate</li>
                     <li>Unpaid rent and damages will be deducted from security deposit</li>
+                    <li>Rent is due by the 5th of each month</li>
+                    <li>Late payments attract a penalty of KSh 500 after 5th day</li>
                     <li>Governed by the laws of Kenya</li>
                   </ul>
                 </div>
               </div>
 
-              <div style={{ borderTop: '2px solid #E5E7EB', paddingTop: '24px' }}>
-                {error && <div className="alert alert-error" style={{ marginBottom: '16px' }}>{error}</div>}
-                {success && <div className="alert alert-success" style={{ marginBottom: '16px' }}>{success}</div>}
+              <div className="lease-signing-section">
+                {error && <div className="alert alert-error">{error}</div>}
+                {success && <div className="alert alert-success">{success}</div>}
 
-                <div style={{ marginBottom: '24px' }}>
-                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                <div className="terms-acceptance">
+                  <label className="checkbox-label">
                     <input
                       type="checkbox"
                       checked={termsAccepted}
                       onChange={(e) => setTermsAccepted(e.target.checked)}
-                      style={{ marginTop: '4px', cursor: 'pointer', width: '18px', height: '18px' }}
                     />
-                    <span>I have read, understood, and agree to all the terms and conditions stated in this lease agreement. I confirm that all information provided is accurate and true.</span>
+                    <span>I have read, understood, and agree to all the terms and conditions stated above.</span>
                   </label>
                 </div>
 
-                <div style={{ marginBottom: '24px' }}>
-                  <label style={{ display: 'block', fontWeight: '700', marginBottom: '12px' }}>
-                    Tenant's Signature *
-                    <span style={{ display: 'block', fontSize: '0.85rem', color: '#6B7280', fontWeight: '400', marginTop: '4px' }}>
-                      (Draw your signature in the box below)
-                    </span>
-                  </label>
-                  
-                  <div style={{ border: '2px solid #E5E7EB', borderRadius: '8px', overflow: 'hidden', marginBottom: '16px', background: 'white' }}>
+                <div className="signature-section">
+                  <label>Tenant's Digital Signature *</label>
+                  <div className="signature-canvas-container">
                     <SignatureCanvas
                       ref={signatureRef}
                       onEnd={handleSignatureEnd}
                       canvasProps={{
                         width: 500,
                         height: 150,
-                        style: { display: 'block', width: '100%' }
+                        className: 'signature-canvas'
                       }}
                     />
                   </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                    <button
-                      type="button"
-                      onClick={handleClearSignature}
-                      className="btn btn-secondary"
-                    >
-                      Clear Signature
-                    </button>
-                    <span style={{ color: '#6B7280', fontSize: '0.9rem' }}>
-                      Date: {formattedDate}
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <button
-                    onClick={handleSubmitLease}
-                    className="btn btn-primary"
-                    style={{ width: '100%', padding: '16px', fontSize: '1rem' }}
-                    disabled={loading || !termsAccepted || signatureEmpty}
-                  >
-                    {loading ? 'Submitting...' : 'Sign & Submit Lease Agreement'}
+                  <button type="button" onClick={handleClearSignature} className="btn btn-secondary">
+                    Clear Signature
                   </button>
-                  <p style={{ fontSize: '0.85rem', color: '#6B7280', marginTop: '12px', fontStyle: 'italic' }}>
-                    By clicking submit, you are electronically signing this lease agreement and agreeing to be legally bound by its terms.
-                  </p>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={handleSubmitLease}
+                  className="btn btn-primary btn-sign-lease"
+                  disabled={loading || !termsAccepted || signatureEmpty}
+                >
+                  {loading ? 'Submitting...' : 'Sign & Submit Lease Agreement'}
+                </button>
               </div>
             </div>
           </div>
