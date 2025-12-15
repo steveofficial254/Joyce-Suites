@@ -9,8 +9,8 @@ const CaretakerLogin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
-    email: 'caretaker@default.joycesuites.com',
-    password: 'Caretaker@Default123'
+    email: '',
+    password: ''
   });
 
   // Check if already logged in as caretaker or admin
@@ -162,10 +162,17 @@ const CaretakerLogin = () => {
 
   // Helper to fill default credentials (development only)
   const fillDefaultCredentials = () => {
-    setFormData({
-      email: 'caretaker@default.joycesuites.com',
-      password: 'Caretaker@Default123'
-    });
+    const defaultEmail = process.env.REACT_APP_DEFAULT_CARETAKER_EMAIL;
+    const defaultPassword = process.env.REACT_APP_DEFAULT_CARETAKER_PASSWORD;
+    
+    if (defaultEmail && defaultPassword) {
+      setFormData({
+        email: defaultEmail,
+        password: defaultPassword
+      });
+    } else {
+      setError('Default credentials not configured in environment');
+    }
   };
 
   return (
@@ -228,7 +235,8 @@ const CaretakerLogin = () => {
               />
             </div>
 
-            {process.env.NODE_ENV === 'development' && (
+            {process.env.NODE_ENV === 'development' && 
+             process.env.REACT_APP_DEFAULT_CARETAKER_EMAIL && (
               <button 
                 type="button" 
                 onClick={fillDefaultCredentials}
@@ -249,7 +257,8 @@ const CaretakerLogin = () => {
             </button>
           </form>
 
-          {process.env.NODE_ENV === 'development' && (
+          {process.env.NODE_ENV === 'development' && 
+           process.env.REACT_APP_DEFAULT_CARETAKER_EMAIL && (
             <div className="login-info" style={{
               marginTop: '20px',
               padding: '12px',
@@ -258,9 +267,8 @@ const CaretakerLogin = () => {
               fontSize: '13px',
               color: '#0369a1'
             }}>
-              <strong>🔑 Default Caretaker Credentials:</strong><br />
-              Email: caretaker@default.joycesuites.com<br />
-              Password: Caretaker@Default123
+              <strong>🔑 Development Mode:</strong><br />
+              Default credentials available via button above
             </div>
           )}
         </div>
