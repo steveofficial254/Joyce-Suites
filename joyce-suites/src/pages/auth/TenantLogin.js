@@ -24,14 +24,19 @@ const TenantLogin = () => {
     e.preventDefault();
 
     // 🧹 Always clear any previous tokens before login attempt
+    console.log('🧹 Clearing old tokens...');
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userId');
+    localStorage.removeItem('joyce-suites-token');
+    localStorage.removeItem('joyce-suites-user');
 
     setError('');
     setLoading(true);
 
     try {
+      console.log('📡 Attempting login with email:', formData.email);
+      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -39,12 +44,13 @@ const TenantLogin = () => {
       });
 
       const data = await response.json();
+      console.log('📨 Login response:', data);
 
       if (!response.ok) {
         // 🚨 Ensure full cleanup on bad response
-        localStorage.removeItem('token');
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('userId');
+        console.error('❌ Login failed with status:', response.status);
+        localStorage.removeItem('joyce-suites-token');
+        localStorage.removeItem('joyce-suites-user');
 
         setError(data.error || data.message || 'Login failed');
         setLoading(false);
@@ -53,27 +59,67 @@ const TenantLogin = () => {
 
       // ✅ Check if user role is tenant
       if (data.user.role !== 'tenant') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('userId');
+        console.error('❌ User is not a tenant, role is:', data.user.role);
+        localStorage.removeItem('joyce-suites-token');
+        localStorage.removeItem('joyce-suites-user');
 
         setError('Tenant access required. Please use your tenant credentials.');
         setLoading(false);
         return;
       }
 
-      // ✅ Successful login
-      localStorage.setItem('token', data.token);
+      // ✅ Successful login - SAVE WITH CORRECT KEY
+      console.log('✅ Login successful, saving token...');
+      
+      if (!data.token) {
+        console.error('❌ No token in response');
+        setError('No authentication token received');
+        setLoading(false);
+        return;
+      }
+
+      // Save token with CORRECT key name
+      localStorage.setItem('joyce-suites-token', data.token);
+      console.log('💾 Token saved as "joyce-suites-token"');
+
+      // Save user data
+      const userData = {
+        user_id: data.user.user_id,
+        email: data.user.email,
+        full_name: data.user.full_name,
+        role: data.user.role,
+        phone_number: data.user.phone || data.user.phone_number,
+        loginTime: new Date().toISOString()
+      };
+      localStorage.setItem('joyce-suites-user', JSON.stringify(userData));
       localStorage.setItem('userRole', 'tenant');
       localStorage.setItem('userId', data.user.user_id);
 
-      // Navigate to tenant dashboard
-      navigate('/tenant/dashboard');
+      // ✅ CHECK FOR LEASE SIGNING REQUIRED
+      console.log('📋 Checking lease signing status:', {
+        lease_signing_required: data.lease_signing_required,
+        unsigned_lease_id: data.unsigned_lease_id
+      });
+
+      // Verify token was saved
+      const savedToken = localStorage.getItem('joyce-suites-token');
+      console.log('🔍 Verification - Token in storage:', savedToken ? '✅ YES' : '❌ NO');
+
+      // Redirect based on lease signing status
+      if (data.lease_signing_required) {
+        console.log('🚀 Redirecting to lease gate (lease needs signing)...');
+        navigate('/tenant/lease-gate');
+      } else {
+        console.log('🚀 Redirecting to tenant dashboard...');
+        navigate('/tenant/dashboard');
+      }
+
     } catch (err) {
+      console.error('❌ Login error:', err);
+      
       // 🚨 Network or unexpected error — always clear again
-      localStorage.removeItem('token');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('userId');
+      localStorage.removeItem('joyce-suites-token');
+      localStorage.removeItem('joyce-suites-user');
 
       setError(err.message || 'Network error. Please try again.');
       setLoading(false);
@@ -106,6 +152,7 @@ const TenantLogin = () => {
                 onChange={handleInputChange}
                 placeholder="your.email@example.com"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -119,6 +166,7 @@ const TenantLogin = () => {
                 onChange={handleInputChange}
                 placeholder="Enter your password"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -145,12 +193,14 @@ const TenantLogin = () => {
           <button
             onClick={() => navigate('/caretaker-login')}
             className="nav-btn caretaker-btn"
+            disabled={loading}
           >
             Caretaker Login →
           </button>
           <button
             onClick={() => navigate('/admin-login')}
             className="nav-btn admin-btn"
+            disabled={loading}
           >
             Admin Login →
           </button>

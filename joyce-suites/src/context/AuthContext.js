@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import apiService from '../services/api';
 
 const AuthContext = createContext();
@@ -15,54 +15,25 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Use refs to track state without causing re-renders
+  const userRef = useRef(null);
+  const initializedRef = useRef(false);
 
   // Storage keys
   const STORAGE_KEYS = {
     USER: 'joyce-suites-user',
-    TOKEN: 'joyce-suites-token'
+    TOKEN: 'joyce-suites-token',
+    ROLE: 'joyce-suites-role'
   };
 
-  useEffect(() => {
-    // Check for stored authentication on app start
-    const initializeAuth = async () => {
-      try {
-        const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
-        const savedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
-
-        if (savedUser && savedToken) {
-          const userData = JSON.parse(savedUser);
-          
-          // Set user from localStorage first (don't wait for profile validation)
-          setUser(userData);
-          
-          // Try to validate token by making a profile request, but don't block if it fails
-          try {
-            const profile = await apiService.auth.getProfile();
-            setUser(prev => ({ ...prev, ...profile }));
-          } catch (error) {
-            // Token validation failed, but we keep the user logged in with cached data
-            // This allows the app to continue working even if the profile endpoint is temporarily down
-            console.warn('Profile validation failed, using cached user data:', error);
-          }
-        }
-      } catch (err) {
-        console.error('Error initializing auth:', err);
-        // Clear invalid data
-        localStorage.removeItem(STORAGE_KEYS.USER);
-        localStorage.removeItem(STORAGE_KEYS.TOKEN);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeAuth();
-  }, []);
-
-  const login = async (email, password) => {
+  // Stable callback for login
+  const login = useCallback(async (email, password) => {
     setError('');
     setLoading(true);
 
     try {
+      console.log('🔐 Attempting login for:', email);
       const response = await apiService.auth.login(email, password);
       
       if (response.success) {
@@ -71,12 +42,18 @@ export function AuthProvider({ children }) {
           loginTime: new Date().toISOString()
         };
 
+        console.log('✅ Login successful:', userData.email);
         setUser(userData);
+        userRef.current = userData;
         
-        // Store user data and token
+        // Store user data, token, and role
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
         if (response.token) {
           localStorage.setItem(STORAGE_KEYS.TOKEN, response.token);
+          console.log('💾 Token stored');
+        }
+        if (userData.role) {
+          localStorage.setItem(STORAGE_KEYS.ROLE, userData.role);
         }
         
         return { success: true, user: userData };
@@ -85,18 +62,21 @@ export function AuthProvider({ children }) {
       }
     } catch (err) {
       const errorMessage = err.message || 'An error occurred during login';
+      console.error('❌ Login error:', errorMessage);
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const signup = async (userData) => {
+  // Stable callback for signup
+  const signup = useCallback(async (userData) => {
     setError('');
     setLoading(true);
 
     try {
+      console.log('📝 Attempting signup for:', userData.email);
       const response = await apiService.auth.signup(userData);
       
       if (response.success) {
@@ -105,12 +85,17 @@ export function AuthProvider({ children }) {
           loginTime: new Date().toISOString()
         };
 
+        console.log('✅ Signup successful:', newUser.email);
         setUser(newUser);
+        userRef.current = newUser;
         
         // Store user data and token
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
         if (response.token) {
           localStorage.setItem(STORAGE_KEYS.TOKEN, response.token);
+        }
+        if (newUser.role) {
+          localStorage.setItem(STORAGE_KEYS.ROLE, newUser.role);
         }
         
         return { success: true, user: newUser };
@@ -119,75 +104,142 @@ export function AuthProvider({ children }) {
       }
     } catch (err) {
       const errorMessage = err.message || 'An error occurred during signup';
+      console.error('❌ Signup error:', errorMessage);
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  // Stable callback for logout
+  const logout = useCallback(async () => {
+    console.log('🚪 Logging out...');
+    
+    // Clear local state immediately
+    setUser(null);
+    userRef.current = null;
+    setError('');
+    
+    // Clear local storage
+    localStorage.removeItem(STORAGE_KEYS.USER);
+    localStorage.removeItem(STORAGE_KEYS.TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.ROLE);
+    
+    console.log('🗑️ Local auth data cleared');
+    
+    // Try to call logout endpoint (don't block on this)
     try {
-      // Try to call logout endpoint, but don't fail if it's unreachable
-      try {
-        await apiService.auth.logout();
-      } catch (error) {
-        console.warn('Logout endpoint unreachable, clearing local data anyway:', error);
-      }
-    } finally {
-      // Clear local state regardless of API call success
-      setUser(null);
-      setError('');
-      localStorage.removeItem(STORAGE_KEYS.USER);
-      localStorage.removeItem(STORAGE_KEYS.TOKEN);
+      await apiService.auth.logout();
+      console.log('✅ Logout endpoint called successfully');
+    } catch (error) {
+      console.warn('⚠️ Logout endpoint unreachable:', error.message);
     }
-  };
+  }, []);
 
-  const updateProfile = async (updatedData) => {
-    if (!user) {
+  // Stable callback for updateProfile
+  const updateProfile = useCallback(async (updatedData) => {
+    if (!userRef.current) {
       return { success: false, error: 'No user logged in' };
     }
 
     try {
+      console.log('🔄 Updating profile...');
       const response = await apiService.auth.updateProfile(updatedData);
       
       if (response.success) {
-        const updatedUser = { ...user, ...response.user };
+        const updatedUser = { ...userRef.current, ...response.user };
         setUser(updatedUser);
+        userRef.current = updatedUser;
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+        if (updatedUser.role) {
+          localStorage.setItem(STORAGE_KEYS.ROLE, updatedUser.role);
+        }
+        console.log('✅ Profile updated');
         return { success: true, user: updatedUser };
       } else {
         throw new Error(response.message || 'Profile update failed');
       }
     } catch (err) {
       const errorMessage = err.message || 'An error occurred while updating profile';
+      console.error('❌ Profile update error:', errorMessage);
       setError(errorMessage);
       return { success: false, error: errorMessage };
     }
-  };
+  }, []);
 
-  const refreshUser = async () => {
-    if (!user) return;
+  // Stable callback for refreshUser
+  const refreshUser = useCallback(async () => {
+    if (!userRef.current) return;
 
     try {
+      console.log('🔄 Refreshing user data...');
       const profile = await apiService.auth.getProfile();
-      const updatedUser = { ...user, ...profile };
+      const updatedUser = { ...userRef.current, ...profile };
       setUser(updatedUser);
+      userRef.current = updatedUser;
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+      console.log('✅ User data refreshed');
     } catch (error) {
-      console.error('Error refreshing user data:', error);
-      // Don't log out on refresh failure, just warn
+      console.error('❌ Error refreshing user data:', error);
+      // Don't log out on refresh failure
     }
-  };
+  }, []);
 
-  const clearError = () => setError('');
+  const clearError = useCallback(() => setError(''), []);
 
-  // Helper functions for role-based access
-  const isTenant = () => user?.role === 'tenant';
-  const isCaretaker = () => user?.role === 'caretaker';
-  const isAdmin = () => user?.role === 'admin';
+  // Initialize auth - runs only once
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
 
-  const value = {
+    const initializeAuth = () => {
+      try {
+        const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
+        const savedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
+        const savedRole = localStorage.getItem(STORAGE_KEYS.ROLE);
+
+        if (savedUser && savedToken) {
+          try {
+            const userData = JSON.parse(savedUser);
+            
+            // Ensure role is set
+            if (!userData.role && savedRole) {
+              userData.role = savedRole;
+            }
+            
+            console.log('✅ Restoring user from localStorage:', userData.email);
+            console.log('🔑 Role:', userData.role);
+            
+            setUser(userData);
+            userRef.current = userData;
+          } catch (parseError) {
+            console.error('❌ Error parsing saved user:', parseError);
+            // Clear corrupted data
+            localStorage.removeItem(STORAGE_KEYS.USER);
+            localStorage.removeItem(STORAGE_KEYS.TOKEN);
+            localStorage.removeItem(STORAGE_KEYS.ROLE);
+          }
+        } else {
+          console.log('ℹ️ No saved auth data found');
+        }
+      } catch (err) {
+        console.error('❌ Error initializing auth:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+  }, []);
+
+  // Helper functions
+  const isTenant = user?.role === 'tenant';
+  const isCaretaker = user?.role === 'caretaker';
+  const isAdmin = user?.role === 'admin';
+  const hasRole = useCallback((role) => user?.role === role, [user?.role]);
+
+  const value = React.useMemo(() => ({
     user,
     login,
     signup,
@@ -197,11 +249,13 @@ export function AuthProvider({ children }) {
     loading,
     error,
     clearError,
-    isTenant: isTenant(),
-    isCaretaker: isCaretaker(),
-    isAdmin: isAdmin(),
-    hasRole: (role) => user?.role === role,
-  };
+    isTenant,
+    isCaretaker,
+    isAdmin,
+    hasRole,
+    getToken: () => localStorage.getItem(STORAGE_KEYS.TOKEN),
+    getRole: () => user?.role || localStorage.getItem(STORAGE_KEYS.ROLE),
+  }), [user, loading, error, isTenant, isCaretaker, isAdmin, login, signup, logout, updateProfile, refreshUser, clearError, hasRole]);
 
   return (
     <AuthContext.Provider value={value}>
