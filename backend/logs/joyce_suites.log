@@ -72,3 +72,61 @@
 2025-11-20 17:37:13,508 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
 2025-11-20 17:37:47,458 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
 2025-11-20 17:42:59,594 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+2025-12-17 07:39:45,820 - INFO - 🚀 Joyce Suites API started - Env: development
+2025-12-17 07:39:45,986 - INFO - ✅ Database tables created (development mode)
+2025-12-17 07:39:46,784 - INFO - 🚀 Joyce Suites API started - Env: development
+2025-12-17 07:39:46,812 - INFO - ✅ Database tables created (development mode)
+2025-12-17 07:39:50,047 - INFO - GET / | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:39:50,898 - INFO - GET /favicon.ico | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:41:44,616 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:41:44,901 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:51:18,588 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:51:18,839 - INFO - GET /favicon.ico | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:54:26,180 - INFO - 🚀 Joyce Suites API started - Env: development
+2025-12-17 07:54:26,210 - INFO - ✅ Database tables created (development mode)
+2025-12-17 07:54:59,386 - INFO - 🚀 Joyce Suites API started - Env: development
+2025-12-17 07:54:59,425 - INFO - ✅ Database tables created (development mode)
+2025-12-17 07:55:00,241 - INFO - 🚀 Joyce Suites API started - Env: development
+2025-12-17 07:55:00,261 - INFO - ✅ Database tables created (development mode)
+2025-12-17 07:55:37,453 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:55:37,724 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:58:49,358 - INFO - GET /api/caretaker/rooms/available | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:58:49,616 - INFO - GET /api/caretaker/rooms/available | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:58:49,668 - INFO - GET /api/caretaker/rooms/available | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:58:49,933 - INFO - GET /api/caretaker/rooms/available | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:58:55,207 - INFO - GET /api/caretaker/rooms/available | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:58:55,545 - INFO - GET /api/caretaker/rooms/available | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:59:04,600 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:59:04,919 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:59:05,242 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:59:05,565 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:59:08,793 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 07:59:09,029 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:01:32,749 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:01:32,995 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:06:38,540 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:06:38,796 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:06:54,300 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:06:54,614 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:14:10,966 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:14:11,220 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:15:04,028 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:15:04,295 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:15:04,361 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:15:13,380 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:15:13,706 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:15:14,036 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:22:25,604 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:22:31,756 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:48:37,930 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:48:38,142 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:51:46,199 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 08:51:46,450 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 12:18:36,082 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 12:18:36,301 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 12:24:43,111 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 12:24:43,344 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 12:25:24,396 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 12:25:24,737 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 12:27:13,394 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-17 12:27:13,621 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb

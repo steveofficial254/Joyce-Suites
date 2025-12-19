@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import TermsAndConditionsModal from './TermsAndConditionsModal';
 import './TenantRegister.css';
 import logo from '../../assets/image1.png';
 import backgroundImage from '../../assets/image21.jpg';
@@ -48,9 +49,28 @@ const TenantRegister = () => {
       const data = await response.json();
       console.log('Rooms API response:', data);
       
-      if (data.success && Array.isArray(data.available_rooms)) {
-        console.log('Loaded rooms:', data.available_rooms);
-        setRooms(data.available_rooms);
+      // Check for both possible response structures
+      let availableRooms = [];
+      
+      if (data.success) {
+        if (Array.isArray(data.available_rooms)) {
+          availableRooms = data.available_rooms;
+        } else if (Array.isArray(data.rooms)) {
+          availableRooms = data.rooms;
+        } else if (data.rooms && typeof data.rooms === 'object' && data.rooms.available) {
+          availableRooms = data.rooms.available;
+        }
+      }
+      
+      console.log('Processed available rooms:', availableRooms);
+      
+      if (Array.isArray(availableRooms)) {
+        // Filter for available rooms only if they have a status property
+        const filteredRooms = availableRooms.filter(room => 
+          room.status === 'available' || room.status === 'vacant' || !room.status
+        );
+        console.log('Loaded rooms:', filteredRooms);
+        setRooms(filteredRooms);
       } else {
         throw new Error('Failed to load rooms: Invalid response format');
       }
@@ -68,44 +88,53 @@ const TenantRegister = () => {
     if (name === 'roomNumber' && value) {
       console.log('Room selected:', value);
       
-      // Find the selected room by matching the room number from the name
+      // Find the selected room
       const selectedRoom = rooms.find(room => {
-        // room.name is "Room 1", "Room 2", etc.
-        // value is just "1", "2", etc.
-        const roomNumber = room.name.replace('Room ', '').trim();
-        return roomNumber === value.trim();
+        // Try different ways to match room number
+        const roomName = room.name || room.room_number || '';
+        const roomNumber = roomName.toString().replace('Room ', '').replace('room ', '').trim();
+        return roomNumber === value.trim() || roomName === value.trim();
       });
       
       console.log('Selected room object:', selectedRoom);
       
       if (selectedRoom) {
         // Calculate deposit (7% of rent)
-        const depositAmount = selectedRoom.rent_amount * 0.07;
+        const depositAmount = (selectedRoom.rent_amount || selectedRoom.rent || 0) * 0.07;
+        const rentAmount = selectedRoom.rent_amount || selectedRoom.rent || 0;
         
         // Format room type for display
-        const roomType = selectedRoom.property_type === 'bedsitter' 
-          ? 'Bedsitter' 
-          : selectedRoom.property_type === 'one_bedroom' 
-            ? '1-Bedroom' 
-            : selectedRoom.property_type;
+        let roomType = 'Room';
+        if (selectedRoom.property_type) {
+          if (selectedRoom.property_type === 'bedsitter') {
+            roomType = 'Bedsitter';
+          } else if (selectedRoom.property_type === 'one_bedroom') {
+            roomType = '1-Bedroom';
+          } else if (selectedRoom.property_type === 'two_bedroom') {
+            roomType = '2-Bedroom';
+          } else {
+            roomType = selectedRoom.property_type.replace('_', ' ').toUpperCase();
+          }
+        }
         
         setRoomData({
-          id: selectedRoom.id,
-          name: selectedRoom.name,
+          id: selectedRoom.id || selectedRoom._id,
+          name: selectedRoom.name || selectedRoom.room_number || `Room ${value}`,
           type: roomType,
-          rent: selectedRoom.rent_amount,
-          deposit: selectedRoom.rent_amount + depositAmount,
+          rent: rentAmount,
+          deposit: depositAmount,
+          totalAmount: rentAmount + depositAmount,
           property_type: selectedRoom.property_type,
-          paybill: selectedRoom.paybill_number,
-          account: selectedRoom.account_number,
-          landlord: selectedRoom.landlord_name || 'Landlord'
+          paybill: selectedRoom.paybill_number || selectedRoom.paybill,
+          account: selectedRoom.account_number || selectedRoom.account,
+          landlord: selectedRoom.landlord_name || selectedRoom.landlord || 'Landlord'
         });
         
         console.log('Updated room data:', {
-          name: selectedRoom.name,
+          name: selectedRoom.name || selectedRoom.room_number,
           type: roomType,
-          rent: selectedRoom.rent_amount,
-          deposit: selectedRoom.rent_amount + depositAmount
+          rent: rentAmount,
+          deposit: depositAmount
         });
       } else {
         console.log('Room not found for value:', value);
@@ -240,14 +269,23 @@ const TenantRegister = () => {
       uploadData.append('full_name', formData.fullName);
       uploadData.append('email', formData.email);
       uploadData.append('phone', formData.phone.replace(/\s/g, ''));
-      uploadData.append('idNumber', formData.idNumber);
-      uploadData.append('roomNumber', formData.roomNumber);
+      uploadData.append('id_number', formData.idNumber);
+      uploadData.append('room_number', formData.roomNumber);
       uploadData.append('password', formData.password);
       uploadData.append('photo', formData.photo);
-      uploadData.append('idDocument', formData.idDocument);
+      uploadData.append('id_document', formData.idDocument);
       uploadData.append('role', 'tenant');
 
-      console.log('Submitting registration...');
+      console.log('Submitting registration with room data:', roomData);
+      
+      // If roomData exists, append additional details
+      if (roomData) {
+        uploadData.append('room_id', roomData.id);
+        uploadData.append('room_type', roomData.property_type);
+        uploadData.append('monthly_rent', roomData.rent);
+        uploadData.append('security_deposit', roomData.deposit);
+      }
+
       const response = await fetch('http://localhost:5000/api/auth/register', {
         method: 'POST',
         body: uploadData
@@ -286,13 +324,10 @@ const TenantRegister = () => {
         }));
         localStorage.setItem('userRole', data.user.role);
         
-        // ==================== FIXED: CHECK LEASE SIGNING STATUS ====================
         if (data.lease_created && data.lease_signing_required) {
           setSuccess('Registration successful! Creating your lease...');
           
-          // Wait a moment for the lease to be fully created
           setTimeout(() => {
-            // Redirect to lease signing gate
             window.location.href = '/tenant/lease-gate';
           }, 2000);
         } else if (data.lease_created) {
@@ -458,18 +493,21 @@ const TenantRegister = () => {
                     </option>
                     {rooms.length > 0 ? (
                       rooms.map(room => {
+                        const roomName = room.name || room.room_number || `Room ${room.id}`;
                         const roomType = room.property_type === 'bedsitter' 
                           ? 'Bedsitter' 
                           : room.property_type === 'one_bedroom' 
                             ? '1-Bedroom' 
-                            : room.property_type;
+                            : room.property_type === 'two_bedroom'
+                              ? '2-Bedroom'
+                              : room.property_type || 'Room';
                         
-                        // Extract room number from name (e.g., "Room 1" -> "1")
-                        const roomNumber = room.name.replace('Room ', '').trim();
+                        // Extract room number from name
+                        const roomNumber = roomName.toString().replace('Room ', '').replace('room ', '').trim();
                         
                         return (
-                          <option key={room.id} value={roomNumber}>
-                            {room.name} - {roomType} - KSh {room.rent_amount?.toLocaleString() || '0'}/month
+                          <option key={room.id || room._id} value={roomNumber}>
+                            {roomName} - {roomType} - KSh {(room.rent_amount || room.rent || 0)?.toLocaleString() || '0'}/month
                           </option>
                         );
                       })
@@ -507,6 +545,10 @@ const TenantRegister = () => {
                     <div className="room-detail-row">
                       <span>Security Deposit (7%):</span>
                       <strong className="deposit-amount">KSh {Math.round(roomData.deposit || 0).toLocaleString()}</strong>
+                    </div>
+                    <div className="room-detail-row">
+                      <span>Total Initial Payment:</span>
+                      <strong className="total-amount">KSh {Math.round((roomData.rent + roomData.deposit) || 0).toLocaleString()}</strong>
                     </div>
                     {roomData.paybill && (
                       <div className="room-detail-row">
@@ -621,121 +663,6 @@ const TenantRegister = () => {
           }}
         />
       )}
-    </div>
-  );
-};
-
-const TermsAndConditionsModal = ({ roomData, onClose, onAccept, onDecline }) => {
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        
-        <div className="modal-header">
-          <h3>Lease Agreement Terms and Conditions</h3>
-          <button onClick={onClose} className="modal-close">×</button>
-        </div>
-
-        <div className="modal-body">
-          {roomData && (
-            <div className="lease-summary">
-              <h4>Lease Summary</h4>
-              <div className="summary-card">
-                <div className="summary-row">
-                  <span>Room:</span>
-                  <strong>{roomData.name}</strong>
-                </div>
-                <div className="summary-row">
-                  <span>Type:</span>
-                  <strong>{roomData.type}</strong>
-                </div>
-                <div className="summary-row">
-                  <span>Monthly Rent:</span>
-                  <strong className="rent-highlight">KSh {roomData.rent?.toLocaleString() || '0'}</strong>
-                </div>
-                <div className="summary-row">
-                  <span>Security Deposit:</span>
-                  <strong className="deposit-highlight">KSh {Math.round(roomData.deposit || 0).toLocaleString()}</strong>
-                </div>
-                {roomData.paybill && (
-                  <div className="summary-row">
-                    <span>Paybill:</span>
-                    <strong>{roomData.paybill}</strong>
-                  </div>
-                )}
-                {roomData.account && (
-                  <div className="summary-row">
-                    <span>Account:</span>
-                    <strong>{roomData.account}</strong>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="terms-content">
-            <h4>Terms and Conditions</h4>
-            
-            <section className="terms-section">
-              <h5>1. Lease Term</h5>
-              <p>The lease is on a month-to-month basis and continues until terminated by either party with 30 days written notice.</p>
-            </section>
-
-            <section className="terms-section">
-              <h5>2. Rent Payment</h5>
-              <p>Monthly rent of KSh {roomData?.rent?.toLocaleString() || '0'} is payable on or before the 5th day of each month. Late payment may incur additional charges of 5% per day.</p>
-            </section>
-
-            <section className="terms-section">
-              <h5>3. Security Deposit</h5>
-              <p>A security deposit of KSh {roomData ? Math.round(roomData.deposit || 0).toLocaleString() : '0'} is required. This will be returned within 30 days of lease termination, subject to property condition inspection.</p>
-            </section>
-
-            <section className="terms-section">
-              <h5>4. Utilities and Services</h5>
-              <p>Water and electricity deposits are separate from the security deposit. Internet service is available at additional cost. Tenants are responsible for their consumption bills.</p>
-            </section>
-
-            <section className="terms-section">
-              <h5>5. Property Maintenance</h5>
-              <p>Tenant must maintain the premises in clean and habitable condition. Damage beyond normal wear and tear will be charged to the tenant. Major repairs should be reported to the caretaker immediately.</p>
-            </section>
-
-            <section className="terms-section">
-              <h5>6. Noise Policy</h5>
-              <p>Quiet hours are from 10:00 PM to 8:00 AM. Excessive noise is prohibited and may result in warnings or eviction.</p>
-            </section>
-
-            <section className="terms-section">
-              <h5>7. Guest Policy</h5>
-              <p>Guests are allowed but must not stay overnight for more than 3 consecutive nights without prior approval from the caretaker.</p>
-            </section>
-
-            <section className="terms-section">
-              <h5>8. Termination</h5>
-              <p>Either party may terminate the lease with 30 days written notice. Upon move-out, the premises must be empty, clean, and in the same condition as at move-in.</p>
-            </section>
-
-            <section className="terms-section">
-              <h5>9. Breach of Terms</h5>
-              <p>Any breach of these terms may result in legal action, including eviction and deduction from the security deposit. Repeated violations may lead to immediate termination of lease.</p>
-            </section>
-
-            <section className="terms-section">
-              <h5>10. Governing Law</h5>
-              <p>This agreement shall be governed by and construed in accordance with the laws of Kenya.</p>
-            </section>
-          </div>
-        </div>
-
-        <div className="modal-footer">
-          <button onClick={onDecline} className="btn btn-outline">
-            Do Not Accept
-          </button>
-          <button onClick={onAccept} className="btn btn-primary">
-            Accept Terms
-          </button>
-        </div>
-      </div>
     </div>
   );
 };

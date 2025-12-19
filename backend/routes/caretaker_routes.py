@@ -6,6 +6,7 @@ Handles caretaker-specific operations:
 - Maintenance request management
 - Tenant notifications
 - Payment and room monitoring
+- Public room listing (no auth)
 """
 
 from flask import Blueprint, request, jsonify
@@ -23,6 +24,10 @@ from routes.auth_routes import token_required
 
 caretaker_bp = Blueprint("caretaker", __name__, url_prefix="/api/caretaker")
 
+
+# =========================
+# ROLE PROTECTION DECORATOR
+# =========================
 def caretaker_required(f):
     """Decorator to require caretaker or admin role."""
     @wraps(f)
@@ -36,27 +41,28 @@ def caretaker_required(f):
         return f(*args, **kwargs)
     return decorated
 
+
+# =========================
+# DASHBOARD
+# =========================
 @caretaker_bp.route("/dashboard", methods=["GET"])
 @caretaker_required
 def get_dashboard():
-    """Get caretaker dashboard with key statistics."""
     try:
-        # Maintenance statistics
-        pending_maintenance = MaintenanceRequest.query.filter_by(status='pending').count()
-        in_progress_maintenance = MaintenanceRequest.query.filter_by(status='in_progress').count()
+        pending_maintenance = MaintenanceRequest.query.filter_by(status="pending").count()
+        in_progress_maintenance = MaintenanceRequest.query.filter_by(status="in_progress").count()
         completed_today = MaintenanceRequest.query.filter(
-            MaintenanceRequest.status == 'completed',
+            MaintenanceRequest.status == "completed",
             MaintenanceRequest.updated_at >= datetime.now().date()
         ).count()
-        
-        # Property statistics
-        vacant_properties = Property.query.filter_by(status='vacant').count()
-        occupied_properties = Property.query.filter_by(status='occupied').count()
-        
-        # Get recent maintenance requests
-        recent_requests = MaintenanceRequest.query\
-            .order_by(MaintenanceRequest.created_at.desc()).limit(5).all()
-        
+
+        vacant_properties = Property.query.filter_by(status="vacant").count()
+        occupied_properties = Property.query.filter_by(status="occupied").count()
+
+        recent_requests = MaintenanceRequest.query.order_by(
+            MaintenanceRequest.created_at.desc()
+        ).limit(5).all()
+
         return jsonify({
             "success": True,
             "dashboard": {
@@ -70,33 +76,34 @@ def get_dashboard():
         }), 200
 
     except Exception as e:
-        return jsonify({"success": False, "error": f"Dashboard error: {str(e)}"}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
+
+# =========================
+# MAINTENANCE
+# =========================
 @caretaker_bp.route("/maintenance", methods=["GET"])
 @caretaker_required
 def get_maintenance_requests():
-    """Get all maintenance requests with filtering."""
     try:
-        status = request.args.get('status')
-        priority = request.args.get('priority')
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)
-        
+        status = request.args.get("status")
+        priority = request.args.get("priority")
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 10, type=int)
+
         query = MaintenanceRequest.query
-        
         if status:
             query = query.filter_by(status=status)
         if priority:
             query = query.filter_by(priority=priority)
-        
-        pagination = query.order_by(MaintenanceRequest.created_at.desc())\
-            .paginate(page=page, per_page=per_page, error_out=False)
-        
-        requests_list = [r.to_dict() for r in pagination.items]
-        
+
+        pagination = query.order_by(
+            MaintenanceRequest.created_at.desc()
+        ).paginate(page=page, per_page=per_page, error_out=False)
+
         return jsonify({
             "success": True,
-            "requests": requests_list,
+            "requests": [r.to_dict() for r in pagination.items],
             "pagination": {
                 "page": page,
                 "per_page": per_page,
@@ -106,68 +113,62 @@ def get_maintenance_requests():
         }), 200
 
     except Exception as e:
-        return jsonify({"success": False, "error": f"Failed to get requests: {str(e)}"}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 @caretaker_bp.route("/maintenance/<int:req_id>", methods=["PUT"])
 @caretaker_required
 def update_maintenance_status(req_id):
-    """Update maintenance request status."""
     try:
-        maintenance_req = MaintenanceRequest.query.get(req_id)
-        
-        if not maintenance_req:
+        maintenance = MaintenanceRequest.query.get(req_id)
+        if not maintenance:
             return jsonify({"success": False, "error": "Request not found"}), 404
-        
+
         data = request.get_json()
-        
-        if 'status' in data:
-            maintenance_req.status = data['status']
-        
-        if 'priority' in data:
-            maintenance_req.priority = data['priority']
-        
-        if 'assigned_to_id' in data:
-            maintenance_req.assigned_to_id = data['assigned_to_id']
-        
+        maintenance.status = data.get("status", maintenance.status)
+        maintenance.priority = data.get("priority", maintenance.priority)
+        maintenance.assigned_to_id = data.get("assigned_to_id", maintenance.assigned_to_id)
+
         db.session.commit()
-        
+
         return jsonify({
             "success": True,
             "message": "Maintenance request updated",
-            "request": maintenance_req.to_dict()
+            "request": maintenance.to_dict()
         }), 200
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({"success": False, "error": f"Failed to update: {str(e)}"}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
+
+# =========================
+# NOTIFICATIONS
+# =========================
 @caretaker_bp.route("/notifications/send", methods=["POST"])
 @caretaker_required
 def send_tenant_notification():
-    """Send notification to a tenant."""
     try:
         data = request.get_json()
-        
-        required = ['tenant_id', 'title', 'message']
-        for field in required:
+
+        for field in ["tenant_id", "title", "message"]:
             if not data.get(field):
                 return jsonify({"success": False, "error": f"{field} is required"}), 400
-        
-        # Verify tenant exists
-        tenant = User.query.filter_by(id=data['tenant_id'], role='tenant').first()
+
+        tenant = User.query.filter_by(id=data["tenant_id"], role="tenant").first()
         if not tenant:
             return jsonify({"success": False, "error": "Tenant not found"}), 404
-        
+
         notification = Notification(
-            user_id=data['tenant_id'],
-            title=data['title'],
-            message=data['message'],
-            notification_type=data.get('type', 'general')
+            user_id=data["tenant_id"],
+            title=data["title"],
+            message=data["message"],
+            notification_type=data.get("type", "general")
         )
-        
+
         db.session.add(notification)
         db.session.commit()
-        
+
         return jsonify({
             "success": True,
             "message": "Notification sent",
@@ -176,24 +177,25 @@ def send_tenant_notification():
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({"success": False, "error": f"Failed to send notification: {str(e)}"}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
+
+# =========================
+# PAYMENTS
+# =========================
 @caretaker_bp.route("/payments/pending", methods=["GET"])
 @caretaker_required
 def get_pending_payments():
-    """Get list of tenants with pending payments."""
     try:
-        # Get all active leases
-        active_leases = Lease.query.filter_by(status='active').all()
-        
+        active_leases = Lease.query.filter_by(status="active").all()
         tenants_with_arrears = []
+
         for lease in active_leases:
-            # Get pending payments for this lease
             pending = Payment.query.filter_by(
                 lease_id=lease.id,
-                status='pending'
+                status="pending"
             ).count()
-            
+
             if pending > 0:
                 tenants_with_arrears.append({
                     "tenant_id": lease.tenant_id,
@@ -202,7 +204,7 @@ def get_pending_payments():
                     "pending_payments": pending,
                     "rent_amount": lease.rent_amount
                 })
-        
+
         return jsonify({
             "success": True,
             "tenants_with_arrears": tenants_with_arrears,
@@ -210,47 +212,69 @@ def get_pending_payments():
         }), 200
 
     except Exception as e:
-        return jsonify({"success": False, "error": f"Failed to get pending payments: {str(e)}"}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
-@caretaker_bp.route("/rooms/available", methods=["GET"])
-@caretaker_required
-def get_available_rooms():
-    """Get list of available (vacant) properties."""
+
+# =========================
+# ROOMS (PUBLIC — NO AUTH)
+# =========================
+@caretaker_bp.route("/rooms/public", methods=["GET"])
+def get_public_rooms():
+    """Public endpoint for tenant registration."""
     try:
-        vacant_properties = Property.query.filter_by(status='vacant').all()
-        
-        rooms_list = [
-            {
-                "id": prop.id,
-                "name": prop.name,
-                "type": prop.property_type,
-                "rent_amount": prop.rent_amount,
-                "description": prop.description
-            } for prop in vacant_properties
-        ]
-        
+        vacant_properties = Property.query.filter_by(status="vacant").all()
+
+        rooms = [{
+            "id": prop.id,
+            "name": prop.name,
+            "type": prop.property_type,
+            "rent_amount": prop.rent_amount,
+            "description": prop.description
+        } for prop in vacant_properties]
+
         return jsonify({
             "success": True,
-            "available_rooms": rooms_list,
-            "total_available": len(rooms_list)
+            "rooms": rooms,
+            "total": len(rooms)
         }), 200
 
     except Exception as e:
-        return jsonify({"success": False, "error": f"Failed to get rooms: {str(e)}"}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# =========================
+# ROOMS (PROTECTED)
+# =========================
+@caretaker_bp.route("/rooms/available", methods=["GET"])
+@caretaker_required
+def get_available_rooms():
+    try:
+        vacant_properties = Property.query.filter_by(status="vacant").all()
+
+        return jsonify({
+            "success": True,
+            "available_rooms": [p.to_dict() for p in vacant_properties],
+            "total_available": len(vacant_properties)
+        }), 200
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 @caretaker_bp.route("/rooms/occupied", methods=["GET"])
 @caretaker_required
 def get_occupied_rooms():
-    """Get list of occupied properties with tenant info."""
     try:
-        occupied_properties = Property.query.filter_by(status='occupied').all()
-        
-        rooms_list = []
+        occupied_properties = Property.query.filter_by(status="occupied").all()
+        rooms = []
+
         for prop in occupied_properties:
-            # Get active lease for this property
-            lease = Lease.query.filter_by(property_id=prop.id, status='active').first()
-            
-            rooms_list.append({
+            lease = Lease.query.filter_by(
+                property_id=prop.id,
+                status="active"
+            ).first()
+
+            rooms.append({
                 "id": prop.id,
                 "name": prop.name,
                 "type": prop.property_type,
@@ -258,12 +282,12 @@ def get_occupied_rooms():
                 "tenant_name": lease.tenant.full_name if lease and lease.tenant else "Unknown",
                 "tenant_phone": lease.tenant.phone_number if lease and lease.tenant else None
             })
-        
+
         return jsonify({
             "success": True,
-            "occupied_rooms": rooms_list,
-            "total_occupied": len(rooms_list)
+            "occupied_rooms": rooms,
+            "total_occupied": len(rooms)
         }), 200
 
     except Exception as e:
-        return jsonify({"success": False, "error": f"Failed to get rooms: {str(e)}"}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
