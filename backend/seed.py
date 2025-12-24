@@ -1,8 +1,8 @@
-from your_app import db
+from app import app
+from models import db
 from models.property import Unit
 from models.tenant import Tenant
-from models.payment import Payment
-from datetime import datetime
+from models.payment import Paymentfrom datetime import datetime
 
 # UNITS SEED DATA - All deposits 
 units = [

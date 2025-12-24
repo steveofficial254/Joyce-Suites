@@ -130,3 +130,5 @@
 2025-12-17 12:25:24,737 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
 2025-12-17 12:27:13,394 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
 2025-12-17 12:27:13,621 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2025-12-23 02:28:27,776 - INFO - 🚀 Joyce Suites API started - Env: development
+2025-12-23 02:28:27,789 - INFO - ✅ Database tables created (development mode)
