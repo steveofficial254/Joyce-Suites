@@ -1,46 +1,54 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { 
-  Menu, X, Bell, LogOut, ChevronDown, AlertCircle, Search, Filter, 
-  Mail, Home, Send, Eye, CheckCircle, Clock, DollarSign, Building, 
-  User, Users, Wrench, RefreshCw, Calendar, AlertTriangle, Check,
-  MessageSquare, TrendingUp, Plus, Download
+  Menu, LogOut, X, Bell, Eye, Edit, Trash2, Filter, Search, 
+  Download, Mail, Phone, FileText, ArrowLeft, User, Send, 
+  Check, AlertCircle, Home, Plus, Calendar, DollarSign,
+  Building, Users, CreditCard, Key, CheckCircle, Clock, UserPlus,
+  RefreshCw, XCircle, Wrench, AlertTriangle, UserX, MessageSquare,
+  TrendingUp, PieChart, FileSpreadsheet, DoorOpen, List
 } from 'lucide-react';
 
 const API_BASE_URL = 'http://localhost:5000';
 
-// ==================== MAIN CARETAKER DASHBOARD COMPONENT ====================
-const CaretakerDashboard = () => {
-  const navigate = useNavigate();
+const AdminDashboard = () => {
   const [activePage, setActivePage] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   // State for all data
-  const [dashboardData, setDashboardData] = useState(null);
-  const [maintenanceRequests, setMaintenanceRequests] = useState([]);
-  const [pendingPayments, setPendingPayments] = useState([]);
-  const [availableRooms, setAvailableRooms] = useState([]);
-  const [occupiedRooms, setOccupiedRooms] = useState([]);
-  const [allRooms, setAllRooms] = useState([]);
+  const [overview, setOverview] = useState(null);
   const [tenants, setTenants] = useState([]);
-
+  const [contracts, setContracts] = useState([]);
+  const [paymentReport, setPaymentReport] = useState(null);
+  const [occupancyReport, setOccupancyReport] = useState(null);
+  const [availableRooms, setAvailableRooms] = useState([]);
+  const [maintenanceRequests, setMaintenanceRequests] = useState([]);
+  const [vacateNotices, setVacateNotices] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  
   // Modal states
-  const [selectedMaintenance, setSelectedMaintenance] = useState(null);
-  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [selectedTenant, setSelectedTenant] = useState(null);
+  const [showTenantModal, setShowTenantModal] = useState(false);
+  const [showCreateTenantModal, setShowCreateTenantModal] = useState(false);
+  const [showCreateLeaseModal, setShowCreateLeaseModal] = useState(false);
+  const [tenantForLease, setTenantForLease] = useState(null);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [showRoomDetailsModal, setShowRoomDetailsModal] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [selectedMaintenanceRequest, setSelectedMaintenanceRequest] = useState(null);
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [selectedVacateNotice, setSelectedVacateNotice] = useState(null);
+  const [showVacateModal, setShowVacateModal] = useState(false);
 
-  const token = localStorage.getItem('joyce-suites-token');
-  const userRole = localStorage.getItem('joyce-suites-role');
-  const userName = localStorage.getItem('joyce-suites-user-name') || 'Caretaker';
+  const token = localStorage.getItem('token') || localStorage.getItem('joyce-suites-token');
 
-  // Enhanced API call helper
-  const apiCall = useCallback(async (endpoint, options = {}) => {
+  useEffect(() => {
+    console.log('Token check:', token ? 'Token found' : 'No token found');
+    console.log('API Base URL:', API_BASE_URL);
+  }, [token]);
+
+  // Enhanced API call helper with better error handling
+  const apiCall = async (endpoint, options = {}) => {
     try {
       console.log('Making API call to:', `${API_BASE_URL}${endpoint}`);
       
@@ -58,7 +66,7 @@ const CaretakerDashboard = () => {
       if (response.status === 401 || response.status === 403) {
         console.error('Unauthorized - redirecting to login');
         localStorage.clear();
-        navigate('/caretaker-login', { replace: true });
+        window.location.href = '/admin-login';
         return null;
       }
 
@@ -75,99 +83,24 @@ const CaretakerDashboard = () => {
       setError(err.message);
       throw err;
     }
-  }, [token, navigate]);
+  };
 
-  // Fetch functions - Updated to match your backend routes
-  const fetchDashboard = useCallback(async () => {
+  // Fetch functions
+  const fetchOverview = async () => {
     setLoading(true);
     try {
-      const data = await apiCall('/api/caretaker/dashboard');
+      const data = await apiCall('/api/admin/overview');
       if (data && data.success) {
-        setDashboardData(data.dashboard);
+        setOverview(data.overview);
       }
     } catch (err) {
-      console.error('Failed to fetch dashboard:', err);
+      console.error('Failed to fetch overview:', err);
     } finally {
       setLoading(false);
     }
-  }, [apiCall]);
+  };
 
-  const fetchMaintenance = useCallback(async () => {
-    try {
-      const data = await apiCall('/api/caretaker/maintenance?page=1&per_page=100');
-      if (data && data.success) {
-        setMaintenanceRequests(data.requests || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch maintenance:', err);
-    }
-  }, [apiCall]);
-
-  const fetchPendingPayments = useCallback(async () => {
-    try {
-      const data = await apiCall('/api/caretaker/payments/pending');
-      if (data && data.success) {
-        setPendingPayments(data.tenants_with_arrears || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch pending payments:', err);
-    }
-  }, [apiCall]);
-
-  const fetchAvailableRooms = useCallback(async () => {
-    try {
-      const data = await apiCall('/api/caretaker/rooms/available');
-      if (data && data.success) {
-        setAvailableRooms(data.available_rooms || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch available rooms:', err);
-    }
-  }, [apiCall]);
-
-  const fetchOccupiedRooms = useCallback(async () => {
-    try {
-      const data = await apiCall('/api/caretaker/rooms/occupied');
-      if (data && data.success) {
-        setOccupiedRooms(data.occupied_rooms || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch occupied rooms:', err);
-      // Mock data for testing
-      const mockOccupied = [
-        {
-          id: 1,
-          name: 'Room 22',
-          type: 'Bedsitter',
-          rent_amount: 5250,
-          tenant_name: 'John Doe',
-          tenant_phone: '0712345678'
-        },
-        {
-          id: 2,
-          name: 'Room 15',
-          type: 'One Bedroom',
-          rent_amount: 7500,
-          tenant_name: 'Jane Smith',
-          tenant_phone: '0723456789'
-        }
-      ];
-      setOccupiedRooms(mockOccupied);
-    }
-  }, [apiCall]);
-
-  const fetchAllRooms = useCallback(async () => {
-    try {
-      const data = await apiCall('/api/caretaker/rooms/all');
-      if (data && data.success) {
-        setAllRooms(data.rooms || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch all rooms:', err);
-    }
-  }, [apiCall]);
-
-  const fetchTenants = useCallback(async () => {
+  const fetchTenants = async () => {
     try {
       const data = await apiCall('/api/admin/tenants?page=1&per_page=100');
       if (data && data.success) {
@@ -176,28 +109,189 @@ const CaretakerDashboard = () => {
     } catch (err) {
       console.error('Failed to fetch tenants:', err);
     }
-  }, [apiCall]);
+  };
+
+  const fetchContracts = async () => {
+    try {
+      const data = await apiCall('/api/admin/contracts?page=1&per_page=100');
+      if (data && data.success) {
+        setContracts(data.contracts || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch contracts:', err);
+    }
+  };
+
+  const fetchPaymentReport = async () => {
+    try {
+      const data = await apiCall('/api/admin/payments/report');
+      if (data && data.success) {
+        setPaymentReport(data.report);
+      }
+    } catch (err) {
+      console.error('Failed to fetch payment report:', err);
+    }
+  };
+
+  const fetchOccupancyReport = async () => {
+    try {
+      const data = await apiCall('/api/admin/occupancy/report');
+      if (data && data.success) {
+        setOccupancyReport(data.report);
+      }
+    } catch (err) {
+      console.error('Failed to fetch occupancy report:', err);
+    }
+  };
+
+  const fetchAvailableRooms = async () => {
+    try {
+      const data = await apiCall('/api/caretaker/rooms/available');
+      if (data && data.success) {
+        setAvailableRooms(data.available_rooms || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch rooms:', err);
+    }
+  };
+
+  const fetchMaintenanceRequests = async () => {
+    try {
+      const data = await apiCall('/api/caretaker/maintenance?page=1&per_page=100');
+      if (data && data.success) {
+        setMaintenanceRequests(data.requests || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch maintenance requests:', err);
+    }
+  };
+
+  const fetchVacateNotices = async () => {
+    try {
+      const data = await apiCall('/api/admin/vacate-notices?page=1&per_page=100');
+      if (data && data.success) {
+        setVacateNotices(data.notices || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch vacate notices:', err);
+      // Set empty array if endpoint doesn't exist
+      setVacateNotices([]);
+    }
+  };
+
+  const fetchTenantDetails = async (tenantId) => {
+    setLoading(true);
+    try {
+      const data = await apiCall(`/api/admin/tenant/${tenantId}`);
+      if (data && data.success) {
+        setSelectedTenant(data.tenant);
+        setShowTenantModal(true);
+      }
+    } catch (err) {
+      console.error('Failed to fetch tenant details:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // CRUD operations
-  const handleUpdateMaintenance = useCallback(async (requestId, updateData) => {
+  const handleDeleteTenant = async (tenantId) => {
+    if (!window.confirm('Are you sure you want to delete this tenant?')) {
+      return;
+    }
+
     try {
-      const data = await apiCall(`/api/caretaker/maintenance/${requestId}`, {
-        method: 'PUT',
-        body: JSON.stringify(updateData)
+      const data = await apiCall(`/api/admin/tenant/delete/${tenantId}`, { method: 'DELETE' });
+      if (data && data.success) {
+        setSuccessMessage('Tenant deleted successfully');
+        setTenants(tenants.filter(t => t.id !== tenantId));
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to delete tenant:', err);
+    }
+  };
+
+  const handleCreateTenant = async (tenantData) => {
+    try {
+      setLoading(true);
+      const data = await apiCall('/api/admin/tenant/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: tenantData.email,
+          password: tenantData.password,
+          full_name: tenantData.name,
+          phone: tenantData.phone,
+          national_id: tenantData.national_id,
+          room_number: tenantData.room_number
+        })
       });
       
       if (data && data.success) {
-        setSuccessMessage('Maintenance request updated successfully');
-        await fetchMaintenance();
-        await fetchDashboard();
+        setSuccessMessage('Tenant created successfully');
+        await fetchTenants();
+        await fetchOverview();
+        setShowCreateTenantModal(false);
+        setTimeout(() => setSuccessMessage(''), 3000);
+        
+        const createLease = window.confirm('Create lease for this new tenant now?');
+        if (createLease) {
+          setTenantForLease(data.tenant);
+          await fetchAvailableRooms();
+          setShowCreateLeaseModal(true);
+        }
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateLease = async (leaseData) => {
+    try {
+      setLoading(true);
+      const data = await apiCall('/api/admin/lease/create', {
+        method: 'POST',
+        body: JSON.stringify(leaseData)
+      });
+      
+      if (data && data.success) {
+        setSuccessMessage(`Lease created successfully! Tenant can now sign the lease.`);
+        await fetchContracts();
+        await fetchTenants();
+        await fetchAvailableRooms();
+        await fetchOverview();
+        setShowCreateLeaseModal(false);
+        setTenantForLease(null);
+        setTimeout(() => setSuccessMessage(''), 5000);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateMaintenanceStatus = async (requestId, newStatus) => {
+    try {
+      const data = await apiCall(`/api/caretaker/maintenance/${requestId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      if (data && data.success) {
+        setSuccessMessage('Maintenance request updated');
+        await fetchMaintenanceRequests();
+        await fetchOverview();
         setTimeout(() => setSuccessMessage(''), 3000);
       }
     } catch (err) {
       console.error('Failed to update maintenance:', err);
     }
-  }, [apiCall, fetchMaintenance, fetchDashboard]);
+  };
 
-  const handleSendNotification = useCallback(async (notificationData) => {
+  const handleSendNotification = async (notificationData) => {
     try {
       setLoading(true);
       const data = await apiCall('/api/caretaker/notifications/send', {
@@ -215,9 +309,31 @@ const CaretakerDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [apiCall]);
+  };
 
-  const handleLogout = useCallback(async () => {
+  const handleUpdateVacateNoticeStatus = async (noticeId, newStatus, notes = '') => {
+    try {
+      const data = await apiCall(`/api/admin/vacate-notices/${noticeId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: newStatus, admin_notes: notes })
+      });
+      
+      if (data && data.success) {
+        setSuccessMessage(`Vacate notice ${newStatus} successfully`);
+        await fetchVacateNotices();
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to update vacate notice:', err);
+    }
+  };
+
+  const handlePageChange = (pageId) => {
+    setActivePage(pageId);
+    setSidebarOpen(false);
+  };
+
+  const handleLogout = async () => {
     try {
       await fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
@@ -230,28 +346,14 @@ const CaretakerDashboard = () => {
       console.error('Logout error:', err);
     } finally {
       localStorage.clear();
-      navigate('/caretaker-login', { replace: true });
+      window.location.href = '/admin-login';
     }
-  }, [token, navigate]);
+  };
 
-  // Verify authentication on mount
   useEffect(() => {
     if (!token) {
       console.error('No token found - redirecting to login');
-      navigate('/caretaker-login', { replace: true });
-      return;
-    }
-
-    if (userRole !== 'caretaker' && userRole !== 'admin') {
-      console.error('Invalid role - redirecting to login');
-      navigate('/caretaker-login', { replace: true });
-      return;
-    }
-  }, [token, userRole, navigate]);
-
-  // Fetch data when page changes
-  useEffect(() => {
-    if (!token || (userRole !== 'caretaker' && userRole !== 'admin')) {
+      window.location.href = '/admin-login';
       return;
     }
 
@@ -262,28 +364,32 @@ const CaretakerDashboard = () => {
         switch (activePage) {
           case 'dashboard':
             await Promise.all([
-              fetchDashboard(),
-              fetchMaintenance(),
-              fetchPendingPayments(),
-              fetchAvailableRooms(),
-              fetchOccupiedRooms()
+              fetchOverview(), 
+              fetchTenants(), 
+              fetchPaymentReport(), 
+              fetchOccupancyReport(),
+              fetchVacateNotices(),
+              fetchMaintenanceRequests()
             ]);
             break;
-          case 'maintenance':
-            await fetchMaintenance();
-            break;
-          case 'payments':
-            await fetchPendingPayments();
+          case 'contracts':
+            await fetchContracts();
             await fetchTenants();
             break;
-          case 'rooms':
-            await Promise.all([
-              fetchAvailableRooms(),
-              fetchOccupiedRooms(),
-              fetchAllRooms()
-            ]);
+          case 'reports':
+            await Promise.all([fetchPaymentReport(), fetchOccupancyReport()]);
+            break;
+          case 'properties':
+            await fetchAvailableRooms();
+            break;
+          case 'maintenance':
+            await fetchMaintenanceRequests();
             break;
           case 'notifications':
+            await fetchTenants();
+            break;
+          case 'vacate':
+            await fetchVacateNotices();
             await fetchTenants();
             break;
           default:
@@ -295,72 +401,52 @@ const CaretakerDashboard = () => {
     };
 
     fetchPageData();
-  }, [activePage, token, userRole, fetchDashboard, fetchMaintenance, fetchPendingPayments, fetchAvailableRooms, fetchOccupiedRooms, fetchAllRooms, fetchTenants]);
+  }, [activePage, token]);
 
-  // Add media query for mobile sidebar
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth <= 768) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    handleResize(); // Initial check
-    
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Render Page Content
   const renderContent = () => {
     switch (activePage) {
       case 'dashboard':
         return (
           <DashboardPage 
-            data={dashboardData}
-            maintenanceRequests={maintenanceRequests}
-            pendingPayments={pendingPayments}
-            availableRooms={availableRooms}
-            occupiedRooms={occupiedRooms}
+            overview={overview}
+            paymentReport={paymentReport}
+            occupancyReport={occupancyReport}
+            tenants={tenants}
             loading={loading}
-            onViewMaintenance={(req) => {
-              setSelectedMaintenance(req);
-              setShowMaintenanceModal(true);
+            onDeleteTenant={handleDeleteTenant}
+            onViewTenant={fetchTenantDetails}
+            onCreateLease={(tenant) => {
+              setTenantForLease(tenant);
+              fetchAvailableRooms();
+              setShowCreateLeaseModal(true);
             }}
+            onCreateTenant={() => setShowCreateTenantModal(true)}
+            vacateNotices={vacateNotices}
+            maintenanceRequests={maintenanceRequests}
           />
         );
+      case 'contracts':
+        return <ContractsPage contracts={contracts} tenants={tenants} loading={loading} />;
+      case 'reports':
+        return (
+          <ReportsPage 
+            paymentReport={paymentReport}
+            occupancyReport={occupancyReport}
+            loading={loading}
+            tenants={tenants}
+          />
+        );
+      case 'properties':
+        return <PropertiesPage availableRooms={availableRooms} loading={loading} />;
       case 'maintenance':
         return (
           <MaintenancePage 
             requests={maintenanceRequests}
             loading={loading}
-            onUpdateStatus={handleUpdateMaintenance}
-            onViewDetails={(req) => {
-              setSelectedMaintenance(req);
+            onUpdateStatus={handleUpdateMaintenanceStatus}
+            onViewDetails={(request) => {
+              setSelectedMaintenanceRequest(request);
               setShowMaintenanceModal(true);
-            }}
-          />
-        );
-      case 'payments':
-        return (
-          <PaymentsPage 
-            payments={pendingPayments}
-            loading={loading}
-            onSendNotification={() => setShowNotificationModal(true)}
-          />
-        );
-      case 'rooms':
-        return (
-          <RoomsPage 
-            availableRooms={availableRooms}
-            occupiedRooms={occupiedRooms}
-            allRooms={allRooms}
-            loading={loading}
-            onViewRoomDetails={(room) => {
-              setSelectedRoom(room);
-              setShowRoomDetailsModal(true);
             }}
           />
         );
@@ -371,62 +457,54 @@ const CaretakerDashboard = () => {
             onSendNotification={() => setShowNotificationModal(true)}
           />
         );
+      case 'vacate':
+        return (
+          <VacateNoticesPage
+            notices={vacateNotices}
+            tenants={tenants}
+            loading={loading}
+            onUpdateStatus={handleUpdateVacateNoticeStatus}
+            onViewDetails={(notice) => {
+              setSelectedVacateNotice(notice);
+              setShowVacateModal(true);
+            }}
+          />
+        );
       default:
         return null;
     }
   };
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'maintenance', label: 'Maintenance', icon: Wrench },
-    { id: 'payments', label: 'Payments', icon: DollarSign },
-    { id: 'rooms', label: 'Rooms', icon: Building },
-    { id: 'notifications', label: 'Notifications', icon: Bell }
-  ];
-
   return (
     <div style={styles.container}>
-      <style>
-        {`
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          @media (max-width: 768px) {
-            .menu-btn { display: flex !important; }
-            .main-content { margin-left: 0 !important; }
-          }
-        `}
-      </style>
-      
       <aside style={{...styles.sidebar, ...(sidebarOpen ? {} : styles.sidebarHidden)}}>
         <div style={styles.sidebarHeader}>
-          <div>
-            <h2 style={styles.sidebarTitle}>Joyce Suites</h2>
-            <p style={styles.sidebarSubtitle}>Caretaker Dashboard</p>
-          </div>
+          <h2 style={styles.sidebarTitle}>Joyce Suites</h2>
           <button style={styles.closeBtn} onClick={() => setSidebarOpen(false)}>
             <X size={24} />
           </button>
         </div>
 
         <nav style={styles.nav}>
-          {navItems.map(item => (
+          {[
+            { id: 'dashboard', label: 'Dashboard', icon: Home },
+            { id: 'contracts', label: 'Leases', icon: FileText },
+            { id: 'maintenance', label: 'Maintenance', icon: Wrench },
+            { id: 'vacate', label: 'Vacate Notices', icon: DoorOpen },
+            { id: 'notifications', label: 'Notifications', icon: Bell },
+            { id: 'reports', label: 'Reports', icon: FileSpreadsheet },
+            { id: 'properties', label: 'Properties', icon: Building }
+          ].map(item => (
             <button
               key={item.id}
               style={{
                 ...styles.navItem,
                 ...(activePage === item.id ? styles.navItemActive : {})
               }}
-              onClick={() => {
-                setActivePage(item.id);
-                if (window.innerWidth <= 768) {
-                  setSidebarOpen(false);
-                }
-              }}
+              onClick={() => handlePageChange(item.id)}
             >
               <item.icon size={18} />
-              <span style={styles.navLabel}>{item.label}</span>
+              <span>{item.label}</span>
             </button>
           ))}
         </nav>
@@ -436,8 +514,8 @@ const CaretakerDashboard = () => {
             <User size={20} />
           </div>
           <div style={styles.userDetails}>
-            <strong>{userName}</strong>
-            <small>Caretaker</small>
+            <strong>Admin</strong>
+            <small>Joyce Suites</small>
           </div>
         </div>
 
@@ -446,54 +524,30 @@ const CaretakerDashboard = () => {
         </button>
       </aside>
 
-      <main style={{...styles.main, marginLeft: sidebarOpen ? '260px' : '0'}} className="main-content">
+      <main style={styles.main}>
         <header style={styles.header}>
           <div style={styles.headerLeft}>
-            <button className="menu-btn" style={styles.menuBtn} onClick={() => setSidebarOpen(true)}>
+            <button style={styles.menuBtn} onClick={() => setSidebarOpen(true)}>
               <Menu size={24} />
             </button>
-            <button style={styles.homeBtn} onClick={() => setActivePage('dashboard')}>
+            <button style={styles.homeBtn} onClick={() => handlePageChange('dashboard')}>
               <Home size={20} />
             </button>
-            <h1 style={styles.headerTitle}>Caretaker Dashboard</h1>
+            <h1 style={styles.headerTitle}>Admin Dashboard</h1>
           </div>
           <div style={styles.headerRight}>
             <button style={styles.refreshBtn} onClick={() => {
               if (activePage === 'dashboard') {
-                fetchDashboard();
-                fetchMaintenance();
+                fetchOverview();
+                fetchTenants();
               }
             }}>
               <RefreshCw size={20} />
             </button>
             <div style={styles.notificationBadge}>
               <Bell size={20} />
-              {dashboardData?.pending_maintenance > 0 && (
-                <span style={styles.badgeCount}>{dashboardData.pending_maintenance}</span>
-              )}
-            </div>
-            <div style={styles.userMenu}>
-              <button 
-                style={styles.userMenuBtn}
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-              >
-                <div style={styles.userAvatar}>{userName.charAt(0)}</div>
-                <span style={styles.userName}>{userName}</span>
-                <ChevronDown size={16} />
-              </button>
-              {userMenuOpen && (
-                <div style={styles.userDropdown}>
-                  <div style={styles.dropdownItem}>
-                    <strong>{userName}</strong><br />
-                    <small>Caretaker</small>
-                  </div>
-                  <button 
-                    style={styles.dropdownBtn}
-                    onClick={handleLogout}
-                  >
-                    <LogOut size={14} /> Logout
-                  </button>
-                </div>
+              {overview?.pending_maintenance > 0 && (
+                <span style={styles.badgeCount}>{overview.pending_maintenance}</span>
               )}
             </div>
           </div>
@@ -520,14 +574,34 @@ const CaretakerDashboard = () => {
         </section>
       </main>
 
-      {showMaintenanceModal && selectedMaintenance && (
-        <MaintenanceDetailsModal
-          request={selectedMaintenance}
+      {showTenantModal && selectedTenant && (
+        <TenantDetailsModal 
+          tenant={selectedTenant} 
           onClose={() => {
-            setShowMaintenanceModal(false);
-            setSelectedMaintenance(null);
+            setShowTenantModal(false);
+            setSelectedTenant(null);
           }}
-          onUpdateStatus={handleUpdateMaintenance}
+        />
+      )}
+
+      {showCreateTenantModal && (
+        <CreateTenantModal
+          onClose={() => setShowCreateTenantModal(false)}
+          onSubmit={handleCreateTenant}
+          loading={loading}
+        />
+      )}
+
+      {showCreateLeaseModal && tenantForLease && (
+        <CreateLeaseModal
+          tenant={tenantForLease}
+          rooms={availableRooms}
+          onClose={() => {
+            setShowCreateLeaseModal(false);
+            setTenantForLease(null);
+          }}
+          onSubmit={handleCreateLease}
+          loading={loading}
         />
       )}
 
@@ -540,17 +614,29 @@ const CaretakerDashboard = () => {
         />
       )}
 
-      {showRoomDetailsModal && selectedRoom && (
-        <RoomDetailsModal
-          room={selectedRoom}
+      {showMaintenanceModal && selectedMaintenanceRequest && (
+        <MaintenanceDetailsModal
+          request={selectedMaintenanceRequest}
           onClose={() => {
-            setShowRoomDetailsModal(false);
-            setSelectedRoom(null);
+            setShowMaintenanceModal(false);
+            setSelectedMaintenanceRequest(null);
           }}
+          onUpdateStatus={handleUpdateMaintenanceStatus}
         />
       )}
 
-      {sidebarOpen && window.innerWidth <= 768 && (
+      {showVacateModal && selectedVacateNotice && (
+        <VacateNoticeDetailsModal
+          notice={selectedVacateNotice}
+          onClose={() => {
+            setShowVacateModal(false);
+            setSelectedVacateNotice(null);
+          }}
+          onUpdateStatus={handleUpdateVacateNoticeStatus}
+        />
+      )}
+
+      {sidebarOpen && (
         <div style={styles.overlay} onClick={() => setSidebarOpen(false)} />
       )}
     </div>
@@ -558,125 +644,267 @@ const CaretakerDashboard = () => {
 };
 
 // ==================== DASHBOARD PAGE ====================
-const DashboardPage = ({ data, maintenanceRequests, pendingPayments, availableRooms, occupiedRooms, loading, onViewMaintenance }) => {
-  if (loading || !data) {
+const DashboardPage = ({ 
+  overview, 
+  paymentReport, 
+  occupancyReport, 
+  tenants, 
+  loading, 
+  onDeleteTenant, 
+  onViewTenant,
+  onCreateLease,
+  onCreateTenant,
+  vacateNotices,
+  maintenanceRequests
+}) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+
+  if (loading || !overview) {
     return (
       <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p>Loading dashboard...</p>
+        {loading ? (
+          <>
+            <div style={styles.spinner}></div>
+            <p>Loading dashboard...</p>
+          </>
+        ) : (
+          <div style={{textAlign: 'center'}}>
+            <AlertCircle size={48} color="#ef4444" />
+            <p style={{marginTop: '16px', color: '#ef4444', fontWeight: '500'}}>
+              Failed to load dashboard data
+            </p>
+            <p style={{color: '#6b7280', fontSize: '14px'}}>
+              Check console for errors
+            </p>
+            <button 
+              style={{...styles.btnPrimary, marginTop: '16px'}}
+              onClick={() => window.location.reload()}
+            >
+              <RefreshCw size={16} /> Retry
+            </button>
+          </div>
+        )}
       </div>
     );
   }
 
-  const recentRequests = maintenanceRequests.slice(0, 5);
+  const filteredTenants = tenants.filter(function(t) {
+    const statusMatch = filterStatus === 'all' || 
+      (filterStatus === 'active' ? t.is_active : !t.is_active);
+    const searchMatch = 
+      (t.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.room_number || '').toString().includes(searchTerm);
+    
+    return statusMatch && searchMatch;
+  });
+
+  // Calculate active tenants count
+  const activeTenantsCount = tenants.filter(function(t) {
+    return t.is_active;
+  }).length || 0;
+
+  // Calculate success rate safely
+  const successRate = paymentReport && paymentReport.total_payments > 0
+    ? Math.round((paymentReport.successful / paymentReport.total_payments) * 100)
+    : 0;
+
+  // Get pending vacate notices
+  const pendingVacate = vacateNotices ? vacateNotices.filter(function(n) {
+    return n.status === 'pending';
+  }) : [];
+
+  // Get recent maintenance
+  const recentMaintenance = maintenanceRequests ? maintenanceRequests.slice(0, 5) : [];
 
   return (
     <>
       <div style={styles.pageHeader}>
-        <h2 style={styles.pageTitle}>Dashboard Overview</h2>
+        <h2 style={styles.pageTitle}>System Overview</h2>
         <div style={styles.actionButtons}>
           <button style={styles.btnSecondary} onClick={() => window.print()}>
             <Download size={16} /> Export Report
           </button>
-          <button style={styles.btnPrimary} onClick={() => window.location.reload()}>
-            <RefreshCw size={16} /> Refresh
+          <button style={styles.btnPrimary} onClick={onCreateTenant}>
+            <UserPlus size={16} /> Add New Tenant
           </button>
         </div>
       </div>
       
       <div style={styles.gridContainer}>
         <OverviewCard 
-          title="Pending Maintenance" 
-          value={data.pending_maintenance || 0} 
-          icon={AlertCircle}
-          color="#f59e0b"
-        />
-        <OverviewCard 
-          title="In Progress" 
-          value={data.in_progress_maintenance || 0} 
-          icon={Clock}
+          title="Total Tenants" 
+          value={overview.total_tenants || 0} 
+          icon={Users}
           color="#3b82f6"
+          subtitle={"Active: " + (activeTenantsCount)}
         />
         <OverviewCard 
-          title="Completed Today" 
-          value={data.completed_today || 0} 
-          icon={CheckCircle}
+          title="Active Leases" 
+          value={overview.active_leases || 0} 
+          icon={FileText}
           color="#10b981"
         />
         <OverviewCard 
-          title="Occupied Units" 
-          value={data.occupied_properties || 0} 
-          icon={Users}
+          title="Pending Maintenance" 
+          value={overview.pending_maintenance || 0} 
+          icon={Wrench}
+          color="#f59e0b"
+        />
+        <OverviewCard 
+          title="Total Revenue" 
+          value={"KSh " + ((overview.total_revenue || 0).toLocaleString())} 
+          icon={DollarSign}
           color="#8b5cf6"
         />
         <OverviewCard 
-          title="Vacant Units" 
-          value={data.vacant_properties || 0} 
+          title="Occupancy Rate" 
+          value={(occupancyReport ? occupancyReport.occupancy_rate : 0) + "%"} 
           icon={Building}
           color="#06b6d4"
+          subtitle={(occupancyReport ? occupancyReport.occupied : 0) + " of " + (occupancyReport ? occupancyReport.total_properties : 0) + " rooms"}
         />
         <OverviewCard 
-          title="Tenants in Arrears" 
-          value={pendingPayments.length || 0} 
-          icon={DollarSign}
-          color="#ef4444"
+          title="Payment Success Rate" 
+          value={successRate + "%"} 
+          icon={CheckCircle}
+          color="#ec4899"
         />
       </div>
 
       <div style={styles.dashboardGrid}>
         {/* Left column */}
         <div style={styles.dashboardColumn}>
+          {paymentReport && (
+            <div style={styles.section}>
+              <h3 style={styles.sectionTitle}>
+                <PieChart size={18} /> Payment Summary
+              </h3>
+              <div style={styles.summaryGrid}>
+                <SummaryCard label="Total Payments" value={paymentReport.total_payments || 0} />
+                <SummaryCard label="Successful" value={paymentReport.successful || 0} color="#10b981" />
+                <SummaryCard label="Pending" value={paymentReport.pending || 0} color="#f59e0b" />
+                <SummaryCard label="Failed" value={paymentReport.failed || 0} color="#ef4444" />
+                <SummaryCard 
+                  label="Total Collected" 
+                  value={"KSh " + ((paymentReport.total_amount || 0).toLocaleString())}
+                  color="#3b82f6"
+                />
+                <SummaryCard 
+                  label="Success Rate" 
+                  value={successRate + "%"}
+                  color="#8b5cf6"
+                />
+              </div>
+            </div>
+          )}
+
           <div style={styles.section}>
             <h3 style={styles.sectionTitle}>
-              <TrendingUp size={18} /> Recent Maintenance Requests
+              <TrendingUp size={18} /> Quick Stats
             </h3>
+            <div style={styles.quickStats}>
+              <div style={styles.quickStat}>
+                <span style={styles.quickStatLabel}>Pending Vacate Notices</span>
+                <span style={styles.quickStatValue}>{pendingVacate.length}</span>
+              </div>
+              <div style={styles.quickStat}>
+                <span style={styles.quickStatLabel}>Available Rooms</span>
+                <span style={styles.quickStatValue}>{occupancyReport ? occupancyReport.vacant : 0}</span>
+              </div>
+              <div style={styles.quickStat}>
+                <span style={styles.quickStatLabel}>Avg. Monthly Rent</span>
+                <span style={styles.quickStatValue}>KSh 5,250</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right column */}
+        <div style={styles.dashboardColumn}>
+          <div style={styles.section}>
+            <div style={styles.sectionHeaderControls}>
+              <h3 style={styles.sectionTitle}>
+                <Users size={18} /> Tenant Management ({filteredTenants.length})
+              </h3>
+              <div style={styles.tableControls}>
+                <div style={styles.searchBox}>
+                  <Search size={16} />
+                  <input
+                    type="text"
+                    placeholder="Search tenants..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={styles.searchInput}
+                  />
+                </div>
+                <select 
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  style={styles.filterSelect}
+                >
+                  <option value="all">All</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+
             <div style={styles.tableWrapper}>
               <table style={styles.table}>
                 <thead style={styles.tableHeader}>
                   <tr>
-                    <th style={styles.th}>Title</th>
-                    <th style={styles.th}>Priority</th>
+                    <th style={styles.th}>Full Name</th>
+                    <th style={styles.th}>Email</th>
+                    <th style={styles.th}>Room</th>
                     <th style={styles.th}>Status</th>
                     <th style={styles.th}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {recentRequests.length > 0 ? (
-                    recentRequests.map(req => (
-                      <tr key={req.id} style={styles.tableRow}>
-                        <td style={styles.td}>{req.title}</td>
+                  {filteredTenants.slice(0, 5).map(function(tenant) {
+                    return (
+                      <tr key={tenant.id} style={styles.tableRow}>
+                        <td style={styles.td}>{tenant.name || 'N/A'}</td>
+                        <td style={styles.td}>{tenant.email}</td>
+                        <td style={styles.td}>Room {tenant.room_number || 'N/A'}</td>
                         <td style={styles.td}>
                           <span style={{
                             ...styles.statusBadge,
-                            backgroundColor: req.priority === 'urgent' ? '#fee2e2' : '#dbeafe',
-                            color: req.priority === 'urgent' ? '#991b1b' : '#1e40af'
+                            backgroundColor: tenant.is_active ? '#dcfce7' : '#fee2e2',
+                            color: tenant.is_active ? '#166534' : '#991b1b'
                           }}>
-                            {req.priority}
+                            {tenant.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </td>
                         <td style={styles.td}>
-                          <span style={{
-                            ...styles.statusBadge,
-                            backgroundColor: req.status === 'pending' ? '#fef3c7' : '#dcfce7',
-                            color: req.status === 'pending' ? '#92400e' : '#166534'
-                          }}>
-                            {req.status}
-                          </span>
-                        </td>
-                        <td style={styles.td}>
-                          <button 
-                            style={styles.btnSmallPrimary}
-                            onClick={() => onViewMaintenance(req)}
-                          >
-                            <Eye size={14} />
-                          </button>
+                          <div style={styles.actionButtons}>
+                            <button 
+                              style={styles.btnSmallPrimary}
+                              onClick={() => onViewTenant(tenant.id)}
+                              title="View Details"
+                            >
+                              <Eye size={14} />
+                            </button>
+                            <button 
+                              style={styles.btnSmallSuccess}
+                              onClick={() => onCreateLease(tenant)}
+                              title="Create Lease"
+                            >
+                              <FileText size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
-                    ))
-                  ) : (
+                    );
+                  })}
+                  {filteredTenants.length > 5 && (
                     <tr>
-                      <td colSpan="4" style={{...styles.td, textAlign: 'center'}}>
-                        No recent maintenance requests
+                      <td colSpan="5" style={{...styles.td, textAlign: 'center'}}>
+                        <button style={styles.btnText} onClick={() => window.location.hash = '#tenants'}>
+                          {"View all " + filteredTenants.length + " tenants →"}
+                        </button>
                       </td>
                     </tr>
                   )}
@@ -685,60 +913,157 @@ const DashboardPage = ({ data, maintenanceRequests, pendingPayments, availableRo
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Right column */}
-        <div style={styles.dashboardColumn}>
-          <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>
-              <Building size={18} /> Property Summary
-            </h3>
-            <div style={styles.summaryGrid}>
-              <SummaryCard 
-                label="Occupancy Rate" 
-                value={`${Math.round((data.occupied_properties / (data.occupied_properties + data.vacant_properties)) * 100)}%`}
-                color="#3b82f6"
-              />
-              <SummaryCard 
-                label="Total Units" 
-                value={data.occupied_properties + data.vacant_properties}
-                color="#10b981"
-              />
-              <SummaryCard 
-                label="Maintenance Rate" 
-                value={`${Math.round((data.pending_maintenance / (data.occupied_properties + data.vacant_properties)) * 100)}%`}
-                color="#f59e0b"
-              />
-              <SummaryCard 
-                label="Completion Rate" 
-                value={`${data.occupied_properties > 0 ? Math.round((data.completed_today / data.occupied_properties) * 100) : 0}%`}
-                color="#8b5cf6"
-              />
+      {/* Recent Activities */}
+      <div style={styles.section}>
+        <h3 style={styles.sectionTitle}>Recent Activities</h3>
+        <div style={styles.activitiesGrid}>
+          {recentMaintenance.length > 0 && (
+            <div style={styles.activityCard}>
+              <h4 style={styles.activityTitle}>Recent Maintenance</h4>
+              {recentMaintenance.map(function(req) {
+                return (
+                  <div key={req.id} style={styles.activityItem}>
+                    <span>{req.title}</span>
+                    <span style={{
+                      ...styles.statusBadge,
+                      backgroundColor: req.status === 'pending' ? '#fef3c7' : '#dcfce7',
+                      color: req.status === 'pending' ? '#92400e' : '#166534'
+                    }}>
+                      {req.status}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+          )}
+          
+          {pendingVacate.length > 0 && (
+            <div style={styles.activityCard}>
+              <h4 style={styles.activityTitle}>Pending Vacate Notices</h4>
+              {pendingVacate.slice(0, 3).map(function(notice) {
+                return (
+                  <div key={notice.id} style={styles.activityItem}>
+                    <span>Room {notice.lease ? notice.lease.room_number : 'N/A'}</span>
+                    <span style={styles.textMuted}>
+                      {notice.vacate_date ? new Date(notice.vacate_date).toLocaleDateString() : 'N/A'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+};
 
-          <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>
-              <DollarSign size={18} /> Quick Stats
-            </h3>
-            <div style={styles.quickStats}>
-              <div style={styles.quickStat}>
-                <span style={styles.quickStatLabel}>Total Outstanding</span>
-                <span style={styles.quickStatValue}>
-                  KSh {pendingPayments.reduce((sum, p) => sum + (p.rent_amount || 0), 0).toLocaleString()}
-                </span>
-              </div>
-              <div style={styles.quickStat}>
-                <span style={styles.quickStatLabel}>Avg. Rent per Unit</span>
-                <span style={styles.quickStatValue}>KSh 5,250</span>
-              </div>
-              <div style={styles.quickStat}>
-                <span style={styles.quickStatLabel}>Maintenance Efficiency</span>
-                <span style={styles.quickStatValue}>
-                  {data.occupied_properties > 0 ? Math.round((data.completed_today / data.pending_maintenance) * 100) : 0}%
-                </span>
-              </div>
-            </div>
-          </div>
+// ==================== CONTRACTS PAGE ====================
+const ContractsPage = ({ contracts, tenants, loading }) => {
+  const [filterStatus, setFilterStatus] = useState('all');
+
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p>Loading contracts...</p>
+      </div>
+    );
+  }
+
+  const filtered = filterStatus === 'all' 
+    ? contracts 
+    : contracts.filter(function(c) {
+        return c.status === filterStatus;
+      });
+
+  const enhancedContracts = filtered.map(function(contract) {
+    const tenant = tenants.find(function(t) {
+      return t.id === contract.tenant_id;
+    });
+    return {
+      ...contract,
+      tenant_name: tenant ? tenant.name : contract.tenant_name || 'Unknown'
+    };
+  });
+
+  return (
+    <>
+      <div style={styles.pageHeaderControls}>
+        <h2 style={styles.pageTitle}>Lease Contracts ({enhancedContracts.length})</h2>
+        <div style={styles.filterSection}>
+          <label style={styles.filterLabel}><Filter size={16} /> Filter:</label>
+          <select 
+            value={filterStatus} 
+            onChange={(e) => setFilterStatus(e.target.value)} 
+            style={styles.filterSelect}
+          >
+            <option value="all">All</option>
+            <option value="active">Active</option>
+            <option value="expired">Expired</option>
+            <option value="terminated">Terminated</option>
+          </select>
+        </div>
+      </div>
+
+      <div style={styles.section}>
+        <div style={styles.tableWrapper}>
+          <table style={styles.table}>
+            <thead style={styles.tableHeader}>
+              <tr>
+                <th style={styles.th}>ID</th>
+                <th style={styles.th}>Tenant</th>
+                <th style={styles.th}>Property</th>
+                <th style={styles.th}>Start Date</th>
+                <th style={styles.th}>Rent</th>
+                <th style={styles.th}>Deposit</th>
+                <th style={styles.th}>Status</th>
+                <th style={styles.th}>Signed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {enhancedContracts.length > 0 ? (
+                enhancedContracts.map(function(c) {
+                  return (
+                    <tr key={c.id} style={styles.tableRow}>
+                      <td style={styles.td}>#{c.id}</td>
+                      <td style={styles.td}>{c.tenant_name}</td>
+                      <td style={styles.td}>{c.property_name}</td>
+                      <td style={styles.td}>{c.start_date ? new Date(c.start_date).toLocaleDateString() : 'N/A'}</td>
+                      <td style={styles.td}>KSh {(c.rent_amount || 0).toLocaleString()}</td>
+                      <td style={styles.td}>KSh {((c.rent_amount * 1.07) || 0).toLocaleString()}</td>
+                      <td style={styles.td}>
+                        <span style={{
+                          ...styles.statusBadge,
+                          backgroundColor: c.status === 'active' ? '#dcfce7' : '#fee2e2',
+                          color: c.status === 'active' ? '#166534' : '#991b1b'
+                        }}>
+                          {c.status}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{
+                          ...styles.statusBadge,
+                          backgroundColor: c.signed_by_tenant ? '#dcfce7' : '#fef3c7',
+                          color: c.signed_by_tenant ? '#166534' : '#92400e'
+                        }}>
+                          {c.signed_by_tenant ? 'Signed' : 'Pending'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="8" style={{...styles.td, textAlign: 'center', padding: '40px'}}>
+                    No contracts found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </>
@@ -749,7 +1074,6 @@ const DashboardPage = ({ data, maintenanceRequests, pendingPayments, availableRo
 const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
   
   if (loading) {
     return (
@@ -760,17 +1084,13 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
     );
   }
 
-  const filtered = requests.filter(r => {
+  const filtered = requests.filter(function(r) {
     const statusMatch = filterStatus === 'all' || r.status === filterStatus;
     const priorityMatch = filterPriority === 'all' || r.priority === filterPriority;
-    const searchMatch = 
-      (r.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (r.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
-    return statusMatch && priorityMatch && searchMatch;
+    return statusMatch && priorityMatch;
   });
 
-  const priorityColor = (priority) => {
+  const priorityColor = function(priority) {
     switch(priority) {
       case 'urgent': return '#ef4444';
       case 'high': return '#f59e0b';
@@ -780,7 +1100,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
     }
   };
 
-  const statusColor = (status) => {
+  const statusColor = function(status) {
     switch(status) {
       case 'completed': return { bg: '#dcfce7', color: '#166534' };
       case 'in_progress': return { bg: '#dbeafe', color: '#1e40af' };
@@ -826,19 +1146,6 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
         </div>
       </div>
 
-      <div style={styles.searchFilterSection}>
-        <div style={styles.searchBox}>
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Search maintenance requests..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
-        </div>
-      </div>
-
       <div style={styles.section}>
         <div style={styles.tableWrapper}>
           <table style={styles.table}>
@@ -855,7 +1162,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
             </thead>
             <tbody>
               {filtered.length > 0 ? (
-                filtered.map(req => {
+                filtered.map(function(req) {
                   const colors = statusColor(req.status);
                   return (
                     <tr key={req.id} style={styles.tableRow}>
@@ -895,7 +1202,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
                           {req.status === 'pending' && (
                             <button 
                               style={styles.btnSmallSuccess}
-                              onClick={() => onUpdateStatus(req.id, { status: 'in_progress' })}
+                              onClick={() => onUpdateStatus(req.id, 'in_progress')}
                               title="Start Work"
                             >
                               <Check size={14} />
@@ -904,7 +1211,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
                           {req.status === 'in_progress' && (
                             <button 
                               style={styles.btnSmallSuccess}
-                              onClick={() => onUpdateStatus(req.id, { status: 'completed' })}
+                              onClick={() => onUpdateStatus(req.id, 'completed')}
                               title="Mark Complete"
                             >
                               <CheckCircle size={14} />
@@ -918,12 +1225,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
               ) : (
                 <tr>
                   <td colSpan="7" style={{...styles.td, textAlign: 'center', padding: '40px'}}>
-                    <div style={{padding: '40px 20px', textAlign: 'center'}}>
-                      <Wrench size={48} color="#9ca3af" />
-                      <p style={{marginTop: '16px', color: '#6b7280'}}>
-                        No maintenance requests found
-                      </p>
-                    </div>
+                    No maintenance requests found
                   </td>
                 </tr>
               )}
@@ -935,170 +1237,148 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
   );
 };
 
-// ==================== PAYMENTS PAGE ====================
-const PaymentsPage = ({ payments, loading, onSendNotification }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('balance');
-  const [order, setOrder] = useState('desc');
+// ==================== VACATE NOTICES PAGE ====================
+const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDetails }) => {
+  const [filterStatus, setFilterStatus] = useState('all');
   
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
         <div style={styles.spinner}></div>
-        <p>Loading payment data...</p>
+        <p>Loading vacate notices...</p>
       </div>
     );
   }
 
-  const sorted = [...payments].sort((a, b) => {
-    let aVal, bVal;
-    
-    switch (sortBy) {
-      case 'balance':
-        aVal = a.rent_amount || 0;
-        bVal = b.rent_amount || 0;
-        break;
-      case 'name':
-        aVal = a.tenant_name?.toLowerCase() || '';
-        bVal = b.tenant_name?.toLowerCase() || '';
-        break;
-      case 'room':
-        aVal = a.room_number || '';
-        bVal = b.room_number || '';
-        break;
-      default:
-        aVal = a.rent_amount || 0;
-        bVal = b.rent_amount || 0;
+  // Handle case where notices is null or undefined
+  const noticesList = notices || [];
+
+  const filtered = filterStatus === 'all' 
+    ? noticesList 
+    : noticesList.filter(function(n) {
+        return n.status === filterStatus;
+      });
+
+  const statusColor = function(status) {
+    switch(status) {
+      case 'pending': return { bg: '#fef3c7', color: '#92400e' };
+      case 'approved': return { bg: '#dbeafe', color: '#1e40af' };
+      case 'rejected': return { bg: '#fee2e2', color: '#991b1b' };
+      case 'completed': return { bg: '#dcfce7', color: '#166534' };
+      default: return { bg: '#f3f4f6', color: '#4b5563' };
     }
-
-    return order === 'desc' ? (typeof bVal === 'string' ? bVal.localeCompare(aVal) : bVal - aVal) : (typeof aVal === 'string' ? aVal.localeCompare(bVal) : aVal - bVal);
-  });
-
-  const filtered = sorted.filter(tenant => {
-    const matchSearch = tenant.tenant_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tenant.room_number?.toString().includes(searchTerm);
-    return matchSearch;
-  });
-
-  const totalOutstanding = payments.reduce((sum, t) => sum + (t.rent_amount || 0), 0);
+  };
 
   return (
     <>
-      <div style={styles.pageHeader}>
-        <h2 style={styles.pageTitle}>Pending Payments</h2>
-        <button style={styles.btnPrimary} onClick={onSendNotification}>
-          <Send size={16} /> Send Reminder
-        </button>
-      </div>
-
-      <div style={styles.gridContainer}>
-        <OverviewCard 
-          title="Total Outstanding" 
-          value={"KSh " + totalOutstanding.toLocaleString()} 
-          icon={DollarSign}
-          color="#ef4444"
-        />
-        <OverviewCard 
-          title="Tenants in Arrears" 
-          value={payments.length} 
-          icon={Users}
-          color="#f59e0b"
-        />
-        <OverviewCard 
-          title="Average Per Tenant" 
-          value={"KSh " + (payments.length > 0 ? Math.round(totalOutstanding / payments.length).toLocaleString() : 0)} 
-          icon={TrendingUp}
-          color="#3b82f6"
-        />
-        <OverviewCard 
-          title="Collections Rate" 
-          value={payments.length > 0 ? Math.round((payments.filter(p => p.rent_amount <= 0).length / payments.length) * 100) + "%" : "100%"} 
-          icon={CheckCircle}
-          color="#10b981"
-        />
-      </div>
-
-      <div style={styles.searchFilterSection}>
-        <div style={styles.searchBox}>
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Search by name or room..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
-        </div>
+      <div style={styles.pageHeaderControls}>
+        <h2 style={styles.pageTitle}>Vacate Notices ({filtered.length})</h2>
         <div style={styles.filterSection}>
-          <label style={styles.filterLabel}>Sort by:</label>
+          <label style={styles.filterLabel}>Status:</label>
           <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
             style={styles.filterSelect}
           >
-            <option value="balance">Balance</option>
-            <option value="name">Name</option>
-            <option value="room">Room</option>
-          </select>
-        </div>
-        <div style={styles.filterSection}>
-          <label style={styles.filterLabel}>Order:</label>
-          <select
-            value={order}
-            onChange={(e) => setOrder(e.target.value)}
-            style={styles.filterSelect}
-          >
-            <option value="desc">Highest First</option>
-            <option value="asc">Lowest First</option>
+            <option value="all">All</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="completed">Completed</option>
           </select>
         </div>
       </div>
 
       <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>Tenants with Outstanding Balances ({filtered.length})</h3>
         <div style={styles.tableWrapper}>
           <table style={styles.table}>
             <thead style={styles.tableHeader}>
               <tr>
-                <th style={styles.th}>Tenant Name</th>
+                <th style={styles.th}>ID</th>
+                <th style={styles.th}>Tenant</th>
                 <th style={styles.th}>Room</th>
-                <th style={styles.th}>Outstanding Balance</th>
-                <th style={styles.th}>Pending Payments</th>
+                <th style={styles.th}>Vacate Date</th>
+                <th style={styles.th}>Days Left</th>
+                <th style={styles.th}>Status</th>
                 <th style={styles.th}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length > 0 ? (
-                filtered.map(tenant => (
-                  <tr key={tenant.tenant_id} style={styles.tableRow}>
-                    <td style={styles.td}>{tenant.tenant_name}</td>
-                    <td style={styles.td}>Room {tenant.room_number || 'N/A'}</td>
-                    <td style={styles.td}>
-                      <span style={{color: '#ef4444', fontWeight: '600'}}>
-                        KSh {tenant.rent_amount?.toLocaleString() || 0}
-                      </span>
-                    </td>
-                    <td style={styles.td}>{tenant.pending_payments || 0}</td>
-                    <td style={styles.td}>
-                      <div style={styles.actionButtons}>
-                        <button 
-                          style={styles.btnSmallPrimary}
-                          onClick={() => onSendNotification({ tenant_id: tenant.tenant_id })}
-                          title="Send Reminder"
-                        >
-                          <Send size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                filtered.map(function(notice) {
+                  const colors = statusColor(notice.status);
+                  const daysLeft = notice.vacate_date 
+                    ? Math.ceil((new Date(notice.vacate_date) - new Date()) / (1000 * 60 * 60 * 24))
+                    : 0;
+                  
+                  return (
+                    <tr key={notice.id} style={styles.tableRow}>
+                      <td style={styles.td}>#{notice.id}</td>
+                      <td style={styles.td}>{notice.tenant_name || 'Unknown'}</td>
+                      <td style={styles.td}>Room {notice.room_number || 'N/A'}</td>
+                      <td style={styles.td}>
+                        {notice.vacate_date ? new Date(notice.vacate_date).toLocaleDateString() : 'N/A'}
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{
+                          ...styles.statusBadge,
+                          backgroundColor: daysLeft <= 7 ? '#fee2e2' : daysLeft <= 30 ? '#fef3c7' : '#dcfce7',
+                          color: daysLeft <= 7 ? '#991b1b' : daysLeft <= 30 ? '#92400e' : '#166534'
+                        }}>
+                          {daysLeft} days
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{
+                          ...styles.statusBadge,
+                          backgroundColor: colors.bg,
+                          color: colors.color
+                        }}>
+                          {notice.status}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <div style={styles.actionButtons}>
+                          <button 
+                            style={styles.btnSmallPrimary}
+                            onClick={() => onViewDetails(notice)}
+                            title="View Details"
+                          >
+                            <Eye size={14} />
+                          </button>
+                          {notice.status === 'pending' && (
+                            <>
+                              <button 
+                                style={styles.btnSmallSuccess}
+                                onClick={() => onUpdateStatus(notice.id, 'approved')}
+                                title="Approve"
+                              >
+                                <Check size={14} />
+                              </button>
+                              <button 
+                                style={styles.btnSmallDanger}
+                                onClick={() => onUpdateStatus(notice.id, 'rejected')}
+                                title="Reject"
+                              >
+                                <X size={14} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan="5" style={{...styles.td, textAlign: 'center', padding: '40px'}}>
+                  <td colSpan="7" style={{...styles.td, textAlign: 'center', padding: '40px'}}>
                     <div style={{padding: '40px 20px', textAlign: 'center'}}>
-                      <DollarSign size={48} color="#9ca3af" />
+                      <DoorOpen size={48} color="#9ca3af" />
                       <p style={{marginTop: '16px', color: '#6b7280'}}>
-                        No tenants with outstanding payments found
+                        No vacate notices found
+                      </p>
+                      <p style={{color: '#9ca3af', fontSize: '14px', marginTop: '8px'}}>
+                        The vacate notices API endpoint may not be implemented yet
                       </p>
                     </div>
                   </td>
@@ -1112,277 +1392,832 @@ const PaymentsPage = ({ payments, loading, onSendNotification }) => {
   );
 };
 
-// ==================== ROOMS PAGE ====================
-const RoomsPage = ({ availableRooms, occupiedRooms, allRooms, loading, onViewRoomDetails }) => {
-  const [showTab, setShowTab] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
+// ==================== NOTIFICATIONS PAGE ====================
+const NotificationsPage = ({ tenants, onSendNotification }) => {
+  const activeTenantsCount = tenants.filter(function(t) {
+    return t.is_active;
+  }).length;
 
-  const rooms = showTab === 'available' ? availableRooms : 
-                showTab === 'occupied' ? occupiedRooms : 
-                allRooms;
+  return (
+    <>
+      <div style={styles.pageHeader}>
+        <h2 style={styles.pageTitle}>Notifications</h2>
+        <button style={styles.btnPrimary} onClick={onSendNotification}>
+          <Send size={16} /> Send Notification
+        </button>
+      </div>
 
-  const filtered = rooms.filter(room => {
-    const typeMatch = filterType === 'all' || room.type === filterType;
-    const searchMatch = 
-      room.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      room.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (room.tenant_name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    return typeMatch && searchMatch;
-  });
+      <div style={styles.section}>
+        <h3 style={styles.sectionTitle}>Send notifications to tenants</h3>
+        <p style={{color: '#6b7280', marginBottom: '20px'}}>
+          You can send notifications to all tenants, specific tenants, or the caretaker.
+        </p>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px'}}>
+          <div style={styles.infoCard}>
+            <Users size={32} color="#3b82f6" />
+            <h4>Total Tenants</h4>
+            <p style={{fontSize: '24px', fontWeight: '600', margin: '8px 0'}}>{tenants.length}</p>
+          </div>
+          <div style={styles.infoCard}>
+            <Bell size={32} color="#10b981" />
+            <h4>Active Recipients</h4>
+            <p style={{fontSize: '24px', fontWeight: '600', margin: '8px 0'}}>
+              {activeTenantsCount}
+            </p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
 
-  const occupancyRate = occupiedRooms.length > 0 ? 
-    Math.round((occupiedRooms.length / (occupiedRooms.length + availableRooms.length)) * 100) : 0;
-
+// ==================== REPORTS PAGE ====================
+const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
         <div style={styles.spinner}></div>
-        <p>Loading room data...</p>
+        <p>Loading reports...</p>
+      </div>
+    );
+  }
+
+  // Calculate detailed occupancy statistics
+  const occupancyStats = occupancyReport ? {
+    total: occupancyReport.total_properties || 0,
+    occupied: occupancyReport.occupied || 0,
+    vacant: occupancyReport.vacant || 0,
+    occupancyRate: occupancyReport.occupancy_rate || 0,
+    activeLeases: occupancyReport.active_leases || 0,
+    vacantRate: occupancyReport.total_properties > 0 
+      ? Math.round((occupancyReport.vacant / occupancyReport.total_properties) * 100)
+      : 0
+  } : null;
+
+  // Calculate payment statistics
+  const paymentStats = paymentReport ? {
+    total: paymentReport.total_payments || 0,
+    successful: paymentReport.successful || 0,
+    pending: paymentReport.pending || 0,
+    failed: paymentReport.failed || 0,
+    totalAmount: paymentReport.total_amount || 0,
+    successRate: paymentReport.total_payments > 0
+      ? Math.round((paymentReport.successful / paymentReport.total_payments) * 100)
+      : 0,
+    avgPayment: paymentReport.successful > 0
+      ? Math.round(paymentReport.total_amount / paymentReport.successful)
+      : 0
+  } : null;
+
+  return (
+    <>
+      <h2 style={styles.pageTitle}>Reports & Analytics</h2>
+
+      {paymentStats && (
+        <div style={styles.section}>
+          <h3 style={styles.sectionTitle}>
+            <DollarSign size={18} /> Payment Report
+          </h3>
+          <div style={styles.summaryGrid}>
+            <SummaryCard label="Total Payments" value={paymentStats.total} />
+            <SummaryCard label="Successful" value={paymentStats.successful} color="#10b981" />
+            <SummaryCard label="Pending" value={paymentStats.pending} color="#f59e0b" />
+            <SummaryCard label="Failed" value={paymentStats.failed} color="#ef4444" />
+            <SummaryCard 
+              label="Total Amount" 
+              value={"KSh " + paymentStats.totalAmount.toLocaleString()}
+              color="#3b82f6"
+            />
+            <SummaryCard 
+              label="Success Rate" 
+              value={paymentStats.successRate + "%"}
+              color="#8b5cf6"
+            />
+            <SummaryCard 
+              label="Average Payment" 
+              value={"KSh " + paymentStats.avgPayment.toLocaleString()}
+              color="#06b6d4"
+            />
+            <SummaryCard 
+              label="Collection Efficiency" 
+              value={(paymentStats.total > 0 ? Math.round((paymentStats.successful / tenants.length * 100)) : 0) + "%"}
+              color="#ec4899"
+            />
+          </div>
+        </div>
+      )}
+
+      {occupancyStats && (
+        <div style={styles.section}>
+          <h3 style={styles.sectionTitle}>
+            <Building size={18} /> Occupancy Report
+          </h3>
+          <div style={styles.summaryGrid}>
+            <SummaryCard label="Total Properties" value={occupancyStats.total} />
+            <SummaryCard label="Occupied" value={occupancyStats.occupied} color="#10b981" />
+            <SummaryCard label="Vacant" value={occupancyStats.vacant} color="#f59e0b" />
+            <SummaryCard label="Active Leases" value={occupancyStats.activeLeases} color="#3b82f6" />
+            <SummaryCard 
+              label="Occupancy Rate" 
+              value={occupancyStats.occupancyRate + "%"}
+              color="#8b5cf6"
+            />
+            <SummaryCard 
+              label="Vacant Rate" 
+              value={occupancyStats.vacantRate + "%"}
+              color="#ef4444"
+            />
+            <SummaryCard 
+              label="Room Utilization" 
+              value={(occupancyStats.total > 0 ? Math.round((occupancyStats.occupied / occupancyStats.total) * 100) : 0) + "%"}
+              color="#06b6d4"
+            />
+            <SummaryCard 
+              label="Lease Coverage" 
+              value={(occupancyStats.total > 0 ? Math.round((occupancyStats.activeLeases / occupancyStats.occupied) * 100) : 0) + "%"}
+              color="#ec4899"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Financial Summary */}
+      <div style={styles.section}>
+        <h3 style={styles.sectionTitle}>Financial Summary</h3>
+        <div style={styles.financialSummary}>
+          <div style={styles.financialCard}>
+            <h4>Monthly Revenue Potential</h4>
+            <p style={styles.financialValue}>
+              {"KSh " + (occupancyStats ? (occupancyStats.total * 5250).toLocaleString() : '0')}
+            </p>
+            <small style={styles.financialNote}>Based on average rent of KSh 5,250</small>
+          </div>
+          <div style={styles.financialCard}>
+            <h4>Collection Rate</h4>
+            <p style={{...styles.financialValue, color: paymentStats?.successRate > 80 ? '#10b981' : '#f59e0b'}}>
+              {(paymentStats ? paymentStats.successRate : 0) + "%"}
+            </p>
+            <small style={styles.financialNote}>Payment success rate</small>
+          </div>
+          <div style={styles.financialCard}>
+            <h4>Revenue per Room</h4>
+            <p style={styles.financialValue}>
+              {"KSh " + (paymentStats && occupancyStats?.occupied > 0 
+                ? Math.round(paymentStats.totalAmount / occupancyStats.occupied).toLocaleString()
+                : '0')}
+            </p>
+            <small style={styles.financialNote}>Average per occupied room</small>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ==================== PROPERTIES PAGE ====================
+const PropertiesPage = ({ availableRooms, loading }) => {
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p>Loading properties...</p>
       </div>
     );
   }
 
   return (
     <>
-      <div style={styles.pageHeader}>
-        <h2 style={styles.pageTitle}>Room Management</h2>
-        <div style={styles.actionButtons}>
-          <button style={styles.btnSecondary} onClick={() => window.print()}>
-            <Download size={16} /> Export List
-          </button>
-        </div>
-      </div>
+      <h2 style={styles.pageTitle}>Properties Management</h2>
 
-      <div style={styles.gridContainer}>
-        <OverviewCard 
-          title="Occupied Rooms" 
-          value={occupiedRooms.length} 
-          icon={Users}
-          color="#10b981"
-        />
-        <OverviewCard 
-          title="Available Rooms" 
-          value={availableRooms.length} 
-          icon={Building}
-          color="#f59e0b"
-        />
-        <OverviewCard 
-          title="Occupancy Rate" 
-          value={occupancyRate + "%"} 
-          icon={TrendingUp}
-          color="#3b82f6"
-        />
-        <OverviewCard 
-          title="Total Units" 
-          value={occupiedRooms.length + availableRooms.length} 
-          icon={Home}
-          color="#8b5cf6"
-        />
-      </div>
-
-      <div style={styles.tabsSection}>
-        <button
-          style={{...styles.tabBtn, ...(showTab === 'all' ? styles.tabBtnActive : {})}}
-          onClick={() => setShowTab('all')}
-        >
-          All Rooms ({allRooms.length})
-        </button>
-        <button
-          style={{...styles.tabBtn, ...(showTab === 'occupied' ? styles.tabBtnActive : {})}}
-          onClick={() => setShowTab('occupied')}
-        >
-          Occupied ({occupiedRooms.length})
-        </button>
-        <button
-          style={{...styles.tabBtn, ...(showTab === 'available' ? styles.tabBtnActive : {})}}
-          onClick={() => setShowTab('available')}
-        >
-          Available ({availableRooms.length})
-        </button>
-      </div>
-
-      <div style={styles.searchFilterSection}>
-        <div style={styles.searchBox}>
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Search rooms..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
-        </div>
-        <div style={styles.filterSection}>
-          <label style={styles.filterLabel}>Type:</label>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              style={styles.filterSelect}
-            >
-              <option value="all">All Types</option>
-              <option value="apartment">Apartment</option>
-              <option value="studio">Studio</option>
-              <option value="bedsitter">Bedsitter</option>
-              <option value="one_bedroom">One Bedroom</option>
-            </select>
+      <div style={styles.section}>
+        <h3 style={styles.sectionTitle}>Available Rooms ({availableRooms.length})</h3>
+        {availableRooms.length === 0 ? (
+          <div style={styles.emptyState}>
+            <Building size={48} />
+            <p>No available rooms found</p>
           </div>
-        </div>
-
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>
-            {showTab === 'all' ? 'All Rooms' : 
-             showTab === 'occupied' ? 'Occupied Rooms' : 'Available Rooms'} 
-            ({filtered.length})
-          </h3>
-          
-          {filtered.length === 0 ? (
-            <div style={{padding: '40px 20px', textAlign: 'center'}}>
-              <Building size={48} color="#9ca3af" />
-              <p style={{marginTop: '16px', color: '#6b7280'}}>
-                No rooms found
-              </p>
-            </div>
-          ) : (
-            <div style={styles.roomsGrid}>
-              {filtered.map(room => (
+        ) : (
+          <div style={styles.roomsGrid}>
+            {availableRooms.map(function(room) {
+              return (
                 <div key={room.id} style={styles.roomCard}>
                   <div style={styles.roomHeader}>
                     <Building size={20} />
                     <span style={styles.roomName}>{room.name}</span>
                     <span style={styles.roomTypeBadge}>
-                      {room.type}
+                      {room.property_type}
                     </span>
                   </div>
                   <div style={styles.roomDetails}>
                     <div style={styles.roomDetail}>
                       <span style={styles.detailLabel}>Monthly Rent:</span>
-                      <span style={styles.detailValue}>
-                        KSh {room.rent_amount?.toLocaleString() || '0'}
-                      </span>
+                      <span style={styles.detailValue}>{"KSh " + (room.rent_amount ? room.rent_amount.toLocaleString() : '0')}</span>
                     </div>
                     <div style={styles.roomDetail}>
                       <span style={styles.detailLabel}>Deposit:</span>
                       <span style={styles.detailValue}>
-                        KSh {((room.rent_amount * 1.07) || 0).toLocaleString()}
+                        {"KSh " + ((room.rent_amount * 1.07) ? (room.rent_amount * 1.07).toLocaleString() : '0')}
                       </span>
                     </div>
                     <div style={styles.roomDetail}>
                       <span style={styles.detailLabel}>Status:</span>
-                      <span style={{
-                        ...styles.statusBadge,
-                        backgroundColor: room.status === 'vacant' ? '#dcfce7' : '#dbeafe',
-                        color: room.status === 'vacant' ? '#166534' : '#1e40af'
-                      }}>
-                        {room.status}
+                      <span style={{...styles.statusBadge, backgroundColor: '#dcfce7', color: '#166534'}}>
+                        Vacant
                       </span>
                     </div>
                   </div>
-                  {room.tenant_name && (
-                    <div style={styles.roomTenant}>
-                      <span style={styles.detailLabel}>Tenant:</span>
-                      <span style={styles.detailValue}>{room.tenant_name}</span>
-                    </div>
-                  )}
-                  <div style={styles.roomActions}>
-                    <button 
-                      style={styles.btnSmallPrimary}
-                      onClick={() => onViewRoomDetails(room)}
-                    >
-                      <Eye size={14} /> Details
-                    </button>
-                  </div>
                 </div>
-              ))}
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
+
+// ==================== TENANT DETAILS MODAL ====================
+const TenantDetailsModal = ({ tenant, onClose }) => {
+  const [activeTab, setActiveTab] = useState('personal');
+
+  // Extract all tenant data including personal info
+  const tenantData = {
+    personal: {
+      'Full Name': tenant ? tenant.name : 'N/A',
+      'Email': tenant ? tenant.email : 'N/A',
+      'Phone Number': tenant ? (tenant.phone_number || tenant.phone) : 'N/A',
+      'National ID': tenant ? tenant.national_id : 'N/A',
+      'Room Number': tenant && tenant.room_number ? "Room " + tenant.room_number : 'N/A',
+      'Status': tenant && tenant.is_active ? 'Active' : 'Inactive',
+      'Date Joined': tenant && tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : 'N/A'
+    },
+    lease: tenant && tenant.lease ? {
+      'Lease ID': "#" + tenant.lease.id,
+      'Property': tenant.lease.property_name || 'N/A',
+      'Start Date': tenant.lease.start_date ? new Date(tenant.lease.start_date).toLocaleDateString() : 'N/A',
+      'End Date': tenant.lease.end_date ? new Date(tenant.lease.end_date).toLocaleDateString() : 'N/A',
+      'Monthly Rent': "KSh " + (tenant.lease.rent_amount ? tenant.lease.rent_amount.toLocaleString() : '0'),
+      'Deposit Amount': "KSh " + ((tenant.lease.rent_amount * 1.07) ? (tenant.lease.rent_amount * 1.07).toLocaleString() : '0'),
+      'Lease Status': tenant.lease.status || 'N/A',
+      'Lease Signed': tenant.lease.signed_by_tenant ? 'Yes' : 'No',
+      'Signed Date': tenant.lease.signed_at ? new Date(tenant.lease.signed_at).toLocaleDateString() : 'N/A'
+    } : null,
+    payments: tenant && tenant.recent_payments ? tenant.recent_payments.map(function(p) {
+      return {
+        'Date': p.created_at ? new Date(p.created_at).toLocaleDateString() : 'N/A',
+        'Amount': "KSh " + (p.amount ? p.amount.toLocaleString() : '0'),
+        'Status': p.status || 'N/A',
+        'Transaction ID': p.transaction_id || 'N/A'
+      };
+    }) : [],
+    maintenance: tenant && tenant.recent_maintenance ? tenant.recent_maintenance.map(function(m) {
+      return {
+        'Title': m.title || 'N/A',
+        'Description': m.description || 'N/A',
+        'Priority': m.priority || 'N/A',
+        'Status': m.status || 'N/A',
+        'Date Reported': m.created_at ? new Date(m.created_at).toLocaleDateString() : 'N/A'
+      };
+    }) : []
+  };
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={{...styles.modalContent, maxWidth: '800px'}} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h3>Tenant Details</h3>
+          <button style={styles.modalClose} onClick={onClose}>×</button>
+        </div>
+
+        <div style={styles.modalTabs}>
+          <button 
+            style={{...styles.modalTab, ...(activeTab === 'personal' ? styles.modalTabActive : {})}}
+            onClick={() => setActiveTab('personal')}
+          >
+            Personal Info
+          </button>
+          <button 
+            style={{...styles.modalTab, ...(activeTab === 'lease' ? styles.modalTabActive : {})}}
+            onClick={() => setActiveTab('lease')}
+            disabled={!tenantData.lease}
+          >
+            Lease Info
+          </button>
+          <button 
+            style={{...styles.modalTab, ...(activeTab === 'payments' ? styles.modalTabActive : {})}}
+            onClick={() => setActiveTab('payments')}
+            disabled={!tenantData.payments || tenantData.payments.length === 0}
+          >
+            Payments
+          </button>
+          <button 
+            style={{...styles.modalTab, ...(activeTab === 'maintenance' ? styles.modalTabActive : {})}}
+            onClick={() => setActiveTab('maintenance')}
+            disabled={!tenantData.maintenance || tenantData.maintenance.length === 0}
+          >
+            Maintenance
+          </button>
+        </div>
+
+        <div style={styles.modalBody}>
+          {activeTab === 'personal' && (
+            <div style={styles.detailsGrid}>
+              {Object.entries(tenantData.personal).map(function([key, value]) {
+                return (
+                  <div key={key} style={styles.detailItem}>
+                    <label style={styles.detailLabel}>{key}</label>
+                    <p style={styles.detailValue}>{value}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {activeTab === 'lease' && tenantData.lease && (
+            <div>
+              <div style={styles.detailsGrid}>
+                {Object.entries(tenantData.lease).map(function([key, value]) {
+                  return (
+                    <div key={key} style={styles.detailItem}>
+                      <label style={styles.detailLabel}>{key}</label>
+                      <p style={styles.detailValue}>{value}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'payments' && tenantData.payments && tenantData.payments.length > 0 ? (
+            <div style={styles.tableWrapper}>
+              <table style={styles.table}>
+                <thead style={styles.tableHeader}>
+                  <tr>
+                    <th style={styles.th}>Date</th>
+                    <th style={styles.th}>Amount</th>
+                    <th style={styles.th}>Status</th>
+                    <th style={styles.th}>Transaction ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tenantData.payments.map(function(payment, idx) {
+                    return (
+                      <tr key={idx} style={styles.tableRow}>
+                        <td style={styles.td}>{payment.Date}</td>
+                        <td style={styles.td}>{payment.Amount}</td>
+                        <td style={styles.td}>
+                          <span style={{
+                            ...styles.statusBadge,
+                            backgroundColor: payment.Status === 'successful' ? '#dcfce7' : '#fee2e2',
+                            color: payment.Status === 'successful' ? '#166534' : '#991b1b'
+                          }}>
+                            {payment.Status}
+                          </span>
+                        </td>
+                        <td style={styles.td}>{payment['Transaction ID']}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : activeTab === 'payments' && (
+            <div style={styles.emptyState}>
+              <DollarSign size={32} />
+              <p>No payment history</p>
+            </div>
+          )}
+
+          {activeTab === 'maintenance' && tenantData.maintenance && tenantData.maintenance.length > 0 ? (
+            <div style={styles.tableWrapper}>
+              <table style={styles.table}>
+                <thead style={styles.tableHeader}>
+                  <tr>
+                    <th style={styles.th}>Title</th>
+                    <th style={styles.th}>Priority</th>
+                    <th style={styles.th}>Status</th>
+                    <th style={styles.th}>Date Reported</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tenantData.maintenance.map(function(req, idx) {
+                    return (
+                      <tr key={idx} style={styles.tableRow}>
+                        <td style={styles.td}>{req.Title}</td>
+                        <td style={styles.td}>{req.Priority}</td>
+                        <td style={styles.td}>
+                          <span style={{
+                            ...styles.statusBadge,
+                            backgroundColor: req.Status === 'completed' ? '#dcfce7' : '#fef3c7',
+                            color: req.Status === 'completed' ? '#166534' : '#92400e'
+                          }}>
+                            {req.Status}
+                          </span>
+                        </td>
+                        <td style={styles.td}>{req['Date Reported']}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : activeTab === 'maintenance' && (
+            <div style={styles.emptyState}>
+              <Wrench size={32} />
+              <p>No maintenance requests</p>
             </div>
           )}
         </div>
-      </>
-    );
+
+        <div style={styles.modalFooter}>
+          <button style={styles.btnSecondary} onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ==================== CREATE TENANT MODAL ====================
+const CreateTenantModal = ({ onClose, onSubmit, loading }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    national_id: '',
+    password: 'Default@123',
+    room_number: ''
+  });
+  const [errors, setErrors] = useState({});
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    if (errors[e.target.name]) {
+      setErrors({...errors, [e.target.name]: ''});
+    }
   };
 
-  // ==================== NOTIFICATIONS PAGE ====================
-  const NotificationsPage = ({ tenants, onSendNotification }) => {
-    const [selectedTenant, setSelectedTenant] = useState('');
-    const [title, setTitle] = useState('');
-    const [message, setMessage] = useState('');
-    const [notificationType, setNotificationType] = useState('general');
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
+    if (!formData.national_id.trim()) newErrors.national_id = 'National ID is required';
 
-    const handleSend = () => {
-      if (!selectedTenant || !title || !message) {
-        alert('Please fill in all required fields');
-        return;
-      }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
 
-      onSendNotification({
-        tenant_id: parseInt(selectedTenant),
-        title,
-        message,
-        type: notificationType
-      });
+    onSubmit(formData);
+  };
 
-      // Reset form
-      setSelectedTenant('');
-      setTitle('');
-      setMessage('');
-      setNotificationType('general');
-    };
-
-    return (
-      <>
-        <div style={styles.pageHeader}>
-          <h2 style={styles.pageTitle}>Notifications</h2>
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h3>Create New Tenant</h3>
+          <button style={styles.modalClose} onClick={onClose}>×</button>
         </div>
 
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>Send Notification</h3>
-          <p style={{color: '#6b7280', marginBottom: '20px'}}>
-            Send notifications to specific tenants or all tenants.
-          </p>
-          
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px', marginBottom: '24px'}}>
-            <div style={styles.infoCard}>
-              <Users size={32} color="#3b82f6" />
-              <h4>Total Tenants</h4>
-              <p style={{fontSize: '24px', fontWeight: '600', margin: '8px 0'}}>{tenants.length}</p>
+        <form onSubmit={handleSubmit}>
+          <div style={styles.modalBody}>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Full Name *</label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="John Doe"
+                style={{...styles.formInput, ...(errors.name ? styles.inputError : {})}}
+              />
+              {errors.name && <span style={styles.errorText}>{errors.name}</span>}
             </div>
-            <div style={styles.infoCard}>
-              <Bell size={32} color="#10b981" />
-              <h4>Active Tenants</h4>
-              <p style={{fontSize: '24px', fontWeight: '600', margin: '8px 0'}}>
-                {tenants.filter(t => t.is_active).length}
-              </p>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Email Address *</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="john@example.com"
+                style={{...styles.formInput, ...(errors.email ? styles.inputError : {})}}
+              />
+              {errors.email && <span style={styles.errorText}>{errors.email}</span>}
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Phone Number *</label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="0712345678"
+                style={{...styles.formInput, ...(errors.phone ? styles.inputError : {})}}
+              />
+              {errors.phone && <span style={styles.errorText}>{errors.phone}</span>}
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>National ID *</label>
+              <input
+                type="text"
+                name="national_id"
+                value={formData.national_id}
+                onChange={handleChange}
+                placeholder="12345678"
+                style={{...styles.formInput, ...(errors.national_id ? styles.inputError : {})}}
+              />
+              {errors.national_id && <span style={styles.errorText}>{errors.national_id}</span>}
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Room Number (Optional)</label>
+              <input
+                type="text"
+                name="room_number"
+                value={formData.room_number}
+                onChange={handleChange}
+                placeholder="22"
+                style={styles.formInput}
+              />
+              <small style={styles.formHelp}>Will be assigned when creating lease</small>
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Default Password</label>
+              <input
+                type="text"
+                name="password"
+                value={formData.password}
+                readOnly
+                style={styles.formInput}
+              />
+              <small style={styles.formHelp}>Tenant can change this after login</small>
             </div>
           </div>
+          
+          <div style={styles.modalFooter}>
+            <button type="button" style={styles.btnSecondary} onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" style={styles.btnPrimary} disabled={loading}>
+              {loading ? 'Creating...' : 'Create Tenant'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 
-          <div style={styles.formSection}>
+// ==================== CREATE LEASE MODAL ====================
+const CreateLeaseModal = ({ tenant, rooms, onClose, onSubmit, loading }) => {
+  const [formData, setFormData] = useState({
+    tenant_id: tenant.id,
+    property_id: '',
+    rent_amount: '',
+    start_date: new Date().toISOString().split('T')[0]
+  });
+  const [errors, setErrors] = useState({});
+  const [selectedRoom, setSelectedRoom] = useState(null);
+
+  useEffect(() => {
+    if (rooms.length > 0 && !formData.property_id) {
+      const firstRoom = rooms[0];
+      setFormData(prev => ({
+        ...prev,
+        property_id: firstRoom.id,
+        rent_amount: firstRoom.rent_amount
+      }));
+      setSelectedRoom(firstRoom);
+    }
+  }, [rooms]);
+
+  const handleRoomChange = (e) => {
+    const roomId = parseInt(e.target.value);
+    const room = rooms.find(function(r) {
+      return r.id === roomId;
+    });
+    setFormData({
+      ...formData,
+      property_id: roomId,
+      rent_amount: room ? room.rent_amount : ''
+    });
+    setSelectedRoom(room);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const newErrors = {};
+    if (!formData.property_id) newErrors.property_id = 'Please select a room';
+    if (!formData.rent_amount || formData.rent_amount <= 0) newErrors.rent_amount = 'Valid rent amount required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    onSubmit(formData);
+  };
+
+  const calculateDeposit = (rent) => {
+    return rent * 1.07;
+  };
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h3>Create Lease for {tenant.name}</h3>
+          <button style={styles.modalClose} onClick={onClose}>×</button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={styles.modalBody}>
+            <div style={styles.tenantInfoSummary}>
+              <p><strong>Tenant:</strong> {tenant.name}</p>
+              <p><strong>Email:</strong> {tenant.email}</p>
+              <p><strong>Phone:</strong> {tenant.phone || 'N/A'}</p>
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Select Room *</label>
+              {rooms.length === 0 ? (
+                <div style={styles.alertWarning}>
+                  <AlertCircle size={16} />
+                  <span>No available rooms found</span>
+                </div>
+              ) : (
+                <select 
+                  value={formData.property_id}
+                  onChange={handleRoomChange}
+                  style={{...styles.formSelect, ...(errors.property_id ? styles.inputError : {})}}
+                >
+                  <option value="">Choose a room...</option>
+                  {rooms.map(function(room) {
+                    return (
+                      <option key={room.id} value={room.id}>
+                        {room.name} - {room.property_type} - KSh {room.rent_amount ? room.rent_amount.toLocaleString() : '0'}/month
+                      </option>
+                    );
+                  })}
+                </select>
+              )}
+              {errors.property_id && <span style={styles.errorText}>{errors.property_id}</span>}
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Monthly Rent (KSh) *</label>
+              <input
+                type="number"
+                value={formData.rent_amount}
+                onChange={(e) => setFormData({...formData, rent_amount: e.target.value})}
+                placeholder="Enter rent amount"
+                style={{...styles.formInput, ...(errors.rent_amount ? styles.inputError : {})}}
+                min="0"
+                step="100"
+              />
+              {errors.rent_amount && <span style={styles.errorText}>{errors.rent_amount}</span>}
+            </div>
+
+            {formData.rent_amount > 0 && (
+              <div style={styles.leaseCalculations}>
+                <h4 style={{margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600'}}>Lease Calculations</h4>
+                <div style={styles.calculationRow}>
+                  <span>Monthly Rent:</span>
+                  <strong>{"KSh " + parseFloat(formData.rent_amount).toLocaleString()}</strong>
+                </div>
+                <div style={styles.calculationRow}>
+                  <span>Security Deposit (7%):</span>
+                  <strong>{"KSh " + calculateDeposit(parseFloat(formData.rent_amount)).toLocaleString()}</strong>
+                </div>
+                <div style={{...styles.calculationRow, borderTop: '1px solid #e5e7eb', paddingTop: '8px', marginTop: '8px'}}>
+                  <span>Initial Payment Required:</span>
+                  <strong style={{color: '#3b82f6'}}>
+                    {"KSh " + (parseFloat(formData.rent_amount) + calculateDeposit(parseFloat(formData.rent_amount))).toLocaleString()}
+                  </strong>
+                </div>
+              </div>
+            )}
+            
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Lease Start Date *</label>
+              <input
+                type="date"
+                value={formData.start_date}
+                onChange={(e) => setFormData({...formData, start_date: e.target.value})}
+                style={styles.formInput}
+              />
+            </div>
+            
+            <div style={styles.leaseTermsNote}>
+              <h4 style={{margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600'}}>Lease Terms</h4>
+              <p style={{margin: '4px 0'}}>1-year lease term (auto-calculated)</p>
+              <p style={{margin: '4px 0'}}>Tenant must sign lease agreement before making payments</p>
+              <p style={{margin: '4px 0'}}>Rent payment due on 5th of each month</p>
+            </div>
+          </div>
+          
+          <div style={styles.modalFooter}>
+            <button type="button" style={styles.btnSecondary} onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" style={styles.btnPrimary} disabled={loading || rooms.length === 0}>
+              {loading ? 'Creating...' : 'Create Lease'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ==================== SEND NOTIFICATION MODAL ====================
+const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
+  const [formData, setFormData] = useState({
+    tenant_id: '',
+    title: '',
+    message: '',
+    type: 'general'
+  });
+  const [errors, setErrors] = useState({});
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    if (errors[e.target.name]) {
+      setErrors({...errors, [e.target.name]: ''});
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const newErrors = {};
+    if (!formData.tenant_id) newErrors.tenant_id = 'Please select a tenant';
+    if (!formData.title.trim()) newErrors.title = 'Title is required';
+    if (!formData.message.trim()) newErrors.message = 'Message is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    onSubmit(formData);
+  };
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h3>Send Notification</h3>
+          <button style={styles.modalClose} onClick={onClose}>×</button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={styles.modalBody}>
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Select Tenant *</label>
               <select 
-                value={selectedTenant}
-                onChange={(e) => setSelectedTenant(e.target.value)}
-                style={styles.formSelect}
+                name="tenant_id"
+                value={formData.tenant_id}
+                onChange={handleChange}
+                style={{...styles.formSelect, ...(errors.tenant_id ? styles.inputError : {})}}
               >
                 <option value="">Choose a tenant...</option>
-                {tenants.filter(t => t.is_active).map(tenant => (
-                  <option key={tenant.id} value={tenant.id}>
-                    {tenant.name} - Room {tenant.room_number || 'N/A'}
-                  </option>
-                ))}
+                {tenants.filter(function(t) {
+                  return t.is_active;
+                }).map(function(tenant) {
+                  return (
+                    <option key={tenant.id} value={tenant.id}>
+                      {tenant.name} - Room {tenant.room_number || 'N/A'}
+                    </option>
+                  );
+                })}
               </select>
+              {errors.tenant_id && <span style={styles.errorText}>{errors.tenant_id}</span>}
             </div>
 
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Notification Type *</label>
               <select 
-                value={notificationType}
-                onChange={(e) => setNotificationType(e.target.value)}
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
                 style={styles.formSelect}
               >
-                <option value="general">General Notice</option>
-                <option value="maintenance">Maintenance Update</option>
+                <option value="general">General</option>
+                <option value="urgent">Urgent</option>
                 <option value="payment">Payment Reminder</option>
-                <option value="urgent">Urgent Alert</option>
+                <option value="maintenance">Maintenance</option>
               </select>
             </div>
             
@@ -1390,1202 +2225,1199 @@ const RoomsPage = ({ availableRooms, occupiedRooms, allRooms, loading, onViewRoo
               <label style={styles.formLabel}>Title *</label>
               <input
                 type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
                 placeholder="e.g., Rent Payment Reminder"
-                style={styles.formInput}
+                style={{...styles.formInput, ...(errors.title ? styles.inputError : {})}}
               />
+              {errors.title && <span style={styles.errorText}>{errors.title}</span>}
             </div>
             
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Message *</label>
               <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
                 placeholder="Enter your notification message..."
                 rows="5"
-                style={{...styles.formInput, resize: 'vertical'}}
+                style={{...styles.formInput, ...(errors.message ? styles.inputError : {}), resize: 'vertical'}}
               />
-            </div>
-
-            <button 
-              style={styles.btnPrimary} 
-              onClick={handleSend}
-              disabled={!selectedTenant || !title || !message}
-            >
-              <Send size={16} /> Send Notification
-            </button>
-          </div>
-        </div>
-      </>
-    );
-  };
-
-  // ==================== MODAL COMPONENTS ====================
-
-  const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
-    const [status, setStatus] = useState(request.status);
-    const [priority, setPriority] = useState(request.priority);
-    const [saving, setSaving] = useState(false);
-
-    const handleSave = async () => {
-      setSaving(true);
-      try {
-        await onUpdateStatus(request.id, { status, priority });
-        onClose();
-      } catch (err) {
-        console.error('Failed to update:', err);
-      } finally {
-        setSaving(false);
-      }
-    };
-
-    return (
-      <div style={styles.modalOverlay} onClick={onClose}>
-        <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-          <div style={styles.modalHeader}>
-            <h3>Maintenance Request Details</h3>
-            <button style={styles.modalClose} onClick={onClose}>×</button>
-          </div>
-
-          <div style={styles.modalBody}>
-            <div style={styles.detailsGrid}>
-              <div style={styles.detailItem}>
-                <label style={styles.detailLabel}>Request ID</label>
-                <p style={styles.detailValue}>#{request.id}</p>
-              </div>
-              <div style={styles.detailItem}>
-                <label style={styles.detailLabel}>Property</label>
-                <p style={styles.detailValue}>{request.property_name || 'N/A'}</p>
-              </div>
-              <div style={styles.detailItem}>
-                <label style={styles.detailLabel}>Reported By</label>
-                <p style={styles.detailValue}>{request.reported_by || 'Unknown'}</p>
-              </div>
-              <div style={styles.detailItem}>
-                <label style={styles.detailLabel}>Created</label>
-                <p style={styles.detailValue}>
-                  {request.created_at ? new Date(request.created_at).toLocaleDateString() : 'N/A'}
-                </p>
-              </div>
-            </div>
-
-            <div style={{marginTop: '20px'}}>
-              <label style={styles.detailLabel}>Title</label>
-              <p style={{...styles.detailValue, fontSize: '16px', fontWeight: '600', margin: '8px 0'}}>
-                {request.title}
-              </p>
-            </div>
-
-            <div style={{marginTop: '16px'}}>
-              <label style={styles.detailLabel}>Description</label>
-              <p style={{...styles.detailValue, lineHeight: '1.6', margin: '8px 0'}}>
-                {request.description}
-              </p>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Priority</label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                style={styles.formSelect}
-              >
-                <option value="low">Low</option>
-                <option value="normal">Normal</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Status</label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                style={styles.formSelect}
-              >
-                <option value="pending">Pending</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+              {errors.message && <span style={styles.errorText}>{errors.message}</span>}
             </div>
           </div>
-
+          
           <div style={styles.modalFooter}>
-            <button style={styles.btnSecondary} onClick={onClose}>
+            <button type="button" style={styles.btnSecondary} onClick={onClose}>
               Cancel
             </button>
+            <button type="submit" style={styles.btnPrimary} disabled={loading}>
+              {loading ? 'Sending...' : 'Send Notification'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ==================== MAINTENANCE DETAILS MODAL ====================
+const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h3>Maintenance Request Details</h3>
+          <button style={styles.modalClose} onClick={onClose}>×</button>
+        </div>
+
+        <div style={styles.modalBody}>
+          <div style={styles.detailsGrid}>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Request ID</label>
+              <p style={styles.detailValue}>#{request.id}</p>
+            </div>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Property</label>
+              <p style={styles.detailValue}>{request.property_name || 'N/A'}</p>
+            </div>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Priority</label>
+              <span style={{
+                ...styles.statusBadge,
+                backgroundColor: request.priority === 'urgent' ? '#fee2e2' : '#dbeafe',
+                color: request.priority === 'urgent' ? '#991b1b' : '#1e40af'
+              }}>
+                {request.priority}
+              </span>
+            </div>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Status</label>
+              <span style={{
+                ...styles.statusBadge,
+                backgroundColor: request.status === 'completed' ? '#dcfce7' : '#fef3c7',
+                color: request.status === 'completed' ? '#166534' : '#92400e'
+              }}>
+                {request.status}
+              </span>
+            </div>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Created</label>
+              <p style={styles.detailValue}>
+                {request.created_at ? new Date(request.created_at).toLocaleDateString() : 'N/A'}
+              </p>
+            </div>
+          </div>
+
+          <div style={{marginTop: '20px'}}>
+            <label style={styles.detailLabel}>Title</label>
+            <p style={{...styles.detailValue, fontSize: '16px', fontWeight: '600', margin: '8px 0'}}>
+              {request.title}
+            </p>
+          </div>
+
+          <div style={{marginTop: '16px'}}>
+            <label style={styles.detailLabel}>Description</label>
+            <p style={{...styles.detailValue, lineHeight: '1.6', margin: '8px 0'}}>
+              {request.description}
+            </p>
+          </div>
+        </div>
+
+        <div style={styles.modalFooter}>
+          {request.status === 'pending' && (
             <button 
-              style={styles.btnPrimary} 
-              onClick={handleSave}
-              disabled={saving}
+              style={styles.btnPrimary}
+              onClick={() => {
+                onUpdateStatus(request.id, 'in_progress');
+                onClose();
+              }}
             >
-              {saving ? 'Saving...' : 'Save Changes'}
+              Start Work
             </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
-    const [formData, setFormData] = useState({
-      tenant_id: '',
-      title: '',
-      message: '',
-      type: 'general'
-    });
-    const [errors, setErrors] = useState({});
-
-    const handleChange = (e) => {
-      setFormData({
-        ...formData,
-        [e.target.name]: e.target.value
-      });
-      if (errors[e.target.name]) {
-        setErrors({...errors, [e.target.name]: ''});
-      }
-    };
-
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      const newErrors = {};
-      if (!formData.tenant_id) newErrors.tenant_id = 'Please select a tenant';
-      if (!formData.title.trim()) newErrors.title = 'Title is required';
-      if (!formData.message.trim()) newErrors.message = 'Message is required';
-
-      if (Object.keys(newErrors).length > 0) {
-        setErrors(newErrors);
-        return;
-      }
-
-      onSubmit(formData);
-    };
-
-    return (
-      <div style={styles.modalOverlay} onClick={onClose}>
-        <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-          <div style={styles.modalHeader}>
-            <h3>Send Notification</h3>
-            <button style={styles.modalClose} onClick={onClose}>×</button>
-          </div>
-
-          <form onSubmit={handleSubmit}>
-            <div style={styles.modalBody}>
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Select Tenant *</label>
-                <select 
-                  name="tenant_id"
-                  value={formData.tenant_id}
-                  onChange={handleChange}
-                  style={{...styles.formSelect, ...(errors.tenant_id ? styles.inputError : {})}}
-                >
-                  <option value="">Choose a tenant...</option>
-                  {tenants.filter(t => t.is_active).map(tenant => (
-                    <option key={tenant.id} value={tenant.id}>
-                      {tenant.name} - Room {tenant.room_number || 'N/A'}
-                    </option>
-                  ))}
-                </select>
-                {errors.tenant_id && <span style={styles.errorText}>{errors.tenant_id}</span>}
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Notification Type *</label>
-                <select 
-                  name="type"
-                  value={formData.type}
-                  onChange={handleChange}
-                  style={styles.formSelect}
-                >
-                  <option value="general">General</option>
-                  <option value="urgent">Urgent</option>
-                  <option value="payment">Payment Reminder</option>
-                  <option value="maintenance">Maintenance</option>
-                </select>
-              </div>
-              
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Title *</label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleChange}
-                  placeholder="e.g., Rent Payment Reminder"
-                  style={{...styles.formInput, ...(errors.title ? styles.inputError : {})}}
-                />
-                {errors.title && <span style={styles.errorText}>{errors.title}</span>}
-              </div>
-              
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Message *</label>
-                <textarea
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  placeholder="Enter your notification message..."
-                  rows="5"
-                  style={{...styles.formInput, ...(errors.message ? styles.inputError : {}), resize: 'vertical'}}
-                />
-                {errors.message && <span style={styles.errorText}>{errors.message}</span>}
-              </div>
-            </div>
-            
-            <div style={styles.modalFooter}>
-              <button type="button" style={styles.btnSecondary} onClick={onClose}>
-                Cancel
-              </button>
-              <button type="submit" style={styles.btnPrimary} disabled={loading}>
-                {loading ? 'Sending...' : 'Send Notification'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
-
-  const RoomDetailsModal = ({ room, onClose }) => {
-    return (
-      <div style={styles.modalOverlay} onClick={onClose}>
-        <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-          <div style={styles.modalHeader}>
-            <h3>Room Details</h3>
-            <button style={styles.modalClose} onClick={onClose}>×</button>
-          </div>
-
-          <div style={styles.modalBody}>
-            <div style={styles.detailsGrid}>
-              <div style={styles.detailItem}>
-                <label style={styles.detailLabel}>Room Name</label>
-                <p style={styles.detailValue}>{room.name}</p>
-              </div>
-              <div style={styles.detailItem}>
-                <label style={styles.detailLabel}>Type</label>
-                <p style={styles.detailValue}>{room.type}</p>
-              </div>
-              <div style={styles.detailItem}>
-                <label style={styles.detailLabel}>Status</label>
-                <p style={styles.detailValue}>
-                  <span style={{
-                    ...styles.statusBadge,
-                    backgroundColor: room.status === 'vacant' ? '#dcfce7' : '#dbeafe',
-                    color: room.status === 'vacant' ? '#166534' : '#1e40af'
-                  }}>
-                    {room.status}
-                  </span>
-                </p>
-              </div>
-              <div style={styles.detailItem}>
-                <label style={styles.detailLabel}>Monthly Rent</label>
-                <p style={styles.detailValue}>KSh {room.rent_amount?.toLocaleString() || 0}</p>
-              </div>
-              {room.tenant_name && (
-                <>
-                  <div style={styles.detailItem}>
-                    <label style={styles.detailLabel}>Tenant</label>
-                    <p style={styles.detailValue}>{room.tenant_name}</p>
-                  </div>
-                  {room.tenant_phone && (
-                    <div style={styles.detailItem}>
-                      <label style={styles.detailLabel}>Tenant Phone</label>
-                      <p style={styles.detailValue}>{room.tenant_phone}</p>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {room.description && (
-              <div style={{marginTop: '16px'}}>
-                <label style={styles.detailLabel}>Description</label>
-                <p style={{...styles.detailValue, lineHeight: '1.6', margin: '8px 0'}}>
-                  {room.description}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div style={styles.modalFooter}>
-            <button style={styles.btnSecondary} onClick={onClose}>
-              Close
+          )}
+          {request.status === 'in_progress' && (
+            <button 
+              style={styles.btnPrimary}
+              onClick={() => {
+                onUpdateStatus(request.id, 'completed');
+                onClose();
+              }}
+            >
+              Mark as Complete
             </button>
-          </div>
+          )}
+          <button style={styles.btnSecondary} onClick={onClose}>
+            Close
+          </button>
         </div>
-      </div>
-    );
-  };
-
-  // ==================== HELPER COMPONENTS ====================
-  const OverviewCard = ({ title, value, icon: Icon, color, subtitle }) => (
-    <div style={styles.overviewCard}>
-      <div style={{...styles.cardIcon, backgroundColor: color + '20', color: color}}>
-        <Icon size={24} />
-      </div>
-      <div style={styles.cardContent}>
-        <h3 style={styles.cardTitle}>{title}</h3>
-        <p style={styles.cardValue}>{value}</p>
-        {subtitle && <p style={styles.cardSubtitle}>{subtitle}</p>}
       </div>
     </div>
   );
+};
 
-  const SummaryCard = ({ label, value, color = '#6b7280' }) => (
-    <div style={styles.summaryCard}>
-      <span style={styles.summaryLabel}>{label}</span>
-      <span style={{...styles.summaryValue, color: color}}>{value}</span>
-    </div>
-  );
+// ==================== VACATE NOTICE DETAILS MODAL ====================
+const VacateNoticeDetailsModal = ({ notice, onClose, onUpdateStatus }) => {
+  const [notes, setNotes] = useState(notice.admin_notes || '');
+  const [action, setAction] = useState('');
 
-  // ==================== SHARED STYLES ====================
-  const styles = {
-    container: {
-      display: 'flex',
-      height: '100vh',
-      backgroundColor: '#f9fafb',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      overflow: 'hidden'
-    },
-    sidebar: {
-      width: '260px',
-      backgroundColor: '#1f2937',
-      color: 'white',
-      display: 'flex',
-      flexDirection: 'column',
-      transition: 'transform 0.3s',
-      position: 'fixed',
-      height: '100vh',
-      zIndex: 100,
-      boxShadow: '2px 0 10px rgba(0,0,0,0.1)'
-    },
-    sidebarHidden: {
-      transform: 'translateX(-100%)'
-    },
-    sidebarHeader: {
-      padding: '20px',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      borderBottom: '1px solid #374151'
-    },
-    sidebarTitle: {
-      margin: 0,
-      fontSize: '20px',
-      fontWeight: '600',
-      color: '#fbbf24'
-    },
-    sidebarSubtitle: {
-      fontSize: '12px',
-      color: '#9ca3af',
-      marginTop: '2px'
-    },
-    closeBtn: {
-      background: 'none',
-      border: 'none',
-      color: 'white',
-      cursor: 'pointer',
-      padding: '4px',
-      display: 'flex',
-      alignItems: 'center'
-    },
-    nav: {
-      flex: 1,
-      padding: '20px 0',
-      overflowY: 'auto'
-    },
-    navItem: {
-      width: '100%',
-      padding: '12px 20px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      background: 'none',
-      border: 'none',
-      color: '#d1d5db',
-      cursor: 'pointer',
-      fontSize: '14px',
-      transition: 'all 0.2s',
-      textAlign: 'left'
-    },
-    navItemActive: {
-      backgroundColor: '#374151',
-      color: 'white',
-      borderLeft: '3px solid #3b82f6'
-    },
-    navLabel: {
-      flex: 1
-    },
-    userInfo: {
-      padding: '16px 20px',
-      borderTop: '1px solid #374151',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px'
-    },
-    userAvatar: {
-      width: '36px',
-      height: '36px',
-      borderRadius: '50%',
-      backgroundColor: '#3b82f6',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontWeight: '600',
-      color: 'white'
-    },
-    userDetails: {
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '2px'
-    },
-    logoutBtn: {
-      margin: '20px',
-      padding: '12px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px',
-      background: '#ef4444',
-      border: 'none',
-      borderRadius: '6px',
-      color: 'white',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '500',
-      transition: 'all 0.2s'
-    },
-    main: {
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'auto',
-      transition: 'margin-left 0.3s'
-    },
-    header: {
-      height: '64px',
-      backgroundColor: 'white',
-      borderBottom: '1px solid #e5e7eb',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 24px',
-      position: 'sticky',
-      top: 0,
-      zIndex: 10,
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-    },
-    headerLeft: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px'
-    },
-    menuBtn: {
-      display: 'none',
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      padding: '8px'
-    },
-    homeBtn: {
-      background: 'none',
-      border: '1px solid #e5e7eb',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      padding: '8px',
-      display: 'flex',
-      alignItems: 'center',
-      transition: 'all 0.2s'
-    },
-    headerTitle: {
-      margin: 0,
-      fontSize: '18px',
-      fontWeight: '600',
-      color: '#111827'
-    },
-    headerRight: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px'
-    },
-    refreshBtn: {
-      background: 'none',
-      border: '1px solid #e5e7eb',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      padding: '8px',
-      display: 'flex',
-      alignItems: 'center',
-      transition: 'all 0.2s'
-    },
-    notificationBadge: {
-      position: 'relative',
-      padding: '8px',
-      cursor: 'pointer'
-    },
-    badgeCount: {
-      position: 'absolute',
-      top: '-2px',
-      right: '-2px',
-      backgroundColor: '#ef4444',
-      color: 'white',
-      borderRadius: '50%',
-      width: '18px',
-      height: '18px',
-      fontSize: '10px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    },
-    userMenu: {
-      position: 'relative'
-    },
-    userMenuBtn: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      background: 'none',
-      border: '1px solid #e5e7eb',
-      borderRadius: '6px',
-      padding: '8px 12px',
-      cursor: 'pointer',
-      transition: 'all 0.2s'
-    },
-    userName: {
-      fontSize: '14px',
-      fontWeight: '500'
-    },
-    userDropdown: {
-      position: 'absolute',
-      top: '100%',
-      right: 0,
-      marginTop: '4px',
-      backgroundColor: 'white',
-      border: '1px solid #e5e7eb',
-      borderRadius: '6px',
-      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-      minWidth: '200px',
-      zIndex: 1000
-    },
-    dropdownItem: {
-      padding: '12px 16px',
-      fontSize: '14px',
-      color: '#374151',
-      borderBottom: '1px solid #e5e7eb'
-    },
-    dropdownBtn: {
-      width: '100%',
-      padding: '12px 16px',
-      textAlign: 'left',
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      fontSize: '14px',
-      color: '#374151',
-      transition: 'all 0.2s'
-    },
-    errorBanner: {
-      backgroundColor: '#fee2e2',
-      color: '#991b1b',
-      padding: '12px 24px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      fontSize: '14px',
-      borderBottom: '1px solid #fecaca'
-    },
-    successBanner: {
-      backgroundColor: '#dcfce7',
-      color: '#166534',
-      padding: '12px 24px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      fontSize: '14px',
-      borderBottom: '1px solid #bbf7d0'
-    },
-    closeBannerBtn: {
-      marginLeft: 'auto',
-      background: 'none',
-      border: 'none',
-      fontSize: '20px',
-      cursor: 'pointer',
-      padding: '0 8px',
-      color: 'inherit'
-    },
-    content: {
-      flex: 1,
-      padding: '24px',
-      overflowY: 'auto'
-    },
-    overlay: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      zIndex: 99
-    },
-    loadingContainer: {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '60px 20px',
-      color: '#6b7280',
-      minHeight: '400px'
-    },
-    spinner: {
-      width: '40px',
-      height: '40px',
-      border: '4px solid #e5e7eb',
-      borderTopColor: '#3b82f6',
-      borderRadius: '50%',
-      animation: 'spin 1s linear infinite',
-      marginBottom: '16px'
-    },
-    pageHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '24px',
-      flexWrap: 'wrap',
-      gap: '16px'
-    },
-    pageHeaderControls: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '24px',
-      flexWrap: 'wrap',
-      gap: '16px'
-    },
-    pageTitle: {
-      margin: 0,
-      fontSize: '24px',
-      fontWeight: '600',
-      color: '#111827'
-    },
-    actionButtons: {
-      display: 'flex',
-      gap: '12px',
-      alignItems: 'center'
-    },
-    btnPrimary: {
-      padding: '10px 16px',
-      backgroundColor: '#3b82f6',
-      color: 'white',
-      border: 'none',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '500',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      transition: 'all 0.2s',
-      '&:hover': {
-        backgroundColor: '#2563eb'
-      }
-    },
-    btnSecondary: {
-      padding: '10px 16px',
-      backgroundColor: 'white',
-      color: '#374151',
-      border: '1px solid #d1d5db',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '500',
-      transition: 'all 0.2s',
-      '&:hover': {
-        backgroundColor: '#f9fafb'
-      }
-    },
-    btnSmallPrimary: {
-      padding: '6px 12px',
-      backgroundColor: '#3b82f6',
-      color: 'white',
-      border: 'none',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      transition: 'all 0.2s',
-      '&:hover': {
-        backgroundColor: '#2563eb'
-      }
-    },
-    btnSmallSuccess: {
-      padding: '6px 12px',
-      backgroundColor: '#10b981',
-      color: 'white',
-      border: 'none',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      transition: 'all 0.2s',
-      '&:hover': {
-        backgroundColor: '#059669'
-      }
-    },
-    gridContainer: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-      gap: '20px',
-      marginBottom: '32px'
-    },
-    overviewCard: {
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      padding: '20px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '16px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-      border: '1px solid #e5e7eb',
-      transition: 'all 0.2s',
-      '&:hover': {
-        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-      }
-    },
-    cardIcon: {
-      width: '48px',
-      height: '48px',
-      borderRadius: '8px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    },
-    cardContent: {
-      flex: 1
-    },
-    cardTitle: {
-      margin: '0 0 4px 0',
-      fontSize: '14px',
-      color: '#6b7280',
-      fontWeight: '500'
-    },
-    cardValue: {
-      margin: '0 0 4px 0',
-      fontSize: '24px',
-      fontWeight: '600',
-      color: '#111827'
-    },
-    dashboardGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-      gap: '24px',
-      marginBottom: '32px'
-    },
-    dashboardColumn: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '24px'
-    },
-    section: {
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      padding: '24px',
-      marginBottom: '24px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-      border: '1px solid #e5e7eb'
-    },
-    sectionTitle: {
-      margin: '0 0 20px 0',
-      fontSize: '18px',
-      fontWeight: '600',
-      color: '#111827',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px'
-    },
-    summaryGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-      gap: '16px'
-    },
-    summaryCard: {
-      padding: '16px',
-      backgroundColor: '#f9fafb',
-      borderRadius: '6px',
-      border: '1px solid #e5e7eb',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '8px',
-      transition: 'all 0.2s',
-      '&:hover': {
-        backgroundColor: '#f3f4f6'
-      }
-    },
-    summaryLabel: {
-      fontSize: '14px',
-      color: '#6b7280',
-      fontWeight: '500'
-    },
-    summaryValue: {
-      fontSize: '24px',
-      fontWeight: '600'
-    },
-    quickStats: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-      gap: '16px'
-    },
-    quickStat: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '4px'
-    },
-    quickStatLabel: {
-      fontSize: '14px',
-      color: '#6b7280'
-    },
-    quickStatValue: {
-      fontSize: '20px',
-      fontWeight: '600',
-      color: '#111827'
-    },
-    searchFilterSection: {
-      display: 'flex',
-      gap: '12px',
-      alignItems: 'center',
-      marginBottom: '24px',
-      flexWrap: 'wrap'
-    },
-    searchBox: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '8px 12px',
-      border: '1px solid #d1d5db',
-      borderRadius: '6px',
-      backgroundColor: 'white',
-      transition: 'all 0.2s',
-      flex: 1,
-      minWidth: '200px',
-      '&:focus-within': {
-        borderColor: '#3b82f6',
-        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)'
-      }
-    },
-    searchInput: {
-      border: 'none',
-      outline: 'none',
-      fontSize: '14px',
-      width: '100%',
-      backgroundColor: 'transparent'
-    },
-    filterSection: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px'
-    },
-    filterLabel: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px',
-      fontSize: '14px',
-      color: '#6b7280',
-      whiteSpace: 'nowrap'
-    },
-    filterSelect: {
-      padding: '8px 12px',
-      border: '1px solid #d1d5db',
-      borderRadius: '6px',
-      fontSize: '14px',
-      backgroundColor: 'white',
-      cursor: 'pointer',
-      transition: 'all 0.2s',
-      minWidth: '150px',
-      '&:focus': {
-        borderColor: '#3b82f6',
-        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)'
-      }
-    },
-    tableWrapper: {
-      overflowX: 'auto',
-      borderRadius: '8px',
-      border: '1px solid #e5e7eb'
-    },
-    table: {
-      width: '100%',
-      borderCollapse: 'collapse',
-      fontSize: '14px',
-      minWidth: '600px'
-    },
-    tableHeader: {
-      backgroundColor: '#f9fafb',
-      borderBottom: '2px solid #e5e7eb'
-    },
-    th: {
-      padding: '12px 16px',
-      textAlign: 'left',
-      fontWeight: '600',
-      color: '#374151',
-      borderRight: '1px solid #e5e7eb',
-      '&:last-child': {
-        borderRight: 'none'
-      }
-    },
-    tableRow: {
-      borderBottom: '1px solid #e5e7eb',
-      transition: 'all 0.2s',
-      '&:hover': {
-        backgroundColor: '#f9fafb'
-      }
-    },
-    td: {
-      padding: '12px 16px',
-      color: '#6b7280',
-      borderRight: '1px solid #e5e7eb',
-      '&:last-child': {
-        borderRight: 'none'
-      }
-    },
-    statusBadge: {
-      display: 'inline-block',
-      padding: '4px 12px',
-      borderRadius: '12px',
-      fontSize: '12px',
-      fontWeight: '500',
-      whiteSpace: 'nowrap'
-    },
-    tabsSection: {
-      display: 'flex',
-      gap: '4px',
-      marginBottom: '24px',
-      borderBottom: '1px solid #e5e7eb'
-    },
-    tabBtn: {
-      padding: '12px 20px',
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '500',
-      color: '#6b7280',
-      borderBottom: '2px solid transparent',
-      transition: 'all 0.2s',
-      '&:hover': {
-        color: '#374151'
-      }
-    },
-    tabBtnActive: {
-      color: '#3b82f6',
-      borderBottomColor: '#3b82f6'
-    },
-    roomsGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-      gap: '16px'
-    },
-    roomCard: {
-      border: '1px solid #e5e7eb',
-      borderRadius: '8px',
-      padding: '16px',
-      backgroundColor: 'white',
-      transition: 'all 0.2s',
-      '&:hover': {
-        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-      }
-    },
-    roomHeader: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      marginBottom: '12px',
-      paddingBottom: '12px',
-      borderBottom: '1px solid #e5e7eb'
-    },
-    roomName: {
-      flex: 1,
-      fontWeight: '600',
-      color: '#111827'
-    },
-    roomTypeBadge: {
-      padding: '4px 8px',
-      backgroundColor: '#dbeafe',
-      color: '#1e40af',
-      borderRadius: '4px',
-      fontSize: '12px',
-      fontWeight: '500'
-    },
-    roomDetails: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '8px',
-      marginBottom: '12px'
-    },
-    roomDetail: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      fontSize: '14px'
-    },
-    roomTenant: {
-      paddingTop: '12px',
-      borderTop: '1px solid #e5e7eb',
-      marginBottom: '12px'
-    },
-    roomActions: {
-      display: 'flex',
-      justifyContent: 'flex-end'
-    },
-    detailLabel: {
-      color: '#6b7280',
-      fontSize: '14px',
-      fontWeight: '500',
-      marginBottom: '4px'
-    },
-    detailValue: {
-      color: '#111827',
-      fontSize: '14px',
-      margin: 0
-    },
-    infoCard: {
-      padding: '24px',
-      backgroundColor: '#f9fafb',
-      borderRadius: '8px',
-      border: '1px solid #e5e7eb',
-      textAlign: 'center',
-      transition: 'all 0.2s',
-      '&:hover': {
-        backgroundColor: '#f3f4f6'
-      }
-    },
-    formSection: {
-      backgroundColor: '#f9fafb',
-      padding: '24px',
-      borderRadius: '8px',
-      border: '1px solid #e5e7eb'
-    },
-    formGroup: {
-      marginBottom: '16px'
-    },
-    formLabel: {
-      display: 'block',
-      marginBottom: '6px',
-      fontSize: '14px',
-      fontWeight: '500',
-      color: '#374151'
-    },
-    formInput: {
-      width: '100%',
-      padding: '10px 12px',
-      border: '1px solid #d1d5db',
-      borderRadius: '6px',
-      fontSize: '14px',
-      boxSizing: 'border-box',
-      transition: 'all 0.2s',
-      '&:focus': {
-        borderColor: '#3b82f6',
-        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-        outline: 'none'
-      }
-    },
-    formSelect: {
-      width: '100%',
-      padding: '10px 12px',
-      border: '1px solid #d1d5db',
-      borderRadius: '6px',
-      fontSize: '14px',
-      backgroundColor: 'white',
-      boxSizing: 'border-box',
-      cursor: 'pointer',
-      transition: 'all 0.2s',
-      '&:focus': {
-        borderColor: '#3b82f6',
-        boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-        outline: 'none'
-      }
-    },
-    inputError: {
-      borderColor: '#ef4444',
-      '&:focus': {
-        borderColor: '#ef4444',
-        boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.1)'
-      }
-    },
-    errorText: {
-      fontSize: '12px',
-      color: '#ef4444',
-      marginTop: '4px',
-      display: 'block'
-    },
-    modalOverlay: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '20px',
-      backdropFilter: 'blur(4px)'
-    },
-    modalContent: {
-      backgroundColor: 'white',
-      borderRadius: '12px',
-      maxWidth: '600px',
-      width: '100%',
-      maxHeight: '90vh',
-      display: 'flex',
-      flexDirection: 'column',
-      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-      overflow: 'hidden'
-    },
-    modalHeader: {
-      padding: '20px 24px',
-      borderBottom: '1px solid #e5e7eb',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      backgroundColor: '#f9fafb'
-    },
-    modalClose: {
-      background: 'none',
-      border: 'none',
-      fontSize: '28px',
-      cursor: 'pointer',
-      color: '#6b7280',
-      padding: '0',
-      lineHeight: 1,
-      transition: 'all 0.2s',
-      '&:hover': {
-        color: '#374151'
-      }
-    },
-    modalBody: {
-      padding: '24px',
-      overflowY: 'auto',
-      flex: 1
-    },
-    modalFooter: {
-      padding: '16px 24px',
-      borderTop: '1px solid #e5e7eb',
-      display: 'flex',
-      gap: '12px',
-      justifyContent: 'flex-end',
-      backgroundColor: '#f9fafb'
-    },
-    detailsGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-      gap: '16px'
-    },
-    detailItem: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '4px'
+  const handleApprove = () => {
+    if (window.confirm('Are you sure you want to approve this vacate notice?')) {
+      onUpdateStatus(notice.id, 'approved', notes);
+      onClose();
     }
   };
 
-  export default CaretakerDashboard;
+  const handleReject = () => {
+    if (window.confirm('Are you sure you want to reject this vacate notice?')) {
+      onUpdateStatus(notice.id, 'rejected', notes);
+      onClose();
+    }
+  };
+
+  const handleComplete = () => {
+    if (window.confirm('Are you sure you want to mark this vacate notice as completed?')) {
+      onUpdateStatus(notice.id, 'completed', notes);
+      onClose();
+    }
+  };
+
+  const statusColor = function(status) {
+    switch(status) {
+      case 'pending': return { bg: '#fef3c7', color: '#92400e' };
+      case 'approved': return { bg: '#dbeafe', color: '#1e40af' };
+      case 'rejected': return { bg: '#fee2e2', color: '#991b1b' };
+      case 'completed': return { bg: '#dcfce7', color: '#166534' };
+      default: return { bg: '#f3f4f6', color: '#4b5563' };
+    }
+  };
+
+  const colors = statusColor(notice.status);
+  const daysLeft = notice.vacate_date 
+    ? Math.ceil((new Date(notice.vacate_date) - new Date()) / (1000 * 60 * 60 * 24))
+    : 0;
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h3>Vacate Notice Details</h3>
+          <button style={styles.modalClose} onClick={onClose}>×</button>
+        </div>
+
+        <div style={styles.modalBody}>
+          <div style={styles.detailsGrid}>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Notice ID</label>
+              <p style={styles.detailValue}>#{notice.id}</p>
+            </div>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Tenant</label>
+              <p style={styles.detailValue}>{notice.tenant_name || 'Unknown'}</p>
+            </div>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Room Number</label>
+              <p style={styles.detailValue}>Room {notice.room_number || 'N/A'}</p>
+            </div>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Status</label>
+              <span style={{
+                ...styles.statusBadge,
+                backgroundColor: colors.bg,
+                color: colors.color
+              }}>
+                {notice.status}
+              </span>
+            </div>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Vacate Date</label>
+              <p style={styles.detailValue}>
+                {notice.vacate_date ? new Date(notice.vacate_date).toLocaleDateString() : 'N/A'}
+              </p>
+            </div>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Days Remaining</label>
+              <p style={styles.detailValue}>
+                <span style={{
+                  ...styles.statusBadge,
+                  backgroundColor: daysLeft <= 7 ? '#fee2e2' : daysLeft <= 30 ? '#fef3c7' : '#dcfce7',
+                  color: daysLeft <= 7 ? '#991b1b' : daysLeft <= 30 ? '#92400e' : '#166534'
+                }}>
+                  {daysLeft} days
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div style={{marginTop: '16px'}}>
+            <label style={styles.detailLabel}>Reason for Vacating</label>
+            <p style={{...styles.detailValue, lineHeight: '1.6', margin: '8px 0'}}>
+              {notice.reason || 'No reason provided'}
+            </p>
+          </div>
+
+          <div style={{marginTop: '16px'}}>
+            <label style={styles.detailLabel}>Admin Notes</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add any notes or comments..."
+              rows="4"
+              style={styles.formInput}
+            />
+          </div>
+
+          {notice.admin_notes && (
+            <div style={{marginTop: '16px'}}>
+              <label style={styles.detailLabel}>Previous Notes</label>
+              <p style={{...styles.detailValue, lineHeight: '1.6', margin: '8px 0'}}>
+                {notice.admin_notes}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div style={styles.modalFooter}>
+          {notice.status === 'pending' && (
+            <>
+              <button style={styles.btnSecondary} onClick={onClose}>Cancel</button>
+              <button style={styles.btnDanger} onClick={handleReject}>Reject</button>
+              <button style={styles.btnSuccess} onClick={handleApprove}>Approve</button>
+            </>
+          )}
+          {notice.status === 'approved' && (
+            <>
+              <button style={styles.btnSecondary} onClick={onClose}>Close</button>
+              <button style={styles.btnPrimary} onClick={handleComplete}>Mark as Completed</button>
+            </>
+          )}
+          {(notice.status === 'rejected' || notice.status === 'completed') && (
+            <button style={styles.btnSecondary} onClick={onClose}>Close</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ==================== HELPER COMPONENTS ====================
+const OverviewCard = ({ title, value, icon: Icon, color, subtitle }) => (
+  <div style={styles.overviewCard}>
+    <div style={{...styles.cardIcon, backgroundColor: color + '20', color: color}}>
+      <Icon size={24} />
+    </div>
+    <div style={styles.cardContent}>
+      <h3 style={styles.cardTitle}>{title}</h3>
+      <p style={styles.cardValue}>{value}</p>
+      {subtitle && <p style={styles.cardSubtitle}>{subtitle}</p>}
+    </div>
+  </div>
+);
+
+const SummaryCard = ({ label, value, color = '#6b7280' }) => (
+  <div style={styles.summaryCard}>
+    <span style={styles.summaryLabel}>{label}</span>
+    <span style={{...styles.summaryValue, color: color}}>{value}</span>
+  </div>
+);
+
+// ==================== STYLES ====================
+const styles = {
+  container: {
+    display: 'flex',
+    height: '100vh',
+    backgroundColor: '#f9fafb',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+  },
+  sidebar: {
+    width: '260px',
+    backgroundColor: '#1f2937',
+    color: 'white',
+    display: 'flex',
+    flexDirection: 'column',
+    transition: 'transform 0.3s',
+    position: 'fixed',
+    height: '100vh',
+    zIndex: 100,
+    boxShadow: '2px 0 10px rgba(0,0,0,0.1)'
+  },
+  sidebarHidden: {
+    transform: 'translateX(-100%)'
+  },
+  sidebarHeader: {
+    padding: '20px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottom: '1px solid #374151'
+  },
+  sidebarTitle: {
+    margin: 0,
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#fbbf24'
+  },
+  closeBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'white',
+    cursor: 'pointer',
+    padding: '4px',
+    display: 'flex',
+    alignItems: 'center'
+  },
+  nav: {
+    flex: 1,
+    padding: '20px 0',
+    overflowY: 'auto'
+  },
+  navItem: {
+    width: '100%',
+    padding: '12px 20px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    background: 'none',
+    border: 'none',
+    color: '#d1d5db',
+    cursor: 'pointer',
+    fontSize: '14px',
+    transition: 'all 0.2s',
+    textAlign: 'left'
+  },
+  navItemActive: {
+    backgroundColor: '#374151',
+    color: 'white',
+    borderLeft: '3px solid #3b82f6'
+  },
+  userInfo: {
+    padding: '16px 20px',
+    borderTop: '1px solid #374151',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  userAvatar: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    backgroundColor: '#3b82f6',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  userDetails: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px'
+  },
+  logoutBtn: {
+    margin: '20px',
+    padding: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    background: '#ef4444',
+    border: 'none',
+    borderRadius: '6px',
+    color: 'white',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    transition: 'all 0.2s'
+  },
+  main: {
+    flex: 1,
+    marginLeft: '260px',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'auto'
+  },
+  header: {
+    height: '64px',
+    backgroundColor: 'white',
+    borderBottom: '1px solid #e5e7eb',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '0 24px',
+    position: 'sticky',
+    top: 0,
+    zIndex: 10,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+  },
+  headerLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  menuBtn: {
+    display: 'none',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '8px'
+  },
+  homeBtn: {
+    background: 'none',
+    border: '1px solid #e5e7eb',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    padding: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    transition: 'all 0.2s'
+  },
+  headerTitle: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#111827'
+  },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  refreshBtn: {
+    background: 'none',
+    border: '1px solid #e5e7eb',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    padding: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    transition: 'all 0.2s'
+  },
+  notificationBadge: {
+    position: 'relative',
+    padding: '8px',
+    cursor: 'pointer'
+  },
+  badgeCount: {
+    position: 'absolute',
+    top: '-2px',
+    right: '-2px',
+    backgroundColor: '#ef4444',
+    color: 'white',
+    borderRadius: '50%',
+    width: '18px',
+    height: '18px',
+    fontSize: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  errorBanner: {
+    backgroundColor: '#fee2e2',
+    color: '#991b1b',
+    padding: '12px 24px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    fontSize: '14px',
+    borderBottom: '1px solid #fecaca'
+  },
+  successBanner: {
+    backgroundColor: '#dcfce7',
+    color: '#166534',
+    padding: '12px 24px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    fontSize: '14px',
+    borderBottom: '1px solid #bbf7d0'
+  },
+  closeBannerBtn: {
+    marginLeft: 'auto',
+    background: 'none',
+    border: 'none',
+    fontSize: '20px',
+    cursor: 'pointer',
+    padding: '0 8px',
+    color: 'inherit'
+  },
+  content: {
+    flex: 1,
+    padding: '24px',
+    overflowY: 'auto'
+  },
+  pageHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '24px',
+    flexWrap: 'wrap',
+    gap: '16px'
+  },
+  pageHeaderControls: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '24px',
+    flexWrap: 'wrap',
+    gap: '16px'
+  },
+  pageTitle: {
+    margin: 0,
+    fontSize: '24px',
+    fontWeight: '600',
+    color: '#111827'
+  },
+  actionButtons: {
+    display: 'flex',
+    gap: '12px',
+    alignItems: 'center'
+  },
+  filterSection: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  filterLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    fontSize: '14px',
+    color: '#6b7280'
+  },
+  filterSelect: {
+    padding: '8px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px',
+    backgroundColor: 'white',
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  },
+  gridContainer: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gap: '20px',
+    marginBottom: '32px'
+  },
+  dashboardGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '24px',
+    marginBottom: '32px'
+  },
+  dashboardColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px'
+  },
+  overviewCard: {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    padding: '20px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    border: '1px solid #e5e7eb',
+    transition: 'all 0.2s'
+  },
+  cardIcon: {
+    width: '48px',
+    height: '48px',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  cardContent: {
+    flex: 1
+  },
+  cardTitle: {
+    margin: '0 0 4px 0',
+    fontSize: '14px',
+    color: '#6b7280',
+    fontWeight: '500'
+  },
+  cardValue: {
+    margin: '0 0 4px 0',
+    fontSize: '24px',
+    fontWeight: '600',
+    color: '#111827'
+  },
+  cardSubtitle: {
+    margin: 0,
+    fontSize: '12px',
+    color: '#9ca3af'
+  },
+  section: {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    padding: '24px',
+    marginBottom: '24px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    border: '1px solid #e5e7eb'
+  },
+  sectionTitle: {
+    margin: '0 0 20px 0',
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#111827',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  sectionHeaderControls: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px',
+    flexWrap: 'wrap',
+    gap: '16px'
+  },
+  tableControls: {
+    display: 'flex',
+    gap: '12px',
+    alignItems: 'center'
+  },
+  searchBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    backgroundColor: 'white',
+    transition: 'all 0.2s'
+  },
+  searchInput: {
+    border: 'none',
+    outline: 'none',
+    fontSize: '14px',
+    width: '200px',
+    backgroundColor: 'transparent'
+  },
+  summaryGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '16px'
+  },
+  summaryCard: {
+    padding: '16px',
+    backgroundColor: '#f9fafb',
+    borderRadius: '6px',
+    border: '1px solid #e5e7eb',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    transition: 'all 0.2s'
+  },
+  summaryLabel: {
+    fontSize: '14px',
+    color: '#6b7280',
+    fontWeight: '500'
+  },
+  summaryValue: {
+    fontSize: '24px',
+    fontWeight: '600'
+  },
+  quickStats: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+    gap: '16px'
+  },
+  quickStat: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px'
+  },
+  quickStatLabel: {
+    fontSize: '14px',
+    color: '#6b7280'
+  },
+  quickStatValue: {
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#111827'
+  },
+  financialSummary: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+    gap: '16px'
+  },
+  financialCard: {
+    padding: '20px',
+    backgroundColor: '#f8fafc',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb',
+    textAlign: 'center'
+  },
+  financialValue: {
+    fontSize: '28px',
+    fontWeight: '600',
+    color: '#111827',
+    margin: '8px 0'
+  },
+  financialNote: {
+    fontSize: '12px',
+    color: '#6b7280'
+  },
+  activitiesGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '16px'
+  },
+  activityCard: {
+    padding: '16px',
+    backgroundColor: '#f9fafb',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb'
+  },
+  activityTitle: {
+    margin: '0 0 12px 0',
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#111827'
+  },
+  activityItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '8px 0',
+    borderBottom: '1px solid #e5e7eb'
+  },
+  textMuted: {
+    color: '#6b7280',
+    fontSize: '14px'
+  },
+  tableWrapper: {
+    overflowX: 'auto',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb'
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontSize: '14px',
+    minWidth: '800px'
+  },
+  tableHeader: {
+    backgroundColor: '#f9fafb',
+    borderBottom: '2px solid #e5e7eb'
+  },
+  th: {
+    padding: '12px 16px',
+    textAlign: 'left',
+    fontWeight: '600',
+    color: '#374151',
+    borderRight: '1px solid #e5e7eb'
+  },
+  tableRow: {
+    borderBottom: '1px solid #e5e7eb',
+    transition: 'all 0.2s'
+  },
+  td: {
+    padding: '12px 16px',
+    color: '#6b7280',
+    borderRight: '1px solid #e5e7eb'
+  },
+  statusBadge: {
+    display: 'inline-block',
+    padding: '4px 12px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500',
+    whiteSpace: 'nowrap'
+  },
+  actionButtons: {
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap'
+  },
+  btnPrimary: {
+    padding: '10px 16px',
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    transition: 'all 0.2s'
+  },
+  btnSecondary: {
+    padding: '10px 16px',
+    backgroundColor: 'white',
+    color: '#374151',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    transition: 'all 0.2s'
+  },
+  btnSuccess: {
+    padding: '10px 16px',
+    backgroundColor: '#10b981',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    transition: 'all 0.2s'
+  },
+  btnDanger: {
+    padding: '10px 16px',
+    backgroundColor: '#ef4444',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    transition: 'all 0.2s'
+  },
+  btnText: {
+    background: 'none',
+    border: 'none',
+    color: '#3b82f6',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    padding: '8px'
+  },
+  btnSmallPrimary: {
+    padding: '6px 12px',
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    transition: 'all 0.2s'
+  },
+  btnSmallSuccess: {
+    padding: '6px 12px',
+    backgroundColor: '#10b981',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    transition: 'all 0.2s'
+  },
+  btnSmallDanger: {
+    padding: '6px 12px',
+    backgroundColor: '#ef4444',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    transition: 'all 0.2s'
+  },
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '60px 20px',
+    color: '#6b7280',
+    minHeight: '400px'
+  },
+  spinner: {
+    width: '40px',
+    height: '40px',
+    border: '4px solid #e5e7eb',
+    borderTopColor: '#3b82f6',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+    marginBottom: '16px'
+  },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: '60px 20px',
+    color: '#9ca3af',
+    textAlign: 'center'
+  },
+  roomsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+    gap: '16px'
+  },
+  roomCard: {
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '16px',
+    backgroundColor: 'white',
+    transition: 'all 0.2s'
+  },
+  roomHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '12px',
+    paddingBottom: '12px',
+    borderBottom: '1px solid #e5e7eb'
+  },
+  roomName: {
+    flex: 1,
+    fontWeight: '600',
+    color: '#111827'
+  },
+  roomTypeBadge: {
+    padding: '4px 8px',
+    backgroundColor: '#dbeafe',
+    color: '#1e40af',
+    borderRadius: '4px',
+    fontSize: '12px',
+    fontWeight: '500'
+  },
+  roomDetails: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px'
+  },
+  roomDetail: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '14px'
+  },
+  detailLabel: {
+    color: '#6b7280',
+    fontSize: '14px',
+    fontWeight: '500',
+    marginBottom: '4px'
+  },
+  detailValue: {
+    color: '#111827',
+    fontSize: '14px',
+    margin: 0
+  },
+  infoCard: {
+    padding: '24px',
+    backgroundColor: '#f9fafb',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb',
+    textAlign: 'center',
+    transition: 'all 0.2s'
+  },
+   modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    padding: '20px',
+    backdropFilter: 'blur(4px)',
+    overflowY: 'auto'  // ← Add this to allow scrolling if modal is too large
+  },
+
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    maxWidth: '600px',
+    width: '100%',
+    minHeight: 'auto',
+    maxHeight: 'calc(100vh - 40px)',  // ← Allow modal to take up space, leaving 20px padding on top/bottom
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+    overflow: 'visible',  // ← Changed from hidden
+    margin: 'auto'  // ← Center the modal
+  },
+
+  modalHeader: {
+    padding: '20px 24px',
+    borderBottom: '1px solid #e5e7eb',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    flexShrink: 0  // ← Prevent from shrinking
+  },
+
+  modalClose: {
+    background: 'none',
+    border: 'none',
+    fontSize: '28px',
+    cursor: 'pointer',
+    color: '#6b7280',
+    padding: '0',
+    lineHeight: 1,
+    transition: 'all 0.2s',
+    width: '32px',
+    height: '32px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+
+  modalTabs: {
+    display: 'flex',
+    borderBottom: '1px solid #e5e7eb',
+    padding: '0 24px',
+    backgroundColor: '#f9fafb',
+    flexShrink: 0,  // ← Prevent from shrinking
+    overflowX: 'auto'  // ← Allow horizontal scroll if needed
+  },
+
+  modalTab: {
+    padding: '12px 16px',
+    background: 'none',
+    border: 'none',
+    borderBottom: '2px solid transparent',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#6b7280',
+    transition: 'all 0.2s',
+    whiteSpace: 'nowrap'  // ← Prevent text wrap
+  },
+
+  modalTabActive: {
+    color: '#3b82f6',
+    borderBottomColor: '#3b82f6'
+  },
+
+  modalBody: {
+    padding: '24px',
+    overflowY: 'auto',
+    overflowX: 'hidden',
+    flex: 1,
+    minHeight: 0  // ← CRITICAL: allows flex child to scroll
+  },
+
+  modalFooter: {
+    padding: '16px 24px',
+    borderTop: '1px solid #e5e7eb',
+    display: 'flex',
+    gap: '12px',
+    justifyContent: 'flex-end',
+    backgroundColor: '#f9fafb',
+    flexShrink: 0,  // ← Prevent from shrinking
+    flexWrap: 'wrap'  // ← Allow wrapping on small screens
+  },
+  detailsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '16px'
+  },
+  detailItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px'
+  },
+  formGroup: {
+    marginBottom: '16px'
+  },
+  formLabel: {
+    display: 'block',
+    marginBottom: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151'
+  },
+  formInput: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px',
+    boxSizing: 'border-box',
+    transition: 'all 0.2s'
+  },
+  formSelect: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px',
+    backgroundColor: 'white',
+    boxSizing: 'border-box',
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  },
+  inputError: {
+    borderColor: '#ef4444'
+  },
+  errorText: {
+    fontSize: '12px',
+    color: '#ef4444',
+    marginTop: '4px',
+    display: 'block'
+  },
+  formHelp: {
+    fontSize: '12px',
+    color: '#6b7280',
+    marginTop: '4px',
+    display: 'block'
+  },
+  tenantInfoSummary: {
+    backgroundColor: '#f9fafb',
+    padding: '16px',
+    borderRadius: '6px',
+    marginBottom: '20px',
+    fontSize: '14px',
+    border: '1px solid #e5e7eb'
+  },
+  alertWarning: {
+    backgroundColor: '#fef3c7',
+    color: '#92400e',
+    padding: '12px',
+    borderRadius: '6px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '14px',
+    border: '1px solid #fde68a'
+  },
+  leaseCalculations: {
+    backgroundColor: '#f8fafc',
+    padding: '16px',
+    borderRadius: '6px',
+    margin: '16px 0',
+    fontSize: '14px',
+    border: '1px solid #e5e7eb'
+  },
+  calculationRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: '8px',
+    fontSize: '14px'
+  },
+  leaseTermsNote: {
+    backgroundColor: '#f0f9ff',
+    padding: '16px',
+    borderRadius: '6px',
+    marginTop: '16px',
+    fontSize: '13px',
+    color: '#0369a1',
+    border: '1px solid #bae6fd'
+  },
+  overlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 99,
+    display: 'none'
+  }
+};
+
+export default AdminDashboard;
