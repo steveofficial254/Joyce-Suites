@@ -31,8 +31,16 @@ const TenantRegister = () => {
   });
 
   useEffect(() => {
+    console.log('Component mounted, fetching rooms...');
     fetchRooms();
   }, []);
+
+  useEffect(() => {
+    console.log('Rooms state updated:', rooms.length, 'rooms');
+    if (rooms.length > 0) {
+      console.log('First room:', rooms[0]);
+    }
+  }, [rooms]);
 
   const fetchRooms = async () => {
     setLoadingRooms(true);
@@ -47,36 +55,36 @@ const TenantRegister = () => {
       }
       
       const data = await response.json();
-      console.log('Rooms API response:', data);
+      console.log('Full API response:', data);
       
-      // Check for both possible response structures
-      let availableRooms = [];
-      
-      if (data.success) {
-        if (Array.isArray(data.available_rooms)) {
-          availableRooms = data.available_rooms;
-        } else if (Array.isArray(data.rooms)) {
-          availableRooms = data.rooms;
-        } else if (data.rooms && typeof data.rooms === 'object' && data.rooms.available) {
-          availableRooms = data.rooms.available;
-        }
-      }
-      
-      console.log('Processed available rooms:', availableRooms);
-      
-      if (Array.isArray(availableRooms)) {
-        // Filter for available rooms only if they have a status property
-        const filteredRooms = availableRooms.filter(room => 
-          room.status === 'available' || room.status === 'vacant' || !room.status
-        );
-        console.log('Loaded rooms:', filteredRooms);
-        setRooms(filteredRooms);
+      // Check the actual response structure
+      if (data.success && Array.isArray(data.rooms)) {
+        console.log(`Found ${data.rooms.length} rooms`);
+        console.log('Sample room:', data.rooms[0]);
+        
+        // Process rooms to ensure consistent structure
+        const processedRooms = data.rooms.map(room => ({
+          id: room.id,
+          name: room.name,
+          room_number: room.name.replace('Room ', ''), // Extract room number from name
+          property_type: room.type, // Backend uses 'type' field
+          rent_amount: room.rent_amount,
+          rent: room.rent_amount, // Add alias for compatibility
+          description: room.description,
+          status: 'vacant' // Since we're only getting vacant rooms
+        }));
+        
+        console.log('Processed rooms:', processedRooms);
+        setRooms(processedRooms);
       } else {
-        throw new Error('Failed to load rooms: Invalid response format');
+        console.error('Invalid response structure:', data);
+        setError('Failed to load rooms: Invalid response format');
+        setRooms([]);
       }
     } catch (err) {
       console.error('Error fetching rooms:', err);
       setError('Failed to load available rooms. Please try again later.');
+      setRooms([]);
     } finally {
       setLoadingRooms(false);
     }
@@ -90,48 +98,47 @@ const TenantRegister = () => {
       
       // Find the selected room
       const selectedRoom = rooms.find(room => {
-        // Try different ways to match room number
-        const roomName = room.name || room.room_number || '';
-        const roomNumber = roomName.toString().replace('Room ', '').replace('room ', '').trim();
-        return roomNumber === value.trim() || roomName === value.trim();
+        const roomNumber = room.room_number || room.name.replace('Room ', '').trim();
+        return roomNumber === value.trim();
       });
       
       console.log('Selected room object:', selectedRoom);
       
       if (selectedRoom) {
         // Calculate deposit (7% of rent)
-        const depositAmount = (selectedRoom.rent_amount || selectedRoom.rent || 0) * 0.07;
         const rentAmount = selectedRoom.rent_amount || selectedRoom.rent || 0;
+        const depositAmount = rentAmount * 0.07;
         
         // Format room type for display
         let roomType = 'Room';
-        if (selectedRoom.property_type) {
-          if (selectedRoom.property_type === 'bedsitter') {
-            roomType = 'Bedsitter';
-          } else if (selectedRoom.property_type === 'one_bedroom') {
-            roomType = '1-Bedroom';
-          } else if (selectedRoom.property_type === 'two_bedroom') {
-            roomType = '2-Bedroom';
-          } else {
-            roomType = selectedRoom.property_type.replace('_', ' ').toUpperCase();
-          }
+        const propType = selectedRoom.property_type;
+        if (propType === 'bedsitter') {
+          roomType = 'Bedsitter';
+        } else if (propType === 'one_bedroom') {
+          roomType = '1-Bedroom';
+        } else if (propType === 'two_bedroom') {
+          roomType = '2-Bedroom';
+        } else if (propType) {
+          roomType = propType.replace('_', ' ').toUpperCase();
         }
         
         setRoomData({
-          id: selectedRoom.id || selectedRoom._id,
-          name: selectedRoom.name || selectedRoom.room_number || `Room ${value}`,
+          id: selectedRoom.id,
+          name: selectedRoom.name,
           type: roomType,
           rent: rentAmount,
           deposit: depositAmount,
           totalAmount: rentAmount + depositAmount,
-          property_type: selectedRoom.property_type,
-          paybill: selectedRoom.paybill_number || selectedRoom.paybill,
-          account: selectedRoom.account_number || selectedRoom.account,
-          landlord: selectedRoom.landlord_name || selectedRoom.landlord || 'Landlord'
+          property_type: propType,
+          // Note: Your current backend endpoint doesn't return paybill/account/landlord
+          // You'll need to update the backend or fetch additional data
+          paybill: selectedRoom.paybill_number || '222111', // Default fallback
+          account: selectedRoom.account_number || 'JOYCE001', // Default fallback
+          landlord: selectedRoom.landlord_name || 'Joyce Muthoni' // Default fallback
         });
         
         console.log('Updated room data:', {
-          name: selectedRoom.name || selectedRoom.room_number,
+          name: selectedRoom.name,
           type: roomType,
           rent: rentAmount,
           deposit: depositAmount
@@ -493,21 +500,29 @@ const TenantRegister = () => {
                     </option>
                     {rooms.length > 0 ? (
                       rooms.map(room => {
-                        const roomName = room.name || room.room_number || `Room ${room.id}`;
-                        const roomType = room.property_type === 'bedsitter' 
-                          ? 'Bedsitter' 
-                          : room.property_type === 'one_bedroom' 
-                            ? '1-Bedroom' 
-                            : room.property_type === 'two_bedroom'
-                              ? '2-Bedroom'
-                              : room.property_type || 'Room';
+                        // Use room_number if available, otherwise extract from name
+                        const roomNumber = room.room_number || room.name.replace('Room ', '').trim();
+                        const roomName = room.name;
                         
-                        // Extract room number from name
-                        const roomNumber = roomName.toString().replace('Room ', '').replace('room ', '').trim();
+                        // Get room type
+                        let roomType = 'Room';
+                        const propType = room.property_type;
+                        if (propType === 'bedsitter') {
+                          roomType = 'Bedsitter';
+                        } else if (propType === 'one_bedroom') {
+                          roomType = '1-Bedroom';
+                        } else if (propType === 'two_bedroom') {
+                          roomType = '2-Bedroom';
+                        } else if (propType) {
+                          roomType = propType.replace('_', ' ').toUpperCase();
+                        }
+                        
+                        // Get rent amount
+                        const rentAmount = room.rent_amount || room.rent || 0;
                         
                         return (
-                          <option key={room.id || room._id} value={roomNumber}>
-                            {roomName} - {roomType} - KSh {(room.rent_amount || room.rent || 0)?.toLocaleString() || '0'}/month
+                          <option key={room.id} value={roomNumber}>
+                            {roomName} - {roomType} - KSh {rentAmount.toLocaleString()}/month
                           </option>
                         );
                       })
@@ -523,6 +538,26 @@ const TenantRegister = () => {
                   {loadingRooms && (
                     <small className="loading-text">Loading available rooms...</small>
                   )}
+                  <div style={{ marginTop: '10px' }}>
+                    <button 
+                      type="button" 
+                      onClick={fetchRooms}
+                      style={{ 
+                        padding: '5px 10px', 
+                        backgroundColor: '#f0f0f0',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px',
+                        fontSize: '12px'
+                      }}
+                    >
+                      Refresh Rooms List
+                    </button>
+                    {rooms.length > 0 && (
+                      <span style={{ marginLeft: '10px', fontSize: '12px', color: 'green' }}>
+                        {rooms.length} rooms loaded
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 

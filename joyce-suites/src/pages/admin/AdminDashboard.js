@@ -2523,6 +2523,7 @@ const SummaryCard = ({ label, value, color = '#6b7280' }) => (
 );
 
 // ==================== STYLES ====================
+// Replace your current styles object with this cleaned version
 const styles = {
   container: {
     display: 'flex',
@@ -2559,7 +2560,7 @@ const styles = {
     color: '#fbbf24'
   },
   closeBtn: {
-    background: 'none',
+    background: 'transparent',
     border: 'none',
     color: 'white',
     cursor: 'pointer',
@@ -2572,24 +2573,33 @@ const styles = {
     padding: '20px 0',
     overflowY: 'auto'
   },
+  // FIXED: Use separate border properties instead of mixing border and borderLeft
   navItem: {
     width: '100%',
     padding: '12px 20px',
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    background: 'none',
+    background: 'transparent',
     border: 'none',
+    borderTop: '1px solid transparent',
+    borderRight: '1px solid transparent',
+    borderBottom: '1px solid transparent',
+    borderLeft: '3px solid transparent',
     color: '#d1d5db',
     cursor: 'pointer',
     fontSize: '14px',
     transition: 'all 0.2s',
     textAlign: 'left'
   },
+  // FIXED: Use separate border properties
   navItemActive: {
     backgroundColor: '#374151',
     color: 'white',
-    borderLeft: '3px solid #3b82f6'
+    borderLeft: '3px solid #3b82f6',
+    borderTop: '1px solid #374151',
+    borderRight: '1px solid #374151',
+    borderBottom: '1px solid #374151'
   },
   userInfo: {
     padding: '16px 20px',
@@ -2620,7 +2630,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '8px',
-    background: '#ef4444',
+    backgroundColor: '#ef4444',
     border: 'none',
     borderRadius: '6px',
     color: 'white',
@@ -2656,13 +2666,13 @@ const styles = {
   },
   menuBtn: {
     display: 'none',
-    background: 'none',
+    background: 'transparent',
     border: 'none',
     cursor: 'pointer',
     padding: '8px'
   },
   homeBtn: {
-    background: 'none',
+    background: 'transparent',
     border: '1px solid #e5e7eb',
     borderRadius: '6px',
     cursor: 'pointer',
@@ -2683,7 +2693,7 @@ const styles = {
     gap: '12px'
   },
   refreshBtn: {
-    background: 'none',
+    background: 'transparent',
     border: '1px solid #e5e7eb',
     borderRadius: '6px',
     cursor: 'pointer',
@@ -2733,7 +2743,7 @@ const styles = {
   },
   closeBannerBtn: {
     marginLeft: 'auto',
-    background: 'none',
+    background: 'transparent',
     border: 'none',
     fontSize: '20px',
     cursor: 'pointer',
@@ -2767,7 +2777,8 @@ const styles = {
     fontWeight: '600',
     color: '#111827'
   },
-  actionButtons: {
+  // Fixed: Renamed to avoid duplicate key
+  actionButtonsContainer: {
     display: 'flex',
     gap: '12px',
     alignItems: 'center'
@@ -3028,7 +3039,8 @@ const styles = {
     fontWeight: '500',
     whiteSpace: 'nowrap'
   },
-  actionButtons: {
+  // Fixed: Changed name from duplicate key
+  buttonActions: {
     display: 'flex',
     gap: '8px',
     flexWrap: 'wrap'
@@ -3081,7 +3093,7 @@ const styles = {
     transition: 'all 0.2s'
   },
   btnText: {
-    background: 'none',
+    background: 'transparent',
     border: 'none',
     color: '#3b82f6',
     cursor: 'pointer',
@@ -3223,23 +3235,21 @@ const styles = {
     zIndex: 1000,
     padding: '20px',
     backdropFilter: 'blur(4px)',
-    overflowY: 'auto'  // ← Add this to allow scrolling if modal is too large
+    overflowY: 'auto'
   },
-
   modalContent: {
     backgroundColor: 'white',
     borderRadius: '12px',
     maxWidth: '600px',
     width: '100%',
     minHeight: 'auto',
-    maxHeight: 'calc(100vh - 40px)',  // ← Allow modal to take up space, leaving 20px padding on top/bottom
+    maxHeight: 'calc(100vh - 40px)',
     display: 'flex',
     flexDirection: 'column',
     boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-    overflow: 'visible',  // ← Changed from hidden
-    margin: 'auto'  // ← Center the modal
+    overflow: 'visible',
+    margin: 'auto'
   },
-
   modalHeader: {
     padding: '20px 24px',
     borderBottom: '1px solid #e5e7eb',
@@ -3247,11 +3257,10 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#f9fafb',
-    flexShrink: 0  // ← Prevent from shrinking
+    flexShrink: 0
   },
-
   modalClose: {
-    background: 'none',
+    background: 'transparent',
     border: 'none',
     fontSize: '28px',
     cursor: 'pointer',
@@ -3265,19 +3274,17 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center'
   },
-
   modalTabs: {
     display: 'flex',
     borderBottom: '1px solid #e5e7eb',
     padding: '0 24px',
     backgroundColor: '#f9fafb',
-    flexShrink: 0,  // ← Prevent from shrinking
-    overflowX: 'auto'  // ← Allow horizontal scroll if needed
+    flexShrink: 0,
+    overflowX: 'auto'
   },
-
   modalTab: {
     padding: '12px 16px',
-    background: 'none',
+    background: 'transparent',
     border: 'none',
     borderBottom: '2px solid transparent',
     cursor: 'pointer',
@@ -3285,22 +3292,19 @@ const styles = {
     fontWeight: '500',
     color: '#6b7280',
     transition: 'all 0.2s',
-    whiteSpace: 'nowrap'  // ← Prevent text wrap
+    whiteSpace: 'nowrap'
   },
-
   modalTabActive: {
     color: '#3b82f6',
     borderBottomColor: '#3b82f6'
   },
-
   modalBody: {
     padding: '24px',
     overflowY: 'auto',
     overflowX: 'hidden',
     flex: 1,
-    minHeight: 0  // ← CRITICAL: allows flex child to scroll
+    minHeight: 0
   },
-
   modalFooter: {
     padding: '16px 24px',
     borderTop: '1px solid #e5e7eb',
@@ -3308,8 +3312,8 @@ const styles = {
     gap: '12px',
     justifyContent: 'flex-end',
     backgroundColor: '#f9fafb',
-    flexShrink: 0,  // ← Prevent from shrinking
-    flexWrap: 'wrap'  // ← Allow wrapping on small screens
+    flexShrink: 0,
+    flexWrap: 'wrap'
   },
   detailsGrid: {
     display: 'grid',
@@ -3419,5 +3423,21 @@ const styles = {
     display: 'none'
   }
 };
+
+// Add animation for spinner
+const spinKeyframes = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+// Add the animation to the document head
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = spinKeyframes;
+  document.head.appendChild(style);
+}
+
 
 export default AdminDashboard;

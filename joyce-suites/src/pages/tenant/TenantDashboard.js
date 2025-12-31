@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SignatureCanvas from 'react-signature-canvas';
 import './TenantDashboard.css';
@@ -57,10 +57,6 @@ const TenantDashboard = () => {
     reason: ''
   });
 
-  // ==================== NEW: Lease Gate State ====================
-  const [showLeaseGate, setShowLeaseGate] = useState(false);
-  const [leaseGateData, setLeaseGateData] = useState(null);
-
   const apartmentImages = [apartment1, apartment2, apartment3, apartment4, apartment5, apartment6];
 
   const currentDate = new Date();
@@ -70,40 +66,37 @@ const TenantDashboard = () => {
     year: 'numeric'
   });
 
+  // Token validation on mount
   useEffect(() => {
-    // Check if we need to show lease gate after registration
-    const checkLeaseStatus = async () => {
+    const validateToken = () => {
       const token = localStorage.getItem('joyce-suites-token');
       if (!token) {
         navigate('/login');
-        return;
+        return false;
       }
-
+      
       try {
-        // First check if user just registered (has token but no dashboard data)
-        const justRegistered = localStorage.getItem('justRegistered') === 'true';
-        
-        if (justRegistered) {
-          localStorage.removeItem('justRegistered');
-          // Fetch dashboard data first
-          await fetchAllData();
-          
-          // Then check if lease needs signing
-          if (dashboardData && !dashboardData.lease_signed && dashboardData.has_lease) {
-            setShowLeaseGate(true);
-            fetchLeaseGateData();
-          }
-        } else {
-          await fetchAllData();
+        const tokenParts = token.split('.');
+        if (tokenParts.length !== 3) {
+          console.error('Invalid token structure');
+          localStorage.removeItem('joyce-suites-token');
+          navigate('/login');
+          return false;
         }
       } catch (err) {
-        console.error('Error checking lease status:', err);
-        await fetchAllData();
+        console.error('Token validation error:', err);
+        localStorage.removeItem('joyce-suites-token');
+        navigate('/login');
+        return false;
       }
+      
+      return true;
     };
-
-    checkLeaseStatus();
-
+    
+    if (validateToken()) {
+      fetchAllData();
+    }
+    
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % apartmentImages.length);
     }, 5000);
@@ -114,8 +107,7 @@ const TenantDashboard = () => {
     const token = localStorage.getItem('joyce-suites-token');
     
     if (!token) {
-      setError('Authentication token not found. Please login again.');
-      setTimeout(() => navigate('/login'), 2000);
+      console.error('No token found in localStorage');
       return null;
     }
     
@@ -123,6 +115,100 @@ const TenantDashboard = () => {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     };
+  };
+
+  // Enhanced fetch with token refresh
+  const fetchWithAuth = useCallback(async (url, options = {}) => {
+    let token = localStorage.getItem('joyce-suites-token');
+    
+    if (!token) {
+      throw new Error('No authentication token');
+    }
+    
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...options.headers
+    };
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+        credentials: 'include'
+      });
+
+      // If token expired, try to refresh
+      if (response.status === 401) {
+        console.log('Token expired, attempting refresh...');
+        
+        // Try to refresh token
+        const refreshToken = localStorage.getItem('joyce-suites-refresh-token');
+        if (refreshToken) {
+          try {
+            const refreshResponse = await fetch(`${config.apiBaseUrl}/api/auth/refresh`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${refreshToken}`
+              },
+              credentials: 'include'
+            });
+
+            if (refreshResponse.ok) {
+              const refreshData = await refreshResponse.json();
+              localStorage.setItem('joyce-suites-token', refreshData.access_token);
+              if (refreshData.refresh_token) {
+                localStorage.setItem('joyce-suites-refresh-token', refreshData.refresh_token);
+              }
+              
+              // Retry original request with new token
+              headers.Authorization = `Bearer ${refreshData.access_token}`;
+              const retryResponse = await fetch(url, {
+                ...options,
+                headers,
+                credentials: 'include'
+              });
+              return retryResponse;
+            }
+          } catch (refreshError) {
+            console.error('Token refresh failed:', refreshError);
+          }
+        }
+        
+        // If refresh failed or no refresh token, clear storage and redirect
+        localStorage.removeItem('joyce-suites-token');
+        localStorage.removeItem('joyce-suites-refresh-token');
+        throw new Error('Session expired. Please login again.');
+      }
+
+      return response;
+    } catch (error) {
+      if (error.message === 'Session expired. Please login again.') {
+        setError('Your session has expired. Please login again.');
+        setTimeout(() => navigate('/login'), 2000);
+      }
+      throw error;
+    }
+  }, [navigate]);
+
+  // Calculate outstanding balance based on payments
+  const calculateOutstandingBalance = () => {
+    if (!dashboardData?.rent_amount || !paymentsData.length) {
+      return dashboardData?.rent_amount || 0;
+    }
+    
+    const totalPaid = paymentsData
+      .filter(payment => payment.status === 'completed')
+      .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+    
+    const monthsDue = Math.max(1, Math.floor(
+      (new Date() - new Date(dashboardData.lease_start_date || new Date())) / 
+      (30 * 24 * 60 * 60 * 1000)
+    ));
+    
+    const totalDue = monthsDue * dashboardData.rent_amount;
+    return Math.max(0, totalDue - totalPaid);
   };
 
   // Determine account details based on room number
@@ -161,7 +247,7 @@ const TenantDashboard = () => {
       roomType = 'bedsitter';
     }
     
-    // Determine landlord
+    // Determine landlord with FIXED account numbers
     let landlordName = '';
     let paybill = '';
     let accountNumber = '';
@@ -169,11 +255,11 @@ const TenantDashboard = () => {
     if (joyceRooms.includes(roomNum)) {
       landlordName = 'Joyce Muthoni Mathea';
       paybill = '222111';
-      accountNumber = `JOYCE${roomNum.toString().padStart(3, '0')}`;
+      accountNumber = '2536316'; // Fixed account number for Joyce
     } else if (lawrenceRooms.includes(roomNum)) {
       landlordName = 'Lawrence Mathea';
-      paybill = '222222';
-      accountNumber = `LAWRENCE${roomNum.toString().padStart(3, '0')}`;
+      paybill = '222111';
+      accountNumber = '54544'; // Fixed account number for Lawrence
     } else {
       landlordName = 'Not Assigned';
       paybill = 'N/A';
@@ -192,125 +278,36 @@ const TenantDashboard = () => {
     };
   };
 
-  // ==================== NEW: Fetch Lease Gate Data ====================
-  const fetchLeaseGateData = async () => {
+  const fetchRoomDetails = async (unitNumber) => {
     try {
-      const headers = getAuthHeaders();
-      if (!headers) return null;
-
-      console.log('Fetching lease gate data from:', `${config.apiBaseUrl}${config.endpoints.tenant.lease}`);
-      
-      const response = await fetch(
-        `${config.apiBaseUrl}${config.endpoints.tenant.lease}`,
-        { 
-          headers,
-          credentials: 'include'
-        }
+      const response = await fetchWithAuth(
+        `${config.apiBaseUrl}/api/tenant/room-details/${unitNumber}`
       );
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Lease gate data response:', data);
-        
-        if (data.success) {
-          setLeaseGateData(data.lease);
-          return data.lease;
-        } else {
-          setError('Failed to load lease information for signing');
-          return null;
-        }
+        setRoomDetails(data.room);
+        return data.room;
       } else {
-        const errorText = await response.text();
-        console.error('Lease gate error response:', errorText);
-        setError('Failed to load lease information');
+        console.error(`Room details response not OK: ${response.status}`);
         return null;
       }
     } catch (err) {
-      console.error('Error fetching lease gate data:', err);
-      setError('Network error loading lease information');
+      console.error('Error fetching room details:', err);
       return null;
-    }
-  };
-
-  const fetchRoomDetails = async (unitNumber) => {
-    try {
-      const headers = getAuthHeaders();
-      if (!headers) {
-        // Use fallback if no token
-        const fallbackData = getAccountDetails(unitNumber);
-        setRoomDetails(fallbackData);
-        return fallbackData;
-      }
-
-      const endpoint = config.endpoints.tenant.roomDetails.replace(':unit_number', unitNumber);
-      console.log('Fetching room details from:', `${config.apiBaseUrl}${endpoint}`);
-      
-      const response = await fetch(
-        `${config.apiBaseUrl}${endpoint}`,
-        { 
-          method: 'GET',
-          headers,
-          credentials: 'include'
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.room) {
-          setRoomDetails(data.room);
-          return data.room;
-        } else {
-          // If API returns success but no room data, use fallback
-          const fallbackData = getAccountDetails(unitNumber);
-          setRoomDetails(fallbackData);
-          return fallbackData;
-        }
-      } else if (response.status === 404) {
-        console.warn(`Room ${unitNumber} not found via API, using fallback data`);
-        const fallbackData = getAccountDetails(unitNumber);
-        setRoomDetails(fallbackData);
-        return fallbackData;
-      } else {
-        console.error(`Error fetching room details: ${response.status}`);
-        const fallbackData = getAccountDetails(unitNumber);
-        setRoomDetails(fallbackData);
-        return fallbackData;
-      }
-    } catch (err) {
-      console.error('Network error fetching room details:', err);
-      // Use fallback data on network errors
-      const fallbackData = getAccountDetails(unitNumber);
-      setRoomDetails(fallbackData);
-      return fallbackData;
     }
   };
 
   const fetchLeaseData = async () => {
     try {
-      const headers = getAuthHeaders();
-      if (!headers) return null;
-
-      console.log('Fetching lease data from:', `${config.apiBaseUrl}${config.endpoints.tenant.lease}`);
-      
-      const response = await fetch(
-        `${config.apiBaseUrl}${config.endpoints.tenant.lease}`,
-        { 
-          headers,
-          credentials: 'include'
-        }
-      );
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/lease`);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Lease data response:', data);
-        
-        if (data.success) {
-          setFullLeaseDetails(data.lease);
-          return data.lease;
-        }
-        return null;
+        setFullLeaseDetails(data.lease);
+        return data.lease;
       } else {
-        console.error('Error fetching lease:', response.status);
+        console.error(`Lease response not OK: ${response.status}`);
         return null;
       }
     } catch (err) {
@@ -322,44 +319,22 @@ const TenantDashboard = () => {
   const fetchPaymentDetails = async () => {
     setLoadingPaymentDetails(true);
     try {
-      const headers = getAuthHeaders();
-      if (!headers) return;
-
-      console.log('Fetching payment details from:', `${config.apiBaseUrl}${config.endpoints.tenant.paymentDetails}`);
-      
-      const response = await fetch(
-        `${config.apiBaseUrl}${config.endpoints.tenant.paymentDetails}`,
-        { 
-          headers,
-          credentials: 'include'
-        }
-      );
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/payment-details`);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Payment details response:', data);
-        
-        if (data.success) {
-          setPaymentDetails(data.payment_details);
-          setError('');
-        } else {
-          setError(data.error || 'Failed to load payment details');
-        }
+        setPaymentDetails(data.payment_details);
+        setError('');
       } else {
-        try {
-          const errorData = await response.json();
-          if (errorData.error === 'No active lease found' || errorData.error?.includes('lease')) {
-            setError('Please sign your lease agreement before making payments.');
-          } else {
-            setError(errorData.error || 'Failed to load payment details');
-          }
-        } catch (parseError) {
-          setError('Failed to load payment details');
+        const errorData = await response.json();
+        if (errorData.error === 'No active lease found') {
+          setError('Please sign your lease agreement before making payments.');
+        } else {
+          setError(errorData.error || 'Failed to load payment details');
         }
       }
     } catch (err) {
-      console.error('Error fetching payment details:', err);
-      setError('Failed to load payment details. Check your connection.');
+      setError('Failed to load payment details');
     } finally {
       setLoadingPaymentDetails(false);
     }
@@ -376,133 +351,70 @@ const TenantDashboard = () => {
         return;
       }
 
-      const headers = getAuthHeaders();
-      if (!headers) return;
-
-      // 1. Fetch dashboard data
-      console.log('1. Fetching dashboard from:', `${config.apiBaseUrl}${config.endpoints.tenant.dashboard}`);
-      const dashRes = await fetch(
-        `${config.apiBaseUrl}${config.endpoints.tenant.dashboard}`,
-        { 
-          headers,
-          credentials: 'include'
-        }
-      );
-
-      console.log('Dashboard response status:', dashRes.status);
+      console.log('Fetching dashboard data...');
+      // Fetch dashboard data
+      const dashRes = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/dashboard`);
       
-      if (dashRes.ok) {
+      if (dashRes && dashRes.ok) {
         const dashData = await dashRes.json();
-        console.log('Dashboard data:', dashData);
+        setDashboardData(dashData.dashboard);
         
-        if (dashData.success) {
-          setDashboardData(dashData.dashboard);
-          
-          // Set account details based on room number
-          if (dashData.dashboard?.unit_number) {
-            const accountInfo = getAccountDetails(dashData.dashboard.unit_number);
-            setAccountDetails(accountInfo);
-            // Use fallback if room details fetch fails
-            const roomDetails = await fetchRoomDetails(dashData.dashboard.unit_number).catch(err => {
-              console.error('Room details error, using fallback:', err);
-              return getAccountDetails(dashData.dashboard.unit_number);
-            });
-            setRoomDetails(roomDetails);
-          }
-        } else {
-          setError(dashData.error || 'Failed to load dashboard data');
+        // Set account details based on room number
+        if (dashData.dashboard?.unit_number) {
+          const accountInfo = getAccountDetails(dashData.dashboard.unit_number);
+          setAccountDetails(accountInfo);
+          await fetchRoomDetails(dashData.dashboard.unit_number);
         }
-      } else if (dashRes.status === 401) {
-        // Token expired or invalid
-        localStorage.clear();
-        navigate('/login');
-        return;
       } else {
-        const errorText = await dashRes.text();
-        console.error('Dashboard error response:', errorText);
-        throw new Error(`Dashboard load failed: ${dashRes.status}`);
+        console.error(`Dashboard response error: ${dashRes ? dashRes.status : 'No response'}`);
       }
 
-      // 2. Fetch profile data - Use tenant profile endpoint instead of auth profile
-      try {
-        console.log('2. Fetching profile from:', `${config.apiBaseUrl}${config.endpoints.tenant.profile}`);
-        const profileRes = await fetch(
-          `${config.apiBaseUrl}${config.endpoints.tenant.profile}`,
-          { 
-            headers,
-            credentials: 'include'
-          }
-        );
-        
-        if (profileRes.ok) {
-          const profData = await profileRes.json();
-          console.log('Profile data:', profData);
-          
-          if (profData.success) {
-            setProfileData(profData.user);
-          }
-        }
-      } catch (profileErr) {
-        console.error('Error fetching profile:', profileErr);
+      console.log('Fetching profile data...');
+      // Fetch profile data - USE AUTH ENDPOINT
+      const profileRes = await fetchWithAuth(`${config.apiBaseUrl}/api/auth/profile`);
+      
+      if (profileRes && profileRes.ok) {
+        const profData = await profileRes.json();
+        console.log('🔍 Profile API Response:', profData);
+        console.log('📸 Profile photo_path:', profData.user?.photo_path);
+        console.log('📄 Profile id_document_path:', profData.user?.id_document_path);
+        setProfileData(profData.user);
+      } else {
+        console.error(`Profile response error: ${profileRes ? profileRes.status : 'No response'}`);
       }
 
-      // 3. Fetch payments
-      try {
-        console.log('3. Fetching payments from:', `${config.apiBaseUrl}${config.endpoints.tenant.payments}`);
-        const paymentsRes = await fetch(
-          `${config.apiBaseUrl}${config.endpoints.tenant.payments}`,
-          { 
-            headers,
-            credentials: 'include'
-          }
-        );
-        
-        if (paymentsRes.ok) {
-          const paysData = await paymentsRes.json();
-          console.log('Payments data:', paysData);
-          
-          if (paysData.success) {
-            setPaymentsData(paysData.payments || []);
-          }
-        }
-      } catch (paymentsErr) {
-        console.error('Error fetching payments:', paymentsErr);
+      console.log('Fetching payments data...');
+      // Fetch payments
+      const paymentsRes = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/payments`);
+      
+      if (paymentsRes && paymentsRes.ok) {
+        const paysData = await paymentsRes.json();
+        setPaymentsData(paysData.payments || []);
+      } else {
+        console.error(`Payments response error: ${paymentsRes ? paymentsRes.status : 'No response'}`);
       }
 
-      // 4. Fetch vacate notices
-      try {
-        console.log('4. Fetching vacate notices from:', `${config.apiBaseUrl}${config.endpoints.tenant.vacateNotices}`);
-        const vacateRes = await fetch(
-          `${config.apiBaseUrl}${config.endpoints.tenant.vacateNotices}`,
-          { 
-            headers,
-            credentials: 'include'
-          }
-        );
-        
-        if (vacateRes.ok) {
-          const vacateData = await vacateRes.json();
-          console.log('Vacate notices data:', vacateData);
-          
-          if (vacateData.success) {
-            setVacateNotices(vacateData.notices || []);
-          }
-        }
-      } catch (vacateErr) {
-        console.error('Error fetching vacate notices:', vacateErr);
+      console.log('Fetching vacate notices...');
+      // Fetch vacate notices
+      const vacateRes = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/vacate-notices`);
+      
+      if (vacateRes && vacateRes.ok) {
+        const vacateData = await vacateRes.json();
+        setVacateNotices(vacateData.notices || []);
+      } else {
+        console.error(`Vacate notices response error: ${vacateRes ? vacateRes.status : 'No response'}`);
       }
 
-      // 5. Fetch full lease details
-      try {
-        await fetchLeaseData();
-      } catch (leaseErr) {
-        console.error('Error fetching lease:', leaseErr);
-      }
+      // Fetch full lease details
+      await fetchLeaseData();
 
-      console.log('✅ All data fetched successfully');
+      console.log('All data fetched successfully');
+      
     } catch (err) {
-      console.error('❌ Fetch all data error:', err);
-      setError(err.message || 'Failed to load dashboard. Please check your connection.');
+      console.error('Fetch all data error:', err);
+      if (err.message !== 'Session expired. Please login again.') {
+        setError(err.message || 'Failed to load dashboard');
+      }
     } finally {
       setLoading(false);
     }
@@ -510,36 +422,21 @@ const TenantDashboard = () => {
 
   const handleLogout = async () => {
     try {
-      const headers = getAuthHeaders();
-      if (headers) {
-        await fetch(`${config.apiBaseUrl}${config.endpoints.auth.logout}`, {
-          method: 'POST',
-          headers,
-          credentials: 'include'
+      const token = localStorage.getItem('joyce-suites-token');
+      if (token) {
+        await fetchWithAuth(`${config.apiBaseUrl}/api/auth/logout`, {
+          method: 'POST'
         });
       }
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
-      localStorage.clear();
+      // Clear all auth-related items
+      localStorage.removeItem('joyce-suites-token');
+      localStorage.removeItem('joyce-suites-refresh-token');
+      localStorage.removeItem('user-data');
       navigate('/login');
     }
-  };
-
-  // ==================== NEW: Handle Lease Gate Actions ====================
-  const handleLeaseGateSignLease = () => {
-    setShowLeaseGate(false);
-    handleOpenLeaseModal();
-  };
-
-  const handleLeaseGateSkip = () => {
-    setShowLeaseGate(false);
-    setActiveTab('dashboard');
-  };
-
-  const handleLeaseGateLogout = () => {
-    localStorage.clear();
-    navigate('/login');
   };
 
   const handleOpenPaymentModal = () => {
@@ -554,61 +451,62 @@ const TenantDashboard = () => {
     setSuccess('');
     setTermsAccepted(false);
     setSignatureEmpty(true);
+    
+    // Clear any existing signature
+    if (signatureRef.current) {
+      signatureRef.current.clear();
+    }
+    
     setLoading(true);
     
     const leaseResponse = await fetchLeaseData();
+    const currentAccountDetails = getAccountDetails(dashboardData?.unit_number);
     
     if (leaseResponse) {
-      const roomNum = leaseResponse.unit_number || dashboardData?.unit_number || 'N/A';
-      const accountInfo = getAccountDetails(roomNum);
-      
       setLeaseData({
         tenant: {
           fullName: profileData?.full_name || 'N/A',
           idNumber: profileData?.id_number || profileData?.national_id || 'N/A',
           phone: profileData?.phone_number || profileData?.phone || 'N/A',
           email: profileData?.email || 'N/A',
-          roomNumber: roomNum
+          roomNumber: dashboardData?.unit_number || 'N/A'
         },
         unit: {
-          rent_amount: accountInfo?.rentAmount || dashboardData?.rent_amount || 0,
-          deposit_amount: accountInfo?.depositAmount || 0,
-          property_name: dashboardData?.property_name || `Room ${roomNum}`,
-          room_type: accountInfo?.roomType || 'N/A'
+          rent_amount: currentAccountDetails?.rentAmount || dashboardData?.rent_amount || 0,
+          deposit_amount: currentAccountDetails?.depositAmount || 0,
+          property_name: dashboardData?.property_name || `Room ${dashboardData?.unit_number}`,
+          room_type: currentAccountDetails?.roomType || 'N/A'
         },
         landlord: {
-          name: accountInfo?.landlordName || 'N/A',
-          phone: '0758 999322',
+          name: currentAccountDetails?.landlordName || 'N/A',
+          phone: '0722870077',
           email: 'joycesuites@gmail.com',
-          paybill: accountInfo?.paybill || 'N/A',
-          account: accountInfo?.accountNumber || 'N/A'
+          paybill: currentAccountDetails?.paybill || 'N/A',
+          account: currentAccountDetails?.accountNumber || 'N/A'
         },
         lease: leaseResponse
       });
     } else {
-      const roomNum = dashboardData?.unit_number || profileData?.room_number || 'N/A';
-      const accountInfo = getAccountDetails(roomNum);
-      
       setLeaseData({
         tenant: {
           fullName: profileData?.full_name || 'N/A',
           idNumber: profileData?.id_number || profileData?.national_id || 'N/A',
           phone: profileData?.phone_number || profileData?.phone || 'N/A',
           email: profileData?.email || 'N/A',
-          roomNumber: roomNum
+          roomNumber: dashboardData?.unit_number || 'N/A'
         },
         unit: {
-          rent_amount: accountInfo?.rentAmount || dashboardData?.rent_amount || 0,
-          deposit_amount: accountInfo?.depositAmount || 0,
-          property_name: dashboardData?.property_name || `Room ${roomNum}`,
-          room_type: accountInfo?.roomType || 'N/A'
+          rent_amount: currentAccountDetails?.rentAmount || dashboardData?.rent_amount || 0,
+          deposit_amount: currentAccountDetails?.depositAmount || 0,
+          property_name: dashboardData?.property_name || `Room ${dashboardData?.unit_number}`,
+          room_type: currentAccountDetails?.roomType || 'N/A'
         },
         landlord: {
-          name: accountInfo?.landlordName || 'N/A',
-          phone: '0758 999322',
+          name: currentAccountDetails?.landlordName || 'N/A',
+          phone: '0722870077',
           email: 'joycesuites@gmail.com',
-          paybill: accountInfo?.paybill || 'N/A',
-          account: accountInfo?.accountNumber || 'N/A'
+          paybill: currentAccountDetails?.paybill || 'N/A',
+          account: currentAccountDetails?.accountNumber || 'N/A'
         }
       });
     }
@@ -648,83 +546,43 @@ const TenantDashboard = () => {
     setLoading(true);
 
     try {
-      const headers = getAuthHeaders();
-      if (!headers) return;
-
-      // Get signature as data URL with proper format
-      const signatureDataUrl = signatureRef.current?.toDataURL('image/png');
+      const signatureDataUrl = signatureRef.current?.toDataURL();
       
-      if (!signatureDataUrl) {
-        setError('Failed to capture signature');
-        setLoading(false);
-        return;
-      }
-
       const leaseSubmission = {
         signature: signatureDataUrl,
+        signed_at: new Date().toISOString(),
         terms_accepted: true
       };
 
-      console.log('Submitting lease to:', `${config.apiBaseUrl}${config.endpoints.tenant.leaseSign}`);
-      console.log('Lease submission data:', {
-        hasSignature: !!leaseSubmission.signature,
-        signatureLength: leaseSubmission.signature?.length,
-        terms_accepted: leaseSubmission.terms_accepted
+      console.log('Submitting lease signature...');
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/lease/sign`, {
+        method: 'POST',
+        body: JSON.stringify(leaseSubmission)
       });
 
-      const response = await fetch(
-        `${config.apiBaseUrl}${config.endpoints.tenant.leaseSign}`,
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(leaseSubmission),
-          credentials: 'include'
-        }
-      );
-
-      console.log('Lease sign response status:', response.status);
-      
-      let data;
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        console.error('Failed to parse JSON:', parseError);
-        const text = await response.text();
-        console.error('Raw response:', text);
-        throw new Error('Invalid response from server');
-      }
+      const data = await response.json();
 
       if (!response.ok) {
-        console.error('Lease signing error response:', data);
-        
-        if (response.status === 404) {
-          throw new Error(`Lease signing endpoint not found (404). Please check backend routes.`);
-        } else if (response.status === 401) {
-          throw new Error('Session expired. Please login again.');
-        } else {
-          throw new Error(data.error || data.message || `Failed to submit lease (${response.status})`);
-        }
+        throw new Error(data.error || data.message || 'Failed to submit lease agreement');
       }
 
-      console.log('Lease signing success:', data);
+      setSuccess('Lease agreement signed successfully!');
+      setTermsAccepted(false);
+      handleClearSignature();
       
-      setSuccess('✅ Lease signed successfully!');
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Close modal and reload
-      setTimeout(() => {
-        setShowLeaseModal(false);
-        fetchAllData();
-        setSuccess('You can now access all features!');
-      }, 2000);
-
+      await fetchAllData();
+      
+      setSuccess('');
+      setShowLeaseModal(false);
+      
+      setSuccess('Lease signed successfully! You can now make payments.');
+      setTimeout(() => setSuccess(''), 3000);
+      
     } catch (err) {
-      console.error('Lease submission error:', err);
+      console.error('Lease signing error:', err);
       setError(err.message || 'Failed to sign lease. Please try again.');
-      
-      // Provide troubleshooting steps
-      if (err.message.includes('404')) {
-        setError(`${err.message}\n\nTroubleshooting:\n1. Make sure backend is running\n2. Check if route is registered\n3. Restart Flask server`);
-      }
     } finally {
       setLoading(false);
     }
@@ -747,21 +605,16 @@ const TenantDashboard = () => {
       setLoading(true);
       setError('');
       
-      const headers = getAuthHeaders();
-      if (!headers) return;
-
-      const response = await fetch(`${config.apiBaseUrl}${config.endpoints.payments.initiate}`, {
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/payments/initiate`, {
         method: 'POST',
-        headers,
         body: JSON.stringify({
           phone_number: mpesaPhone,
-          amount: paymentDetails.rent_amount,
+          amount: paymentDetails.rent_amount || paymentDetails.outstanding_balance || accountDetails?.rentAmount,
           room_number: paymentDetails.room_number,
           lease_id: paymentDetails.lease_id,
           paybill_number: accountDetails?.paybill,
           account_number: accountDetails?.accountNumber
-        }),
-        credentials: 'include'
+        })
       });
 
       const data = await response.json();
@@ -776,6 +629,7 @@ const TenantDashboard = () => {
         setError(data.error || 'Payment initiation failed');
       }
     } catch (err) {
+      console.error('Mpesa initiation error:', err);
       setError('Error initiating payment: ' + err.message);
     } finally {
       setLoading(false);
@@ -793,22 +647,16 @@ const TenantDashboard = () => {
     try {
       setLoading(true);
       
-      const headers = getAuthHeaders();
-      if (!headers) return;
-
       const requestData = {
         title: maintenanceForm.title,
         description: maintenanceForm.description,
         priority: maintenanceForm.priority
       };
 
-      console.log('Submitting maintenance to:', `${config.apiBaseUrl}${config.endpoints.tenant.requests}`);
-      
-      const response = await fetch(`${config.apiBaseUrl}${config.endpoints.tenant.requests}`, {
+      console.log('Submitting maintenance request...');
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/maintenance-requests`, {
         method: 'POST',
-        headers,
-        body: JSON.stringify(requestData),
-        credentials: 'include'
+        body: JSON.stringify(requestData)
       });
 
       const data = await response.json();
@@ -823,6 +671,7 @@ const TenantDashboard = () => {
         setError(data.error || 'Failed to submit request');
       }
     } catch (err) {
+      console.error('Maintenance submission error:', err);
       setError('Error submitting request: ' + err.message);
     } finally {
       setLoading(false);
@@ -849,19 +698,13 @@ const TenantDashboard = () => {
     try {
       setLoading(true);
       
-      const headers = getAuthHeaders();
-      if (!headers) return;
-
-      console.log('Submitting vacate notice to:', `${config.apiBaseUrl}${config.endpoints.tenant.submitVacateNotice}`);
-      
-      const response = await fetch(`${config.apiBaseUrl}${config.endpoints.tenant.submitVacateNotice}`, {
+      console.log('Submitting vacate notice...');
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/vacate-notice`, {
         method: 'POST',
-        headers,
         body: JSON.stringify({
           intended_move_date: vacateForm.vacate_date,
           reason: vacateForm.reason
-        }),
-        credentials: 'include'
+        })
       });
 
       const data = await response.json();
@@ -876,6 +719,7 @@ const TenantDashboard = () => {
         setError(data.error || 'Failed to submit vacate notice');
       }
     } catch (err) {
+      console.error('Vacate notice error:', err);
       setError('Error submitting vacate notice: ' + err.message);
     } finally {
       setLoading(false);
@@ -899,17 +743,12 @@ const TenantDashboard = () => {
     try {
       setLoading(true);
       
-      const headers = getAuthHeaders();
-      if (!headers) return;
-
-      const endpoint = config.endpoints.tenant.cancelVacateNotice.replace(':notice_id', noticeId);
-      console.log('Cancelling vacate notice at:', `${config.apiBaseUrl}${endpoint}`);
-      
-      const response = await fetch(`${config.apiBaseUrl}${endpoint}`, {
-        method: 'POST',
-        headers,
-        credentials: 'include'
-      });
+      const response = await fetchWithAuth(
+        `${config.apiBaseUrl}/api/tenant/vacate-notice/${noticeId}/cancel`,
+        {
+          method: 'POST'
+        }
+      );
 
       if (response.ok) {
         setSuccess('Vacate notice cancelled successfully');
@@ -918,128 +757,13 @@ const TenantDashboard = () => {
         setError('Failed to cancel vacate notice');
       }
     } catch (err) {
+      console.error('Cancel vacate error:', err);
       setError('Error cancelling notice: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // ==================== Add Debug Console Logs ====================
-  useEffect(() => {
-    console.log('Dashboard State:', {
-      loading,
-      dashboardData,
-      profileData,
-      paymentsData: paymentsData.length,
-      vacateNotices: vacateNotices.length,
-      showLeaseGate,
-      leaseGateData,
-      paymentDetails,
-      fullLeaseDetails
-    });
-  }, [loading, dashboardData, profileData, paymentsData, vacateNotices, showLeaseGate, leaseGateData, paymentDetails, fullLeaseDetails]);
-
-  // ==================== NEW: Render Lease Gate ====================
-  if (showLeaseGate) {
-    return (
-      <div className="lease-gate-container">
-        <div className="lease-gate-card">
-          <div className="gate-header">
-            <h1 className="gate-title">
-              📋 Lease Agreement Required
-            </h1>
-            <p className="gate-subtitle">
-              Before accessing your dashboard, please review and sign your lease agreement.
-            </p>
-          </div>
-
-          {error && (
-            <div className="alert alert-error">
-              {error}
-            </div>
-          )}
-
-          {leaseGateData ? (
-            <div className="lease-summary">
-              <h3 className="summary-title">Lease Summary</h3>
-              <div className="summary-details">
-                <div className="detail-row">
-                  <span className="detail-label">Monthly Rent:</span>
-                  <span className="detail-value">
-                    KSh {leaseGateData.rent_amount?.toLocaleString() || '0'}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Security Deposit:</span>
-                  <span className="detail-value">
-                    KSh {leaseGateData.deposit_amount?.toLocaleString() || '0'}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Room Number:</span>
-                  <span className="detail-value">
-                    {leaseGateData.unit_number || 'N/A'}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Property:</span>
-                  <span className="detail-value">
-                    {leaseGateData.property?.name || 'Joyce Suites Apartments'}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Lease Status:</span>
-                  <span className="detail-value">
-                    {leaseGateData.signed_by_tenant ? '✅ Signed' : '❌ Not Signed'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="no-lease-message">
-              <h3>No Lease Found</h3>
-              <p>Your registration was successful, but no lease was created.</p>
-              <p>Please contact the caretaker to complete your lease setup.</p>
-            </div>
-          )}
-
-          <div className="gate-actions">
-            {leaseGateData && !leaseGateData.signed_by_tenant && (
-              <button
-                onClick={handleLeaseGateSignLease}
-                className="btn btn-primary btn-sign"
-              >
-                Review & Sign Lease Agreement
-              </button>
-            )}
-
-            <button
-              onClick={handleLeaseGateSkip}
-              className="btn btn-outline"
-            >
-              Skip for Now (Limited Access)
-            </button>
-
-            <button
-              onClick={handleLeaseGateLogout}
-              className="btn btn-secondary"
-            >
-              Logout
-            </button>
-          </div>
-
-          <div className="gate-footer">
-            <p className="footer-note">
-              <strong>Important:</strong> Full access to payment features and maintenance requests 
-              requires a signed lease agreement.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ==================== Original Dashboard Render ====================
   if (loading && !dashboardData) {
     return (
       <div className="loading-screen">
@@ -1084,8 +808,20 @@ const TenantDashboard = () => {
   // Get current room number and account details
   const roomNumber = dashboardData?.unit_number || profileData?.room_number || 'Not Assigned';
   const currentAccountDetails = accountDetails || getAccountDetails(roomNumber);
+  const outstandingBalance = calculateOutstandingBalance();
   
   const roomTypeDisplay = currentAccountDetails?.roomType === 'one_bedroom' ? '1-Bedroom' : 'Bedsitter';
+  
+  // Profile photo URL - Updated to use direct URL
+  const getProfilePhotoUrl = () => {
+    if (profileData?.photo_path) {
+      // Try direct URL first
+      return `http://localhost:5000/${profileData.photo_path}`;
+    }
+    return null;
+  };
+
+  const profilePhotoUrl = getProfilePhotoUrl();
 
   return (
     <div className="tenant-dashboard">
@@ -1101,42 +837,42 @@ const TenantDashboard = () => {
               className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
               onClick={() => setActiveTab('dashboard')}
             >
-              <span className="nav-icon">D</span>
+              <span className="nav-icon"></span>
               Dashboard
             </button>
             <button 
               className={`nav-item ${activeTab === 'payments' ? 'active' : ''}`}
               onClick={() => setActiveTab('payments')}
             >
-              <span className="nav-icon">P</span>
+              <span className="nav-icon"></span>
               Payments
             </button>
             <button 
               className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
               onClick={() => setActiveTab('profile')}
             >
-              <span className="nav-icon">U</span>
+              <span className="nav-icon"></span>
               Profile
             </button>
             <button 
               className={`nav-item ${activeTab === 'lease' ? 'active' : ''}`}
               onClick={() => setActiveTab('lease')}
             >
-              <span className="nav-icon">L</span>
+              <span className="nav-icon"></span>
               Lease
             </button>
             <button 
               className={`nav-item ${activeTab === 'vacate' ? 'active' : ''}`}
               onClick={() => setActiveTab('vacate')}
             >
-              <span className="nav-icon">V</span>
+              <span className="nav-icon"></span>
               Vacate
             </button>
           </nav>
 
           <div className="sidebar-footer">
             <button onClick={handleLogout} className="logout-btn">
-              <span className="nav-icon">X</span>
+              <span className="nav-icon"></span>
               Logout
             </button>
           </div>
@@ -1151,9 +887,28 @@ const TenantDashboard = () => {
 
             <div className="topbar-right">
               <div className="user-avatar">
-                <div className="avatar-placeholder">
-                  {(dashboardData.tenant_name?.charAt(0) || 'T').toUpperCase()}
-                </div>
+                {profilePhotoUrl ? (
+                  <img 
+                    src={profilePhotoUrl} 
+                    alt="Profile" 
+                    className="avatar-image"
+                    onError={(e) => {
+                      console.error('❌ Avatar photo failed to load:', profilePhotoUrl);
+                      // Try alternative URL
+                      if (profileData?.photo_path && !profileData.photo_path.startsWith('http')) {
+                        e.target.src = `/${profileData.photo_path}`;
+                      } else {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = `<div class="avatar-placeholder">${(dashboardData.tenant_name?.charAt(0) || 'T').toUpperCase()}</div>`;
+                      }
+                    }}
+                    onLoad={() => console.log('✅ Avatar photo loaded successfully')}
+                  />
+                ) : (
+                  <div className="avatar-placeholder">
+                    {(dashboardData.tenant_name?.charAt(0) || 'T').toUpperCase()}
+                  </div>
+                )}
               </div>
             </div>
           </header>
@@ -1165,7 +920,7 @@ const TenantDashboard = () => {
             <div className="content">
               <div className="stats-grid">
                 <div className="stat-card primary">
-                  <div className="stat-icon">R</div>
+                  <div className="stat-icon"></div>
                   <div className="stat-content">
                     <h3>Room Details</h3>
                     <p className="stat-value">Room {roomNumber}</p>
@@ -1174,16 +929,16 @@ const TenantDashboard = () => {
                 </div>
 
                 <div className="stat-card warning">
-                  <div className="stat-icon">B</div>
+                  <div className="stat-icon"></div>
                   <div className="stat-content">
                     <h3>Outstanding Balance</h3>
-                    <p className="stat-value">KSh {(dashboardData.outstanding_balance || 0).toLocaleString()}</p>
+                    <p className="stat-value">KSh {outstandingBalance.toLocaleString()}</p>
                     <p className="stat-label">Balance due</p>
                   </div>
                 </div>
 
                 <div className="stat-card success">
-                  <div className="stat-icon">L</div>
+                  <div className="stat-icon"></div>
                   <div className="stat-content">
                     <h3>Account Details</h3>
                     <p className="stat-value">{currentAccountDetails?.accountNumber || 'N/A'}</p>
@@ -1192,9 +947,9 @@ const TenantDashboard = () => {
                 </div>
 
                 <div className="stat-card info">
-                  <div className="stat-icon">M</div>
+                  <div className="stat-icon"></div>
                   <div className="stat-content">
-                    <h3>Deposit</h3>
+                    <h3>Deposit Paid</h3>
                     <p className="stat-value">KSh {currentAccountDetails?.depositAmount.toLocaleString()}</p>
                     <p className="stat-label">Refundable deposit</p>
                   </div>
@@ -1207,24 +962,33 @@ const TenantDashboard = () => {
                   <button 
                     className="action-btn" 
                     onClick={handleOpenPaymentModal}
-                    disabled={!dashboardData.lease_signed}
+                    disabled={!fullLeaseDetails || !fullLeaseDetails.signed_by_tenant}
                   >
-                    <span className="action-icon">Pay</span>
-                    <span>Make Payment</span>
-                    {!dashboardData.lease_signed && (
-                      <span className="action-tooltip">Sign lease first</span>
-                    )}
+                    <span className="action-icon"></span>
+                    <span>
+                      {!fullLeaseDetails 
+                        ? 'Sign Lease First' 
+                        : !fullLeaseDetails.signed_by_tenant 
+                          ? 'Sign Lease to Pay' 
+                          : 'Make Payment'}
+                    </span>
                   </button>
                   <button className="action-btn" onClick={() => setShowMaintenanceModal(true)}>
-                    <span className="action-icon">Fix</span>
+                    <span className="action-icon"></span>
                     <span>Request Maintenance</span>
                   </button>
                   <button className="action-btn" onClick={handleOpenLeaseModal}>
-                    <span className="action-icon">Doc</span>
-                    <span>{dashboardData.lease_signed ? 'View Lease' : 'Sign Lease'}</span>
+                    <span className="action-icon"></span>
+                    <span>
+                      {!fullLeaseDetails 
+                        ? 'Sign Lease' 
+                        : fullLeaseDetails.signed_by_tenant 
+                          ? 'View Lease' 
+                          : 'Complete Signing'}
+                    </span>
                   </button>
                   <button className="action-btn" onClick={() => setActiveTab('profile')}>
-                    <span className="action-icon">Acc</span>
+                    <span className="action-icon"></span>
                     <span>Update Profile</span>
                   </button>
                 </div>
@@ -1246,7 +1010,7 @@ const TenantDashboard = () => {
                           prev === 0 ? apartmentImages.length - 1 : prev - 1
                         )}
                       >
-                        Previous
+                        ← Previous
                       </button>
                       <button 
                         className="gallery-btn next"
@@ -1254,7 +1018,7 @@ const TenantDashboard = () => {
                           (prev + 1) % apartmentImages.length
                         )}
                       >
-                        Next
+                        Next →
                       </button>
                     </div>
                     <div className="gallery-indicators">
@@ -1311,31 +1075,22 @@ const TenantDashboard = () => {
                       <span className="detail-value">KSh {currentAccountDetails?.rentAmount.toLocaleString()}</span>
                     </div>
                     <div className="detail-row">
-                      <span className="detail-label">Deposit Paid:</span>
-                      <span className="detail-value">KSh {currentAccountDetails?.depositAmount.toLocaleString()}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Lease Status:</span>
-                      <span className="detail-value">
-                        <span className={dashboardData.lease_signed ? 'status-success' : 'status-warning'}>
-                          {dashboardData.lease_signed ? '✅ Signed' : '❌ Not Signed'}
-                        </span>
-                      </span>
+                      <span className="detail-label">Outstanding Balance:</span>
+                      <span className="detail-value">KSh {outstandingBalance.toLocaleString()}</span>
                     </div>
                   </div>
                   <button 
                     onClick={handleOpenPaymentModal}
                     className="btn btn-primary"
                     style={{ marginTop: '20px' }}
-                    disabled={!dashboardData.lease_signed}
+                    disabled={!fullLeaseDetails || !fullLeaseDetails.signed_by_tenant}
                   >
-                    {dashboardData.lease_signed ? 'Make Payment Now' : 'Sign Lease First'}
+                    {!fullLeaseDetails 
+                      ? 'Sign Lease to Pay' 
+                      : !fullLeaseDetails.signed_by_tenant 
+                        ? 'Sign Lease First' 
+                        : 'Make Payment Now'}
                   </button>
-                  {!dashboardData.lease_signed && (
-                    <p className="lease-required-note">
-                      <small>You need to sign your lease agreement before making payments.</small>
-                    </p>
-                  )}
                 </div>
               </div>
 
@@ -1349,7 +1104,6 @@ const TenantDashboard = () => {
                         <th>Amount</th>
                         <th>Status</th>
                         <th>Transaction ID</th>
-                        <th>Method</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1364,12 +1118,11 @@ const TenantDashboard = () => {
                               </span>
                             </td>
                             <td>{payment.transaction_id || 'N/A'}</td>
-                            <td>{payment.payment_method || 'M-Pesa'}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>
+                          <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
                             No payment history found
                           </td>
                         </tr>
@@ -1383,41 +1136,123 @@ const TenantDashboard = () => {
 
           {activeTab === 'profile' && profileData && (
             <div className="content">
+              {/* Debug Information Card - Temporarily show to help debugging */}
+              <div className="card" style={{ marginBottom: '20px', backgroundColor: '#f8f9fa', border: '1px solid #dee2e6' }}>
+                <h4>Profile Information</h4>
+                <div className="debug-info" style={{ fontSize: '12px', fontFamily: 'monospace' }}>
+                  <p><strong>Photo Path:</strong> {profileData.photo_path || 'Not set'}</p>
+                  <p><strong>ID Document Path:</strong> {profileData.id_document_path || 'Not set'}</p>
+                  <p><strong>Full Name:</strong> {profileData.full_name || 'N/A'}</p>
+                  <p><strong>Email:</strong> {profileData.email || 'N/A'}</p>
+                </div>
+              </div>
+
               <div className="card">
                 <h3>My Profile</h3>
-                <div className="profile-info">
-                  <div className="profile-detail">
-                    <label>Full Name:</label>
-                    <p>{profileData.full_name || 'N/A'}</p>
+                <div className="profile-section">
+                  <div className="profile-header">
+                    <div className="profile-photo-container">
+                      {profileData?.photo_path ? (
+                        <div className="photo-display">
+                          <img 
+                            src={`http://localhost:5000/${profileData.photo_path}`}
+                            alt="Profile" 
+                            className="profile-photo"
+                            onError={(e) => {
+                              console.error('❌ Failed to load profile photo from:', e.target.src);
+                              // Try alternative path
+                              if (profileData.photo_path && !profileData.photo_path.startsWith('http')) {
+                                e.target.src = `/${profileData.photo_path}`;
+                              } else {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = `
+                                  <div class="profile-photo-placeholder">
+                                    ${(profileData.full_name?.charAt(0) || 'T').toUpperCase()}
+                                  </div>
+                                `;
+                              }
+                            }}
+                            onLoad={() => console.log('✅ Profile photo loaded successfully')}
+                          />
+                          <div className="photo-label">Profile Photo</div>
+                        </div>
+                      ) : profileData?.id_document_path ? (
+                        <div className="photo-display">
+                          <img 
+                            src={`http://localhost:5000/${profileData.id_document_path}`}
+                            alt="ID Document" 
+                            className="profile-photo"
+                            onError={(e) => {
+                              console.error('❌ Failed to load ID document from:', e.target.src);
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = `
+                                <div class="profile-photo-placeholder">
+                                  ${(profileData.full_name?.charAt(0) || 'T').toUpperCase()}
+                                </div>
+                              `;
+                            }}
+                            onLoad={() => console.log('✅ ID document loaded as profile photo')}
+                          />
+                          <div className="photo-label">ID Document (Fallback)</div>
+                        </div>
+                      ) : (
+                        <div className="profile-photo-placeholder">
+                          {(profileData.full_name?.charAt(0) || 'T').toUpperCase()}
+                          <div className="photo-label">No Photo Uploaded</div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="profile-name">
+                      <h4>{profileData.full_name || 'N/A'}</h4>
+                      <p>Tenant | Room {roomNumber}</p>
+                      <div className="profile-actions">
+                        <button className="btn btn-secondary btn-sm" style={{ marginTop: '10px' }}>
+                          Upload New Photo
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="profile-detail">
-                    <label>Email:</label>
-                    <p>{profileData.email || 'N/A'}</p>
+                  
+                  <div className="profile-info-grid">
+                    <div className="profile-detail">
+                      <label>Email Address:</label>
+                      <p>{profileData.email || 'N/A'}</p>
+                    </div>
+                    <div className="profile-detail">
+                      <label>Phone Number:</label>
+                      <p>{profileData.phone_number || profileData.phone || 'N/A'}</p>
+                    </div>
+                    <div className="profile-detail">
+                      <label>National ID:</label>
+                      <p>{profileData.id_number || profileData.national_id || 'N/A'}</p>
+                    </div>
+                    <div className="profile-detail">
+                      <label>Account Number:</label>
+                      <p>{currentAccountDetails?.accountNumber || 'N/A'}</p>
+                    </div>
+                    <div className="profile-detail">
+                      <label>Paybill Number:</label>
+                      <p>{currentAccountDetails?.paybill || 'N/A'}</p>
+                    </div>
+                    <div className="profile-detail">
+                      <label>Landlord:</label>
+                      <p>{currentAccountDetails?.landlordName || 'N/A'}</p>
+                    </div>
                   </div>
-                  <div className="profile-detail">
-                    <label>Phone Number:</label>
-                    <p>{profileData.phone_number || profileData.phone || 'N/A'}</p>
-                  </div>
-                  <div className="profile-detail">
-                    <label>National ID:</label>
-                    <p>{profileData.id_number || profileData.national_id || 'N/A'}</p>
-                  </div>
-                  <div className="profile-detail">
-                    <label>Room Number:</label>
-                    <p>Room {roomNumber}</p>
-                  </div>
-                  <div className="profile-detail">
-                    <label>Account Number:</label>
-                    <p>{currentAccountDetails?.accountNumber || 'N/A'}</p>
-                  </div>
-                  <div className="profile-detail">
-                    <label>Paybill Number:</label>
-                    <p>{currentAccountDetails?.paybill || 'N/A'}</p>
-                  </div>
-                  <div className="profile-detail">
-                    <label>Landlord:</label>
-                    <p>{currentAccountDetails?.landlordName || 'N/A'}</p>
-                  </div>
+                  
+                  {profileData.id_document_path && (
+                    <div className="id-document-section">
+                      <h4>ID Document</h4>
+                      <a 
+                        href={`http://localhost:5000/${profileData.id_document_path}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="btn btn-secondary"
+                      >
+                        View ID Document
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1437,14 +1272,8 @@ const TenantDashboard = () => {
                     <span className="lease-value">{roomTypeDisplay}</span>
                   </div>
                   <div className="lease-detail-row">
-                    <span className="lease-label">Lease Status:</span>
-                    <span className="lease-value">
-                      {dashboardData.lease_signed ? '✅ Signed' : '❌ Not Signed'}
-                    </span>
-                  </div>
-                  <div className="lease-detail-row">
-                    <span className="lease-label">Property:</span>
-                    <span className="lease-value">{dashboardData.property_name || 'Joyce Suites Apartments'}</span>
+                    <span className="lease-label">Status:</span>
+                    <span className="lease-value">{fullLeaseDetails?.status || 'Not Signed'}</span>
                   </div>
                   <div className="lease-detail-row">
                     <span className="lease-label">Monthly Rent:</span>
@@ -1458,22 +1287,14 @@ const TenantDashboard = () => {
                     <span className="lease-label">Landlord:</span>
                     <span className="lease-value">{currentAccountDetails?.landlordName || 'N/A'}</span>
                   </div>
-                  {fullLeaseDetails && (
-                    <>
-                      <div className="lease-detail-row">
-                        <span className="lease-label">Lease Start:</span>
-                        <span className="lease-value">
-                          {fullLeaseDetails.start_date ? new Date(fullLeaseDetails.start_date).toLocaleDateString() : 'N/A'}
-                        </span>
-                      </div>
-                      <div className="lease-detail-row">
-                        <span className="lease-label">Lease End:</span>
-                        <span className="lease-value">
-                          {fullLeaseDetails.end_date ? new Date(fullLeaseDetails.end_date).toLocaleDateString() : 'N/A'}
-                        </span>
-                      </div>
-                    </>
-                  )}
+                  <div className="lease-detail-row">
+                    <span className="lease-label">Paybill:</span>
+                    <span className="lease-value">{currentAccountDetails?.paybill || 'N/A'}</span>
+                  </div>
+                  <div className="lease-detail-row">
+                    <span className="lease-label">Account Number:</span>
+                    <span className="lease-value">{currentAccountDetails?.accountNumber || 'N/A'}</span>
+                  </div>
                 </div>
                 <button 
                   onClick={handleOpenLeaseModal} 
@@ -1481,7 +1302,11 @@ const TenantDashboard = () => {
                   style={{ marginTop: '16px' }}
                   type="button"
                 >
-                  {dashboardData.lease_signed ? 'View Lease Agreement' : 'Sign Lease Agreement'}
+                  {!fullLeaseDetails 
+                    ? 'Sign Lease Agreement' 
+                    : fullLeaseDetails.signed_by_tenant 
+                      ? 'View Lease Agreement' 
+                      : 'Complete Lease Signing'}
                 </button>
               </div>
             </div>
@@ -1514,7 +1339,7 @@ const TenantDashboard = () => {
                       <tbody>
                         {vacateNotices.map((notice) => (
                           <tr key={notice.id}>
-                            <td>{notice.notice_date ? new Date(notice.notice_date).toLocaleDateString() : 'N/A'}</td>
+                            <td>{notice.created_at ? new Date(notice.created_at).toLocaleDateString() : 'N/A'}</td>
                             <td>{notice.intended_move_date ? new Date(notice.intended_move_date).toLocaleDateString() : 'N/A'}</td>
                             <td>{notice.reason || 'No reason provided'}</td>
                             <td>
@@ -1553,20 +1378,18 @@ const TenantDashboard = () => {
         <div className="footer-content">
           <div className="footer-section">
             <h4>Joyce Suites Apartments</h4>
-            <p>Quality student accommodation in a secure environment</p>
+            <p>Quality accommodation in a secure environment</p>
             <p><strong>Office Hours:</strong> Mon-Fri 8:00 AM - 5:00 PM</p>
-            <p><strong>Emergency Contact:</strong> 0758 999322</p>
+            <p><strong>Emergency Contact:</strong> 0722870077</p>
           </div>
           
           <div className="footer-section">
-            <h4>Payment Information</h4>
+            <h4>Your Payment Information</h4>
             <div className="payment-info">
-              <p><strong>Joyce Muthoni Mathea:</strong></p>
-              <p>Paybill: 222111</p>
-              <p>Account: Your room number</p>
-              <p style={{ marginTop: '10px' }}><strong>Lawrence Mathea:</strong></p>
-              <p>Paybill: 222222</p>
-              <p>Account: Your room number</p>
+              <p><strong>Paybill:</strong> {currentAccountDetails?.paybill || 'N/A'}</p>
+              <p><strong>Account:</strong> {currentAccountDetails?.accountNumber || 'N/A'}</p>
+              <p><strong>Landlord:</strong> {currentAccountDetails?.landlordName || 'N/A'}</p>
+              <p><strong>Monthly Rent:</strong> KSh {currentAccountDetails?.rentAmount.toLocaleString()}</p>
             </div>
           </div>
           
@@ -1574,18 +1397,17 @@ const TenantDashboard = () => {
             <h4>Quick Links</h4>
             <ul className="footer-links">
               <li><button onClick={() => setActiveTab('dashboard')}>Dashboard</button></li>
-              <li><button onClick={() => setActiveTab('payments')}>Make Payment</button></li>
+              <li><button onClick={handleOpenPaymentModal} disabled={!fullLeaseDetails || !fullLeaseDetails.signed_by_tenant}>Make Payment</button></li>
               <li><button onClick={() => setShowMaintenanceModal(true)}>Maintenance Request</button></li>
-              <li><button onClick={() => setActiveTab('lease')}>Lease Agreement</button></li>
+              <li><button onClick={handleOpenLeaseModal}>Lease Agreement</button></li>
             </ul>
           </div>
           
           <div className="footer-section">
             <h4>Contact Information</h4>
             <p><strong>Email:</strong> joycesuites@gmail.com</p>
-            <p><strong>Phone:</strong> 0758 999322</p>
-            <p><strong>Address:</strong> Joyce Suites Apartments, Thika Road</p>
-            <p><strong>Website:</strong> www.joycesuites.com</p>
+            <p><strong>Phone:</strong> 0722870077</p>
+            <p><strong>Address:</strong> Joyce Suites Apartments, Nyandarua, Olkalou</p>
           </div>
         </div>
         
@@ -1633,10 +1455,10 @@ const TenantDashboard = () => {
                   </div>
                   <div className="payment-detail">
                     <span className="detail-label">Amount to Pay:</span>
-                    <span className="detail-value amount">KSh {paymentDetails.rent_amount?.toLocaleString() || currentAccountDetails?.rentAmount.toLocaleString()}</span>
+                    <span className="detail-value amount">KSh {paymentDetails.outstanding_balance?.toLocaleString() || paymentDetails.rent_amount?.toLocaleString() || currentAccountDetails?.rentAmount.toLocaleString()}</span>
                   </div>
                   <div className="payment-note">
-                    <p><strong>Note:</strong> Use the Paybill number and your room number as the account number when making manual payments.</p>
+                    <p><strong>Note:</strong> Use the Paybill number and account number when making manual payments.</p>
                   </div>
                 </div>
 
@@ -1662,7 +1484,7 @@ const TenantDashboard = () => {
                       <li>Select <strong>Pay Bill</strong></li>
                       <li>Enter Paybill: <strong>{currentAccountDetails?.paybill}</strong></li>
                       <li>Enter Account: <strong>{currentAccountDetails?.accountNumber}</strong></li>
-                      <li>Enter Amount: <strong>KSh {paymentDetails.rent_amount?.toLocaleString() || currentAccountDetails?.rentAmount.toLocaleString()}</strong></li>
+                      <li>Enter Amount: <strong>KSh {paymentDetails.outstanding_balance?.toLocaleString() || paymentDetails.rent_amount?.toLocaleString() || currentAccountDetails?.rentAmount.toLocaleString()}</strong></li>
                       <li>Enter your M-Pesa PIN</li>
                       <li>Confirm payment</li>
                     </ol>
@@ -1838,7 +1660,6 @@ const TenantDashboard = () => {
                     <p><strong>Paybill Number:</strong> {leaseData.landlord.paybill}</p>
                     <p><strong>Account Number:</strong> {leaseData.landlord.account}</p>
                     <p><strong>Manual Payment:</strong> Use the Paybill and Account number above to pay via M-Pesa</p>
-                    <p><strong>Auto-Payment:</strong> Available through tenant dashboard</p>
                   </div>
                 </div>
 
@@ -1851,54 +1672,63 @@ const TenantDashboard = () => {
                     <li>Tenant must provide 30 days' notice to vacate</li>
                     <li>Unpaid rent and damages will be deducted from security deposit</li>
                     <li>Rent is due by the 5th of each month</li>
-                    <li>Late payments attract a penalty of KSh 500 after 5th day</li>
                     <li>Governed by the laws of Kenya</li>
                   </ul>
                 </div>
               </div>
 
-              <div className="lease-signing-section">
-                {error && <div className="alert alert-error">{error}</div>}
-                {success && <div className="alert alert-success">{success}</div>}
+              {/* Key fix: Show signing section when there's NO lease OR when lease exists but isn't signed */}
+              {(!fullLeaseDetails || (fullLeaseDetails && !fullLeaseDetails.signed_by_tenant)) ? (
+                <div className="lease-signing-section">
+                  {error && <div className="alert alert-error">{error}</div>}
+                  {success && <div className="alert alert-success">{success}</div>}
 
-                <div className="terms-acceptance">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={termsAccepted}
-                      onChange={(e) => setTermsAccepted(e.target.checked)}
-                    />
-                    <span>I have read, understood, and agree to all the terms and conditions stated above.</span>
-                  </label>
-                </div>
-
-                <div className="signature-section">
-                  <label>Tenant's Digital Signature *</label>
-                  <div className="signature-canvas-container">
-                    <SignatureCanvas
-                      ref={signatureRef}
-                      onEnd={handleSignatureEnd}
-                      canvasProps={{
-                        width: 500,
-                        height: 150,
-                        className: 'signature-canvas'
-                      }}
-                    />
+                  <div className="terms-acceptance">
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={termsAccepted}
+                        onChange={(e) => setTermsAccepted(e.target.checked)}
+                      />
+                      <span>I have read, understood, and agree to all the terms and conditions stated above.</span>
+                    </label>
                   </div>
-                  <button type="button" onClick={handleClearSignature} className="btn btn-secondary">
-                    Clear Signature
+
+                  <div className="signature-section">
+                    <label>Tenant's Digital Signature *</label>
+                    <div className="signature-canvas-container">
+                      <SignatureCanvas
+                        ref={signatureRef}
+                        onEnd={handleSignatureEnd}
+                        canvasProps={{
+                          width: 500,
+                          height: 150,
+                          className: 'signature-canvas'
+                        }}
+                      />
+                    </div>
+                    <button type="button" onClick={handleClearSignature} className="btn btn-secondary">
+                      Clear Signature
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSubmitLease}
+                    className="btn btn-primary btn-sign-lease"
+                    disabled={loading || !termsAccepted || signatureEmpty}
+                  >
+                    {loading ? 'Submitting...' : 'Sign & Submit Lease Agreement'}
                   </button>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={handleSubmitLease}
-                  className="btn btn-primary btn-sign-lease"
-                  disabled={loading || !termsAccepted || signatureEmpty}
-                >
-                  {loading ? 'Submitting...' : 'Sign & Submit Lease Agreement'}
-                </button>
-              </div>
+              ) : (
+                <div className="lease-already-signed">
+                  <div className="alert alert-success">
+                    <h3>✓ Lease Agreement Signed</h3>
+                    <p>You have already signed the lease agreement on {fullLeaseDetails.signed_at ? new Date(fullLeaseDetails.signed_at).toLocaleDateString() : 'N/A'}.</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

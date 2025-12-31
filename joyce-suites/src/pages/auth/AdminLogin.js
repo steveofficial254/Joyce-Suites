@@ -236,9 +236,9 @@ const AdminLogin = () => {
             fontSize: '13px',
             color: '#0369a1'
           }}>
-            <strong>🔒 Default Admin Credentials:</strong><br />
-            Email: admin@joycesuites.com<br />
-            Password: Admin@123456
+            <strong></strong><br />
+            Email:<br />
+            Password: 
           </div>
         </div>
 
