@@ -36,6 +36,7 @@ class UserRole(Enum):
     ADMIN = "admin"
     CARETAKER = "caretaker"
     TENANT = "tenant"
+    LANDLORD = "landlord"
 
 # In-memory blacklist for tokens (Note: In a multi-worker production env, use Redis)
 blacklisted_tokens = set()
@@ -156,12 +157,34 @@ def register():
             # Fallback to JSON
             data = request.get_json()
         
+        print(f"[DEBUG] Received registration data keys: {list(data.keys())}")  # Debug log
+        
         # Extract file uploads if present
         photo = request.files.get('photo')
-        id_document = request.files.get('idDocument')
+        id_document = request.files.get('idDocument') or request.files.get('id_document')
         
-        # Validate required fields
-        required_fields = ["email", "password", "full_name", "phone", "role"]
+        # Handle full_name or fullName
+        full_name = data.get("full_name") or data.get("fullName")
+        if not full_name or not full_name.strip():
+            return jsonify({
+                "success": False,
+                "error": "Full name is required"
+            }), 400
+        
+        # Handle id_number or idNumber
+        id_number = data.get("id_number") or data.get("idNumber")
+        if not id_number:
+            print(f"[ERROR] ID number is missing. Available keys: {list(data.keys())}")
+            return jsonify({
+                "success": False,
+                "error": "National ID is required"
+            }), 400
+        
+        # Handle room_number or roomNumber
+        room_number = data.get("room_number") or data.get("roomNumber")
+        
+        # Validate other required fields
+        required_fields = ["email", "password", "phone", "role"]
         missing = [field for field in required_fields if field not in data or not data[field]]
         if missing:
             return jsonify({
@@ -171,13 +194,10 @@ def register():
         
         email = data["email"].strip().lower()
         password = data["password"]
-        full_name = data["full_name"].strip()
         phone = data["phone"].strip()
         role = data["role"].lower()
         
-        # Optional fields
-        id_number = data.get("idNumber")
-        room_number = data.get("roomNumber")
+        print(f"[DEBUG] Processing registration - Email: {email}, ID: {id_number}, Room: {room_number}")
         
         # Validate email format
         if not validate_email(email):
@@ -204,14 +224,11 @@ def register():
                 "error": f"Invalid role. Must be one of: {', '.join(valid_roles)}"
             }), 400
 
-        # Validate national ID (required for User model)
-        if not id_number:
-             return jsonify({"success": False, "error": "National ID is required"}), 400
-        
+        # Validate and convert national ID to integer
         try:
             id_number = int(id_number)
-        except ValueError:
-            return jsonify({"success": False, "error": "National ID must be a number"}), 400
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "error": "National ID must be a valid number"}), 400
 
         # Handle file uploads
         photo_path = None
@@ -226,6 +243,7 @@ def register():
             os.makedirs(photo_save_path, exist_ok=True)
             photo.save(os.path.join(photo_save_path, filename))
             photo_path = f"uploads/photos/{filename}"
+            print(f"[DEBUG] Photo saved: {photo_path}")
             
         if id_document and allowed_file(id_document.filename):
             filename = secure_filename(f"{email}_doc_{id_document.filename}")
@@ -233,6 +251,7 @@ def register():
             os.makedirs(doc_save_path, exist_ok=True)
             id_document.save(os.path.join(doc_save_path, filename))
             id_document_path = f"uploads/documents/{filename}"
+            print(f"[DEBUG] ID document saved: {id_document_path}")
 
         # Split full name into first and last name
         names = full_name.split(' ', 1)
@@ -261,6 +280,8 @@ def register():
         db.session.add(new_user)
         db.session.commit()
         
+        print(f"[SUCCESS] User registered: ID={new_user.id}, Email={email}, Room={room_number}")
+        
         # Generate JWT token
         token = generate_jwt_token(new_user.id, role)
         
@@ -273,6 +294,7 @@ def register():
                 "full_name": new_user.full_name,
                 "phone": new_user.phone_number,
                 "role": new_user.role,
+                "room_number": new_user.room_number,
                 "created_at": new_user.created_at.isoformat() if new_user.created_at else None
             },
             "token": token
@@ -281,7 +303,9 @@ def register():
     except Exception as e:
         db.session.rollback()
         # Log the error for debugging
-        print(f"Registration Error: {str(e)}")
+        print(f"[ERROR] Registration failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             "success": False,
             "error": f"Registration failed: {str(e)}"
@@ -376,7 +400,9 @@ def get_profile():
                 "created_at": user.created_at.isoformat() if user.created_at else None,
                 "is_active": user.is_active,
                 "room_number": user.room_number,
-                "photo_path": user.photo_path
+                "photo_path": user.photo_path,
+                "national_id": user.national_id,
+                "id_number": user.national_id
             }
         }), 200
     
@@ -426,6 +452,61 @@ def update_profile():
         db.session.rollback()
         return jsonify({"success": False, "error": f"Failed to update profile: {str(e)}"}), 500
 
+
+@auth_bp.route("/rooms/available", methods=["GET"])
+def get_available_rooms():
+    """
+    Get all available rooms for tenant registration.
+    This is a public endpoint that doesn't require authentication.
+    """
+    try:
+        # Import Property model here to avoid circular imports
+        from models.property import Property
+        
+        # Get only vacant rooms
+        vacant_rooms = Property.query.filter_by(status='vacant').all()
+        
+        rooms_data = []
+        for room in vacant_rooms:
+            # Get landlord info if available
+            landlord_name = "Unknown"
+            if room.landlord:
+                landlord_name = f"{room.landlord.first_name} {room.landlord.last_name}"
+            
+            # Extract room number from name (e.g., "Room 1" -> "1")
+            room_number = ""
+            if room.name:
+                import re
+                match = re.search(r'\d+', room.name)
+                if match:
+                    room_number = match.group()
+            
+            rooms_data.append({
+                "id": room.id,
+                "name": room.name,
+                "room_number": room_number,
+                "property_type": room.property_type,
+                "rent_amount": float(room.rent_amount) if room.rent_amount else 0.0,
+                "deposit_amount": float(room.deposit_amount) if room.deposit_amount else 0.0,
+                "description": room.description,
+                "paybill_number": room.paybill_number,
+                "account_number": room.account_number,
+                "landlord_name": landlord_name,
+                "status": room.status
+            })
+        
+        return jsonify({
+            "success": True,
+            "count": len(rooms_data),
+            "rooms": rooms_data
+        }), 200
+    
+    except Exception as e:
+        current_app.logger.error(f"Error fetching available rooms: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to fetch available rooms: {str(e)}"
+        }), 500
 
 @auth_bp.route("/delete/<int:user_id>", methods=["DELETE"])
 @admin_required

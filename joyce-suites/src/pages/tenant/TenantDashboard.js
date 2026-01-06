@@ -816,7 +816,7 @@ const TenantDashboard = () => {
   const getProfilePhotoUrl = () => {
     if (profileData?.photo_path) {
       // Try direct URL first
-      return `http://localhost:5000/${profileData.photo_path}`;
+      return `${config.apiBaseUrl}/${profileData.photo_path}`;
     }
     return null;
   };
@@ -1155,7 +1155,7 @@ const TenantDashboard = () => {
                       {profileData?.photo_path ? (
                         <div className="photo-display">
                           <img 
-                            src={`http://localhost:5000/${profileData.photo_path}`}
+                            src={`${config.apiBaseUrl}/${profileData.photo_path}`}
                             alt="Profile" 
                             className="profile-photo"
                             onError={(e) => {
@@ -1179,7 +1179,7 @@ const TenantDashboard = () => {
                       ) : profileData?.id_document_path ? (
                         <div className="photo-display">
                           <img 
-                            src={`http://localhost:5000/${profileData.id_document_path}`}
+                            src={`${config.apiBaseUrl}/${profileData.id_document_path}`}
                             alt="ID Document" 
                             className="profile-photo"
                             onError={(e) => {
@@ -1244,7 +1244,7 @@ const TenantDashboard = () => {
                     <div className="id-document-section">
                       <h4>ID Document</h4>
                       <a 
-                        href={`http://localhost:5000/${profileData.id_document_path}`} 
+                        href={`${config.apiBaseUrl}/${profileData.id_document_path}`} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="btn btn-secondary"
