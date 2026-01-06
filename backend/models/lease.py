@@ -18,6 +18,13 @@ class Lease(BaseModel, SerializerMixin):
     rent_amount = db.Column(db.Float, nullable=False)
     status = db.Column(Enum(*LEASE_STATUSES, name='lease_status_enum'), default='active', nullable=False)
     deposit_amount = db.Column(db.Float, default=0.0)
+    
+    # Add these missing fields
+    signed_by_tenant = db.Column(db.Boolean, default=False)
+    signed_at = db.Column(db.DateTime)
+    terms_accepted = db.Column(db.Boolean, default=False)
+    signature_path = db.Column(db.String(255))
+    signature_filename = db.Column(db.String(255))
 
     # Relationships
     tenant = db.relationship('User', back_populates='leases', foreign_keys=[tenant_id])
@@ -31,7 +38,9 @@ class Lease(BaseModel, SerializerMixin):
         '-property.leases',
         '-payments.lease',
         '-bills.lease',
-        '-vacate_notices.lease'
+        '-vacate_notices.lease',
+        '-signature_path',  # Hide sensitive path from serialization
+        '-signature_filename'
     )
 
     @validates("end_date")
@@ -52,6 +61,10 @@ class Lease(BaseModel, SerializerMixin):
             raise ValueError("Deposit amount cannot be negative")
         return deposit
 
+    def is_signed(self):
+        """Check if lease is signed by tenant"""
+        return bool(self.signed_by_tenant and self.signature_path)
+
     def is_expired(self):
         if self.end_date and datetime.now().date() > self.end_date:
             return True
@@ -63,4 +76,4 @@ class Lease(BaseModel, SerializerMixin):
         return 0
 
     def __repr__(self):
-        return f"<Lease {self.id} - {self.status}>"
+        return f"<Lease {self.id} - {self.status} - Signed: {self.signed_by_tenant}>"

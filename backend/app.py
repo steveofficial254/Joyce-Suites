@@ -35,22 +35,37 @@ def create_app():
     Migrate(app, db)
     
     # CORS configuration
-    CORS(app, resources={
-        r"/api/*": {
-            "origins": os.getenv("CORS_ORIGINS", "http://localhost:3000").split(","),
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"]
-        }
-    })
+    CORS(app, 
+         resources={
+             r"/api/*": {
+                 "origins": [
+                    "http://localhost:3000", 
+                    "http://127.0.0.1:3000", 
+                    "http://localhost:3001",
+                    "https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app",
+                    "https://joyce-suites.onrender.com",
+                    "https://*.vercel.app"  # Allow all Vercel preview deployments
+                ],
+                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+                 "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+                 "expose_headers": ["Content-Type", "Authorization"],
+                 "supports_credentials": True,
+                 "max_age": 3600
+             }
+         })
     
-    # Rate limiting
+    # Rate limiting - More lenient for development and exempt OPTIONS
+    is_development = os.getenv("FLASK_ENV", "development") == "development"
+    
     limiter = Limiter(
         app=app,
         key_func=get_remote_address,
-        default_limits=["200 per day", "50 per hour"],
-        storage_uri="memory://"
+        default_limits=["1000 per day", "200 per hour"] if is_development else ["200 per day", "50 per hour"],
+        storage_uri="memory://",
+        # Exempt OPTIONS requests from rate limiting (CORS preflight)
+        default_limits_exempt_when=lambda: request.method == "OPTIONS"
     )
-    app.limiter = limiter  # Store for use in routes
+    app.limiter = limiter
     
     # CSRF Protection (exempt API endpoints)
     csrf = CSRFProtect(app)
@@ -65,20 +80,10 @@ def create_app():
     register_blueprints(app)
     register_error_handlers(app)
     register_cli_commands(app)
-    register_security_headers(app)
     register_request_logging(app)
 
-    # Only auto-create tables in development/testing
-    # In production, use: flask db upgrade
-    if app.config.get('FLASK_ENV') in ['development', 'testing']:
-        with app.app_context():
-            try:
-                db.create_all()
-                app.logger.info("✅ Database tables created (development mode)")
-            except Exception as e:
-                app.logger.error(f"❌ Error creating database tables: {e}")
-    else:
-        app.logger.info("ℹ️  Production mode: Use 'flask db upgrade' for schema changes")
+    # Application initialized
+    app.logger.info("🚀 Application initialized - Use 'flask db upgrade' for database setup")
 
     return app
 
@@ -124,6 +129,18 @@ def register_blueprints(app: Flask) -> None:
             "database": "Connected" if check_db_connection(app) else "Disconnected",
             "timestamp": datetime.utcnow().isoformat()
         }), 200
+    
+    # CORS test endpoint
+    @app.route("/api/test-cors", methods=["GET", "OPTIONS"])
+    def test_cors():
+        """Test endpoint to verify CORS is working"""
+        return jsonify({
+            "success": True,
+            "message": "CORS is working correctly!",
+            "origin": request.headers.get('Origin'),
+            "method": request.method,
+            "timestamp": datetime.utcnow().isoformat()
+        }), 200
 
 
 def register_error_handlers(app: Flask) -> None:
@@ -147,6 +164,14 @@ def register_error_handlers(app: Flask) -> None:
     @app.errorhandler(405)
     def method_not_allowed(error):
         return jsonify({"success": False, "error": "Method Not Allowed", "message": "Unsupported HTTP method"}), 405
+    
+    @app.errorhandler(429)
+    def rate_limit_exceeded(error):
+        return jsonify({
+            "success": False, 
+            "error": "Too Many Requests", 
+            "message": "Rate limit exceeded. Please try again later."
+        }), 429
 
     @app.errorhandler(500)
     def internal_error(error):
@@ -202,7 +227,7 @@ def register_cli_commands(app: Flask) -> None:
                 username=f"admin_{str(uuid.uuid4())[:8]}",
                 first_name="Admin",
                 last_name="User",
-                phone_number="+254712000000",
+                phone_number="0722870077",
                 role="admin",
                 national_id=10000000,
                 is_active=True
@@ -214,7 +239,7 @@ def register_cli_commands(app: Flask) -> None:
                 username=f"caretaker_{str(uuid.uuid4())[:8]}",
                 first_name="Caretaker",
                 last_name="User",
-                phone_number="+254712000001",
+                phone_number="0722870078",
                 role="caretaker",
                 national_id=10000001,
                 is_active=True
@@ -226,7 +251,7 @@ def register_cli_commands(app: Flask) -> None:
                 username=f"tenant_{str(uuid.uuid4())[:8]}",
                 first_name="Sample",
                 last_name="Tenant",
-                phone_number="+254712000002",
+                phone_number="0722870079",
                 role="tenant",
                 national_id=10000002,
                 is_active=True
@@ -265,28 +290,17 @@ def check_db_connection(app: Flask) -> bool:
         return False
 
 
-def register_security_headers(app: Flask) -> None:
-    """Add security headers to all responses."""
-    @app.after_request
-    def set_security_headers(response):
-        # Only add security headers in production
-        if app.config.get('FLASK_ENV') == 'production':
-            headers = app.config.get('SECURITY_HEADERS', {})
-            for header, value in headers.items():
-                response.headers[header] = value
-        return response
-
-
 def register_request_logging(app: Flask) -> None:
     """Log all incoming requests for security auditing."""
     @app.before_request
     def log_request_info():
-        # Log request details (excluding sensitive data)
-        app.logger.info(
-            f"{request.method} {request.path} | "
-            f"IP: {request.remote_addr} | "
-            f"User-Agent: {request.headers.get('User-Agent', 'Unknown')[:50]}"
-        )
+        # Skip logging for OPTIONS requests (CORS preflight)
+        if request.method != "OPTIONS":
+            app.logger.info(
+                f"{request.method} {request.path} | "
+                f"IP: {request.remote_addr} | "
+                f"User-Agent: {request.headers.get('User-Agent', 'Unknown')[:50]}"
+            )
 
 
 # ✅ Expose app globally for Gunicorn / Render
@@ -297,16 +311,20 @@ if __name__ == "__main__":
     # ✅ Dynamic port binding for Render
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     port = int(os.getenv("PORT", 5000))
-    debug = os.getenv("FLASK_DEBUG", "False").lower() == "true"
+    debug = os.getenv("FLASK_ENV", "development") == "development"
 
-    # Only verify database in development
-    if os.getenv("FLASK_ENV") != "production":
-        with app.app_context():
-            try:
-                db.create_all()
-                app.logger.info("✅ Database verified before startup.")
-            except Exception as e:
-                app.logger.error(f"❌ Database verification failed: {e}")
+    # Verify database connection on startup
+    with app.app_context():
+        try:
+            if check_db_connection(app):
+                app.logger.info("✅ Database connection verified")
+            else:
+                app.logger.error("❌ Database connection failed")
+        except Exception as e:
+            app.logger.error(f"❌ Database verification failed: {e}")
 
     print(f"\n🌍 Joyce Suites API running on http://{host}:{port} (Env: {os.getenv('FLASK_ENV')})")
+    print("📚 Database: Use 'flask db upgrade' to apply migrations")
+    print(f"⚡ Rate Limiting: {'Lenient (Development)' if debug else 'Strict (Production)'}")
+    print(f"🔒 CORS: Enabled for localhost:3000, localhost:3001")
     app.run(host=host, port=port, debug=debug, use_reloader=debug)
