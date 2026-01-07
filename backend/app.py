@@ -46,6 +46,7 @@ def create_app():
                     "https://joyce-suites-git-feature-backend-steves-projects-d95e3bef.vercel.app",
                     "https://joyce-suites-ptgu4rwra-steves-projects-d95e3bef.vercel.app", 
                     "https://joyce-suites-xdkp.onrender.com",
+                    "https://joyce-suites-jcfw.vercel.app",
                     "https://*.vercel.app" # Allow all Vercel preview deployments
                 ],
                  
