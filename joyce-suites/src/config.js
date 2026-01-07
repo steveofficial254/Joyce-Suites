@@ -1,7 +1,7 @@
 // config.js
 const config = {
   // API Configuration
-  apiBaseUrl: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000',
+  apiBaseUrl: process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com',
   
   // App Configuration
   appName: 'Joyce Suites',
