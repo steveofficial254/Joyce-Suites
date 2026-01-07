@@ -6,9 +6,8 @@ import {
   Building, Users, CreditCard, Key, CheckCircle, Clock, UserPlus,
   RefreshCw, XCircle, Wrench, AlertTriangle, UserX, MessageSquare,
   TrendingUp, PieChart, FileSpreadsheet, DoorOpen, List
-} from 'lucide-react';
+} from 'lucide-react'
 
-// Use the same deployed API URL as AdminDashboard
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
 
 const CaretakerDashboard = () => {
@@ -31,50 +30,63 @@ const CaretakerDashboard = () => {
   const [showCreateMaintenanceModal, setShowCreateMaintenanceModal] = useState(false);
   const [showSendNotificationModal, setShowSendNotificationModal] = useState(false);
 
-  const token = localStorage.getItem('token') || localStorage.getItem('joyce-suites-token');
+  const getToken = () => {
+  return localStorage.getItem('token') || localStorage.getItem('joyce-suites-token');
+};
+
 
   useEffect(() => {
-    console.log('Token check:', token ? 'Token found' : 'No token found');
-    console.log('API Base URL:', API_BASE_URL);
-  }, [token]);
+  const currentToken = getToken();
+  console.log('Token check:', currentToken ? 'Token found' : 'No token found');
+  console.log('API Base URL:', API_BASE_URL);
+}, []);
 
   // Enhanced API call helper with better error handling
   const apiCall = async (endpoint, options = {}) => {
-    try {
-      console.log('Making API call to:', `${API_BASE_URL}${endpoint}`);
+  const token = getToken();
+  
+  if (!token) {
+    console.error('No token available');
+    localStorage.clear();
+    window.location.href = '/caretaker-login';
+    return null;
+  }
 
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          ...options.headers,
-        },
-      });
+  try {
+    console.log('Making API call to:', `${API_BASE_URL}${endpoint}`);
 
-      console.log('Response status:', response.status);
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...options.headers,
+      },
+    });
 
-      if (response.status === 401 || response.status === 403) {
-        console.error('Unauthorized - redirecting to login');
-        localStorage.clear();
-        window.location.href = '/caretaker-login';
-        return null;
-      }
+    console.log('Response status:', response.status);
 
-      const data = await response.json();
-      console.log('Response data:', data);
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || `HTTP ${response.status}`);
-      }
-
-      return data;
-    } catch (err) {
-      console.error('API call error:', err);
-      setError(err.message);
-      throw err;
+    if (response.status === 401 || response.status === 403) {
+      console.error('Unauthorized - clearing token and redirecting');
+      localStorage.clear();
+      window.location.href = '/caretaker-login';
+      return null;
     }
-  };
+
+    const data = await response.json();
+    console.log('Response data:', data);
+
+    if (!response.ok) {
+      throw new Error(data.error || data.message || `HTTP ${response.status}`);
+    }
+
+    return data;
+  } catch (err) {
+    console.error('API call error:', err);
+    // Don't set error here to avoid redirect loops
+    throw err;
+  }
+};
 
   // Fetch functions
   const fetchOverview = async () => {
@@ -115,7 +127,7 @@ const CaretakerDashboard = () => {
 
   const fetchTenants = async () => {
     try {
-      const data = await apiCall('/api/admin/tenants?page=1&per_page=100');
+      const data = await apiCall('/api/caretaker/tenants?page=1&per_page=100');
       if (data && data.success) {
         setTenants(data.tenants || []);
       }
@@ -190,7 +202,9 @@ const CaretakerDashboard = () => {
   };
 
   const handleLogout = async () => {
-    try {
+  try {
+    const token = getToken();
+    if (token) {
       await fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         headers: {
@@ -198,53 +212,60 @@ const CaretakerDashboard = () => {
           'Content-Type': 'application/json'
         }
       });
-    } catch (err) {
-      console.error('Logout error:', err);
-    } finally {
-      localStorage.clear();
-      window.location.href = '/caretaker-login';
     }
-  };
+  } catch (err) {
+    console.error('Logout error:', err);
+  } finally {
+    localStorage.clear();
+    window.location.href = '/caretaker-login';
+  }
+};
 
   useEffect(() => {
-    if (!token) {
-      console.error('No token found - redirecting to login');
-      window.location.href = '/caretaker-login';
-      return;
-    }
+  const token = getToken();
+  if (!token) {
+    console.error('No token found - redirecting to login');
+    window.location.href = '/caretaker-login';
+    return;
+  }
 
-    const fetchPageData = async () => {
-      console.log('Fetching data for page:', activePage);
-      setLoading(true);
-      try {
-        switch (activePage) {
-          case 'dashboard':
-            await Promise.all([
-              fetchOverview(),
-              fetchMaintenanceRequests(),
-              fetchAvailableRooms(),
-              fetchTenants()
-            ]);
-            break;
-          case 'maintenance':
-            await fetchMaintenanceRequests();
-            break;
-          case 'properties':
-            await fetchAvailableRooms();
-            break;
-          case 'notifications':
-            await fetchTenants();
-            break;
-          default:
-            break;
-        }
-      } finally {
-        setLoading(false);
+  const fetchPageData = async () => {
+    console.log('Fetching data for page:', activePage);
+    setLoading(true);
+    setError('');
+    
+    try {
+      switch (activePage) {
+        case 'dashboard':
+          // Fetch data in parallel but handle each independently
+          await Promise.all([
+            fetchOverview().catch(err => console.error('Overview fetch failed:', err)),
+            fetchMaintenanceRequests().catch(err => console.error('Maintenance fetch failed:', err)),
+            fetchAvailableRooms().catch(err => console.error('Rooms fetch failed:', err)),
+            fetchTenants().catch(err => console.error('Tenants fetch failed:', err))
+          ]);
+          break;
+        case 'maintenance':
+          await fetchMaintenanceRequests();
+          break;
+        case 'properties':
+          await fetchAvailableRooms();
+          break;
+        case 'notifications':
+          await fetchTenants();
+          break;
+        default:
+          break;
       }
-    };
-
+    } catch (err) {
+      console.error('Page data fetch error:', err);
+      // Don't redirect on page data fetch errors
+    } finally {
+      setLoading(false);
+    }
+  };
     fetchPageData();
-  }, [activePage, token]);
+  }, [activePage]);
 
   const renderContent = () => {
     switch (activePage) {
