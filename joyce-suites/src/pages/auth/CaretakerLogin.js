@@ -129,8 +129,9 @@ const CaretakerLogin = () => {
       const email = formData.email.trim().toLowerCase();
       console.log('📡 Attempting caretaker login with email:', email);
 
-      const apiUrl = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
-      const loginUrl = `${apiUrl}/api/auth/login`;
+      // Build login URL - no config needed
+      const API_BASE_URL = 'https://joyce-suites-xdkp.onrender.com';
+      const loginUrl = `${API_BASE_URL}/api/auth/login`;
       console.log('🔗 Login URL:', loginUrl);
 
       const response = await fetch(loginUrl, {
