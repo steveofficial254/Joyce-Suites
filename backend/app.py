@@ -43,10 +43,12 @@ def create_app():
                     "http://127.0.0.1:3000", 
                     "http://localhost:3001",
                     "https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app",
-                    "https://joyce-suites-git-feature-backend-steves-projects-d95e3bef.vercel.app",  # ADD THIS
+                    "https://joyce-suites-git-feature-backend-steves-projects-d95e3bef.vercel.app",
+                    "https://joyce-suites-ptgu4rwra-steves-projects-d95e3bef.vercel.app", 
                     "https://joyce-suites-xdkp.onrender.com",
                     "https://*.vercel.app" # Allow all Vercel preview deployments
                 ],
+                 
                  "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
                  "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
                  "expose_headers": ["Content-Type", "Authorization"],
