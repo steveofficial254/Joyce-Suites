@@ -38,20 +38,12 @@ def create_app():
     CORS(app, 
          resources={
              r"/api/*": {
-                 "origins": [
-                    "http://localhost:3000", 
-                    "http://127.0.0.1:3000", 
-                    "http://localhost:3001",
-                    "https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app",
-                    "https://joyce-suites-git-feature-backend-steves-projects-d95e3bef.vercel.app",  # ADD THIS
-                    "https://joyce-suites.onrender.com",
-                    "https://*.vercel.app" # Allow all Vercel preview deployments
-                ],
-                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-                 "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-                 "expose_headers": ["Content-Type", "Authorization"],
-                 "supports_credentials": True,
-                 "max_age": 3600
+                 origins="*",  # Allow all origins (safe for this stage)
+                allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+                expose_headers=["Content-Type", "Authorization"],
+                methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+                supports_credentials=False,
+                max_age=3600
              }
          })
     
