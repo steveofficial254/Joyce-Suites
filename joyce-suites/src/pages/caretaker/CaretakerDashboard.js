@@ -2210,50 +2210,114 @@ const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
 
 const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
   const [formData, setFormData] = useState({
-    tenant_id: tenant.tenant_id || tenant.id,
+    tenant_id: tenant.tenant_id || tenant.id || '',
+    amount: tenant.rent_amount || 0,
     status: 'paid',
-    amount: tenant.rent_amount || 0
+    payment_method: 'cash'
   });
   const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: '' });
+    const { name, value } = e.target;
+    
+    if (name === 'amount') {
+      // Ensure amount is a number
+      const numValue = value === '' ? '' : parseFloat(value);
+      setFormData({
+        ...formData,
+        [name]: numValue
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
+    
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' });
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const newErrors = {};
-    if (!formData.amount || formData.amount <= 0) newErrors.amount = 'Amount must be greater than 0';
+    
+    // Validation
+    if (!formData.tenant_id) {
+      newErrors.tenant_id = 'Tenant ID is required';
+    }
+    if (!formData.amount || formData.amount <= 0) {
+      newErrors.amount = 'Amount must be greater than 0';
+    }
+    if (!formData.status || !['paid', 'unpaid'].includes(formData.status)) {
+      newErrors.status = 'Status must be "paid" or "unpaid"';
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
-    onSubmit(formData);
+    // Prepare data exactly as backend expects
+    const submitData = {
+      tenant_id: parseInt(formData.tenant_id),
+      amount: parseFloat(formData.amount),
+      status: formData.status,
+      payment_method: formData.payment_method || 'manual'
+    };
+
+    onSubmit(submitData);
   };
 
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
       <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div style={styles.modalHeader}>
-          <h3>Mark Payment</h3>
+          <h3>Record Payment</h3>
           <button style={styles.modalClose} onClick={onClose}>×</button>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div style={styles.modalBody}>
             <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Tenant</label>
-              <p style={{ margin: '8px 0', fontWeight: '600' }}>
-                {tenant.tenant_name || tenant.name} - Room {tenant.room_number || 'N/A'}
-              </p>
+              <label style={styles.formLabel}>Tenant Information</label>
+              <div style={{ 
+                backgroundColor: '#f9fafb', 
+                padding: '12px', 
+                borderRadius: '6px',
+                margin: '8px 0'
+              }}>
+                <p style={{ margin: '0 0 4px 0', fontWeight: '600' }}>
+                  {tenant.tenant_name || tenant.name || 'N/A'}
+                </p>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  fontSize: '14px',
+                  color: '#6b7280'
+                }}>
+                  <span>Room: {tenant.room_number || 'N/A'}</span>
+                  <span>Rent: KSh {tenant.rent_amount ? tenant.rent_amount.toLocaleString() : '0'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Tenant ID *</label>
+              <input
+                type="text"
+                name="tenant_id"
+                value={formData.tenant_id}
+                onChange={handleChange}
+                placeholder="Tenant ID"
+                style={{ ...styles.formInput, ...(errors.tenant_id ? styles.inputError : {}) }}
+                disabled={!!tenant.tenant_id || !!tenant.id}
+              />
+              {errors.tenant_id && <span style={styles.errorText}>{errors.tenant_id}</span>}
+              <small style={styles.helpText}>
+                This should be populated automatically
+              </small>
             </div>
 
             <div style={styles.formGroup}>
@@ -2262,11 +2326,16 @@ const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                style={styles.formSelect}
+                style={{ ...styles.formSelect, ...(errors.status ? styles.inputError : {}) }}
               >
                 <option value="paid">Paid</option>
                 <option value="unpaid">Unpaid</option>
               </select>
+              {errors.status && <span style={styles.errorText}>{errors.status}</span>}
+              <small style={styles.helpText}>
+                • Paid: Mark payment as completed<br/>
+                • Unpaid: Mark payment as not received
+              </small>
             </div>
 
             <div style={styles.formGroup}>
@@ -2277,24 +2346,32 @@ const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
                 value={formData.amount}
                 onChange={handleChange}
                 placeholder="Enter amount"
+                min="1"
+                step="0.01"
                 style={{ ...styles.formInput, ...(errors.amount ? styles.inputError : {}) }}
               />
               {errors.amount && <span style={styles.errorText}>{errors.amount}</span>}
+              <small style={styles.helpText}>
+                Amount to be recorded
+              </small>
             </div>
 
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Payment Method</label>
               <select
                 name="payment_method"
-                value={formData.payment_method || 'manual'}
+                value={formData.payment_method}
                 onChange={handleChange}
                 style={styles.formSelect}
               >
-                <option value="manual">Manual</option>
                 <option value="cash">Cash</option>
+                <option value="manual">Manual</option>
                 <option value="mpesa">M-Pesa</option>
                 <option value="bank">Bank Transfer</option>
               </select>
+              <small style={styles.helpText}>
+                How was this payment received?
+              </small>
             </div>
           </div>
 
@@ -2303,7 +2380,20 @@ const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
               Cancel
             </button>
             <button type="submit" style={styles.btnPrimary} disabled={loading}>
-              {loading ? 'Processing...' : 'Mark Payment'}
+              {loading ? (
+                <>
+                  <div style={{
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid white',
+                    borderTopColor: 'transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    marginRight: '8px'
+                  }}></div>
+                  Processing...
+                </>
+              ) : 'Record Payment'}
             </button>
           </div>
         </form>
@@ -3288,6 +3378,13 @@ const styles = {
     color: '#ef4444',
     marginTop: '4px',
     display: 'block'
+  },
+  helpText: {
+    fontSize: '12px',
+    color: '#6b7280',
+    marginTop: '4px',
+    display: 'block',
+    lineHeight: '1.4'
   },
   overlay: {
     position: 'fixed',
