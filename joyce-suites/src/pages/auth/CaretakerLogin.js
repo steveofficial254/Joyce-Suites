@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import logo from '../../assets/image1.png';
 import backgroundImage from '../../assets/image21.jpg';
+import config from '../../config';
 
 const CaretakerLogin = () => {
   const navigate = useNavigate();
