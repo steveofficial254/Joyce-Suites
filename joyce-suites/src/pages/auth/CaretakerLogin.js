@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import logo from '../../assets/image1.png';
 import backgroundImage from '../../assets/image21.jpg';
-import config from '../../config';
 
 const CaretakerLogin = () => {
   const navigate = useNavigate();
@@ -130,15 +129,8 @@ const CaretakerLogin = () => {
       const email = formData.email.trim().toLowerCase();
       console.log('📡 Attempting caretaker login with email:', email);
 
-      // Validate config exists
-      if (!config?.apiBaseUrl || !config?.endpoints?.auth?.login) {
-        console.error('❌ Config is not properly initialized');
-        setError('Application configuration error. Please refresh the page.');
-        setLoading(false);
-        return;
-      }
-
-      const loginUrl = `${config.apiBaseUrl}${config.endpoints.auth.login}`;
+      const apiUrl = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
+      const loginUrl = `${apiUrl}/api/auth/login`;
       console.log('🔗 Login URL:', loginUrl);
 
       const response = await fetch(loginUrl, {
