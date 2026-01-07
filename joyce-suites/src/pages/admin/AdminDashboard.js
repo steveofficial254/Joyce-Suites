@@ -7,7 +7,7 @@ import {
   RefreshCw, XCircle, Wrench, AlertTriangle, UserX, MessageSquare,
   TrendingUp, PieChart, FileSpreadsheet, DoorOpen, List
 } from 'lucide-react';
-import config from '../../config';
+
 const API_BASE_URL = config.apiBaseUrl;
 
 const AdminDashboard = () => {
