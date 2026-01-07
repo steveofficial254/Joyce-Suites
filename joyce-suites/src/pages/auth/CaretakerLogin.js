@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import logo from '../../assets/image1.png';
 import backgroundImage from '../../assets/image21.jpg';
-import config from '../../config';
 
 const CaretakerLogin = () => {
   const navigate = useNavigate();
@@ -130,9 +129,9 @@ const CaretakerLogin = () => {
       const email = formData.email.trim().toLowerCase();
       console.log('📡 Attempting caretaker login with email:', email);
 
-      // Build login URL using config
-      const API_BASE_URL = config.apiBaseUrl;
-      const loginUrl = `${API_BASE_URL}${config.endpoints.auth.login}`;
+      // Build login URL
+      const API_BASE_URL = 'https://joyce-suites-xdkp.onrender.com';
+      const loginUrl = `${API_BASE_URL}/api/auth/login`;
       console.log('🔗 Login URL:', loginUrl);
 
       const response = await fetch(loginUrl, {
@@ -249,8 +248,8 @@ const CaretakerLogin = () => {
 
       <div className="login-content">
         <div className="login-card">
-          <img src={logo} alt={config.appName + " Logo"} className="login-logo" />
-          <h1>{config.appName} Apartments</h1>
+          <img src={logo} alt="Joyce Suites Logo" className="login-logo" />
+          <h1>Joyce Suites Apartments</h1>
           <h2>Caretaker Portal</h2>
 
           {error && (
@@ -321,7 +320,6 @@ const CaretakerLogin = () => {
               type="submit"
               className="btn btn-primary"
               disabled={loading}
-              style={{ backgroundColor: config.ui.primaryColor }}
             >
               {loading ? 'Verifying...' : 'Login to Caretaker Portal'}
             </button>

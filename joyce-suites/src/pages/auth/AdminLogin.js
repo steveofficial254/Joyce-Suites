@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import logo from '../../assets/image1.png';
 import backgroundImage from '../../assets/image21.jpg';
-import config from '../../config';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -105,12 +104,9 @@ const AdminLogin = () => {
       const email = formData.email.trim().toLowerCase();
       console.log('📡 Attempting admin login with email:', email);
 
-      // Build login URL using config
-      const API_BASE_URL = config.apiBaseUrl;
-      const loginUrl = `${API_BASE_URL}${config.endpoints.auth.login}`;
-      console.log('🔗 Login URL:', loginUrl);
-
-      const response = await fetch(loginUrl, {
+      // Build login URL
+      const API_BASE_URL = 'https://joyce-suites-xdkp.onrender.com';
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -233,8 +229,8 @@ const AdminLogin = () => {
       
       <div className="login-content">
         <div className="login-card">
-          <img src={logo} alt={config.appName + " Logo"} className="login-logo" />
-          <h1>{config.appName} Apartments</h1>
+          <img src={logo} alt="Joyce Suites Logo" className="login-logo" />
+          <h1>Joyce Suites Apartments</h1>
           <h2>Admin Portal</h2>
 
           {error && (
@@ -305,7 +301,6 @@ const AdminLogin = () => {
               type="submit" 
               className="btn btn-primary" 
               disabled={loading}
-              style={{ backgroundColor: config.ui.primaryColor }}
             >
               {loading ? 'Verifying...' : 'Login to Admin Portal'}
             </button>
