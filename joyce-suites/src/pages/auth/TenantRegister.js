@@ -5,6 +5,8 @@ import './TenantRegister.css';
 import logo from '../../assets/image1.png';
 import backgroundImage from '../../assets/image21.jpg';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
+
 const TenantRegister = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -48,7 +50,7 @@ const TenantRegister = () => {
     try {
       console.log('Fetching available rooms from public endpoint...');
       
-      const response = await fetch('http://localhost:5000/api/caretaker/rooms/public');
+      const response = await fetch(`${API_BASE_URL}/api/caretaker/rooms/public`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -293,7 +295,7 @@ const TenantRegister = () => {
         uploadData.append('security_deposit', roomData.deposit);
       }
 
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
         body: uploadData
       });

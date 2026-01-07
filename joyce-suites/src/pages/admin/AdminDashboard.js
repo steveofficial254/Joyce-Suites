@@ -8,7 +8,7 @@ import {
   TrendingUp, PieChart, FileSpreadsheet, DoorOpen, List
 } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = config.apiBaseUrl;
 
 const AdminDashboard = () => {
   const [activePage, setActivePage] = useState('dashboard');
