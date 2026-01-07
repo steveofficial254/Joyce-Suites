@@ -1,9 +1,8 @@
-# backend/models/payment.py - CORRECT PYTHON VERSION
 from datetime import datetime
 from .base import db
 
 # Define payment status constants
-PAYMENT_STATUSES = ['pending', 'completed', 'failed', 'refunded', 'cancelled']
+PAYMENT_STATUSES = ['pending', 'completed', 'failed', 'refunded', 'cancelled', 'paid', 'unpaid']
 
 class Payment(db.Model):
     __tablename__ = 'payments'
@@ -11,24 +10,26 @@ class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False)
     lease_id = db.Column(db.Integer, db.ForeignKey('leases.id'), nullable=True)
-    amount = db.Column(db.Float, nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    amount_paid = db.Column(db.Numeric(10, 2), default=0)
     status = db.Column(db.String(20), nullable=False, default='pending')
     payment_method = db.Column(db.String(50))
-    payment_date = db.Column(db.DateTime, default=datetime.utcnow)
+    payment_date = db.Column(db.DateTime)
     reference_number = db.Column(db.String(100))
     description = db.Column(db.Text)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
-    tenant = db.relationship('Tenant', back_populates='payments')
-    lease = db.relationship('Lease', back_populates='payments')
+    # Relationships - use string references to avoid circular imports
+    tenant = db.relationship('Tenant', back_populates='payments', foreign_keys=[tenant_id])
+    lease = db.relationship('Lease', back_populates='payments', foreign_keys=[lease_id])
     
     def __init__(self, tenant_id, amount, status='pending', payment_method=None, 
-                 reference_number=None, description=None, lease_id=None):
+                 reference_number=None, description=None, lease_id=None, amount_paid=0):
         self.tenant_id = tenant_id
         self.amount = amount
+        self.amount_paid = amount_paid
         self.status = status
         self.payment_method = payment_method
         self.reference_number = reference_number
@@ -44,7 +45,8 @@ class Payment(db.Model):
             'id': self.id,
             'tenant_id': self.tenant_id,
             'lease_id': self.lease_id,
-            'amount': self.amount,
+            'amount': float(self.amount) if self.amount else 0.0,
+            'amount_paid': float(self.amount_paid) if self.amount_paid else 0.0,
             'status': self.status,
             'payment_method': self.payment_method,
             'payment_date': self.payment_date.isoformat() if self.payment_date else None,
@@ -57,7 +59,7 @@ class Payment(db.Model):
     
     def mark_as_completed(self, reference_number=None):
         """Mark payment as completed"""
-        self.status = 'completed'
+        self.status = 'paid'
         if reference_number:
             self.reference_number = reference_number
         self.payment_date = datetime.utcnow()
@@ -67,4 +69,3 @@ class Payment(db.Model):
         """Mark payment as failed"""
         self.status = 'failed'
         return self
-    
