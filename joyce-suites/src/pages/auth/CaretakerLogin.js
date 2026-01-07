@@ -5,7 +5,6 @@ import logo from '../../assets/image1.png';
 import backgroundImage from '../../assets/image21.jpg';
 import config from '../../config';
 
-
 const CaretakerLogin = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -34,6 +33,84 @@ const CaretakerLogin = () => {
     if (error) setError('');
   };
 
+  const clearStoredAuth = () => {
+    const keysToRemove = [
+      'token',
+      'joyce-suites-token',
+      'joyce-suites-user',
+      'userRole',
+      'userId',
+      'userEmail',
+      'userFullName'
+    ];
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+  };
+
+  const storeAuthData = (user, token) => {
+    const userData = {
+      id: user.user_id,
+      user_id: user.user_id,
+      email: user.email,
+      full_name: user.full_name,
+      role: user.role,
+      phone_number: user.phone || user.phone_number,
+      loginTime: new Date().toISOString()
+    };
+
+    localStorage.setItem('joyce-suites-token', token);
+    localStorage.setItem('userRole', user.role);
+    localStorage.setItem('userId', user.user_id);
+    localStorage.setItem('userEmail', user.email);
+    localStorage.setItem('userFullName', user.full_name);
+    localStorage.setItem('joyce-suites-user', JSON.stringify(userData));
+
+    console.log('💾 Auth data saved successfully');
+  };
+
+  const getErrorMessage = (err, status = null, responseData = null) => {
+    // Network/connectivity errors
+    if (err?.message?.includes('Failed to fetch')) {
+      return 'Network error: Unable to reach the server. Please check your internet connection.';
+    }
+
+    if (err instanceof TypeError) {
+      return 'Connection failed. Please check your internet and try again.';
+    }
+
+    if (err instanceof SyntaxError) {
+      return 'Server returned invalid data. Please try again.';
+    }
+
+    // HTTP status-based errors
+    if (status === 401) {
+      return 'Invalid email or password. Please try again.';
+    }
+
+    if (status === 403) {
+      return 'Access denied. This portal is for caretakers only.';
+    }
+
+    if (status === 400) {
+      return responseData?.error || 'Invalid login credentials.';
+    }
+
+    if (status && status >= 500) {
+      return 'Server error. Please try again later.';
+    }
+
+    // API response errors
+    if (responseData?.error) {
+      return responseData.error;
+    }
+
+    if (responseData?.message) {
+      return responseData.message;
+    }
+
+    // Generic fallback
+    return 'Login failed. Please try again.';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -41,123 +118,117 @@ const CaretakerLogin = () => {
 
     try {
       console.log('🧹 Clearing old tokens...');
-      localStorage.removeItem('token');
-      localStorage.removeItem('joyce-suites-token');
-      localStorage.removeItem('joyce-suites-user');
+      clearStoredAuth();
 
+      // Validate form inputs
       if (!formData.email || !formData.password) {
         setError('Email and password are required');
         setLoading(false);
         return;
       }
 
-      console.log('📡 Attempting caretaker login with email:', formData.email);
+      const email = formData.email.trim().toLowerCase();
+      console.log('📡 Attempting caretaker login with email:', email);
 
-      const response = await fetch(`${config.apiBaseUrl}${config.endpoints.auth.login}`, {
+      // Validate config exists
+      if (!config?.apiBaseUrl || !config?.endpoints?.auth?.login) {
+        console.error('❌ Config is not properly initialized');
+        setError('Application configuration error. Please refresh the page.');
+        setLoading(false);
+        return;
+      }
+
+      const loginUrl = `${config.apiBaseUrl}${config.endpoints.auth.login}`;
+      console.log('🔗 Login URL:', loginUrl);
+
+      const response = await fetch(loginUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
-          email: formData.email.trim().toLowerCase(),
+          email: email,
           password: formData.password
         })
       });
 
       // Check response content type
       const contentType = response.headers.get('content-type');
-      
-      if (!contentType || !contentType.includes('application/json')) {
+      if (!contentType?.includes('application/json')) {
         console.error('❌ Invalid response format from server');
-        setError('Server error: Invalid response format. Ensure Flask is running on port 5000.');
+        setError('Server returned invalid data format. Please try again.');
         setLoading(false);
         return;
       }
 
       const data = await response.json();
-      console.log('📨 Login response:', data);
+      console.log('📨 Login response status:', response.status);
 
+      // Handle non-200 responses
       if (!response.ok) {
         console.error('❌ Login failed with status:', response.status);
-        localStorage.removeItem('joyce-suites-token');
-        localStorage.removeItem('joyce-suites-user');
-        setError(data.error || data.message || 'Login failed');
+        clearStoredAuth();
+        const errorMsg = getErrorMessage(null, response.status, data);
+        setError(errorMsg);
         setLoading(false);
         return;
       }
 
+      // Validate success flag
       if (!data.success) {
         console.error('❌ Response marked as not successful');
-        localStorage.removeItem('joyce-suites-token');
-        localStorage.removeItem('joyce-suites-user');
-        setError(data.error || 'Login failed');
+        clearStoredAuth();
+        const errorMsg = getErrorMessage(null, null, data);
+        setError(errorMsg);
         setLoading(false);
         return;
       }
 
-      // Validate response
+      // Validate user data structure
       if (!data.user || !data.user.role) {
         console.error('❌ Invalid response structure');
-        localStorage.removeItem('joyce-suites-token');
-        localStorage.removeItem('joyce-suites-user');
-        setError('Invalid response from server');
+        clearStoredAuth();
+        setError('Invalid server response. Please try again.');
         setLoading(false);
         return;
       }
 
-      // Check if user is caretaker or admin
-      if (data.user.role !== 'caretaker' && data.user.role !== 'admin') {
-        console.error('❌ User is not authorized for caretaker dashboard, role is:', data.user.role);
-        localStorage.removeItem('joyce-suites-token');
-        localStorage.removeItem('joyce-suites-user');
+      // Validate user role
+      const validRoles = ['caretaker', 'admin'];
+      if (!validRoles.includes(data.user.role)) {
+        console.error('❌ User role not authorized:', data.user.role);
+        clearStoredAuth();
         setError('Access denied. This portal is for caretakers only.');
         setLoading(false);
         return;
       }
 
+      // Validate authentication token
       if (!data.token) {
         console.error('❌ No token in response');
-        setError('Authentication token not received');
+        clearStoredAuth();
+        setError('Authentication failed. Please try again.');
         setLoading(false);
         return;
       }
 
-      // ✅ Store authentication data with consistent key naming
+      // Store authentication data
       console.log('💾 Saving caretaker token and user data...');
-      localStorage.setItem('joyce-suites-token', data.token);
-      localStorage.setItem('userRole', data.user.role);
-      localStorage.setItem('userId', data.user.user_id);
-      localStorage.setItem('userEmail', data.user.email);
-      localStorage.setItem('userFullName', data.user.full_name);
-
-      const userData = {
-        id: data.user.user_id,
-        user_id: data.user.user_id,
-        email: data.user.email,
-        full_name: data.user.full_name,
-        role: data.user.role,
-        phone_number: data.user.phone || data.user.phone_number,
-        loginTime: new Date().toISOString()
-      };
-
-      localStorage.setItem('joyce-suites-user', JSON.stringify(userData));
+      storeAuthData(data.user, data.token);
 
       // Verify token was saved
       const savedToken = localStorage.getItem('joyce-suites-token');
       console.log('🔍 Verification - Token in storage:', savedToken ? '✅ YES' : '❌ NO');
 
       console.log(`✅ ${data.user.role} login successful, redirecting to dashboard...`);
-      
       navigate('/caretaker/dashboard', { replace: true });
 
     } catch (err) {
       console.error('❌ Login error:', err);
-      localStorage.removeItem('joyce-suites-token');
-      localStorage.removeItem('joyce-suites-user');
+      clearStoredAuth();
       
-      if (err.message.includes('Failed to fetch')) {
-        setError('Cannot connect to server. Please ensure Flask is running on port 5000.');
-      } else {
-        setError('Connection error. Please check your internet and try again.');
-      }
+      const errorMsg = getErrorMessage(err);
+      setError(errorMsg);
       setLoading(false);
     }
   };
@@ -166,31 +237,32 @@ const CaretakerLogin = () => {
   const fillDefaultCredentials = () => {
     const defaultEmail = process.env.REACT_APP_DEFAULT_CARETAKER_EMAIL;
     const defaultPassword = process.env.REACT_APP_DEFAULT_CARETAKER_PASSWORD;
-    
+
     if (defaultEmail && defaultPassword) {
       setFormData({
         email: defaultEmail,
         password: defaultPassword
       });
+      setError('');
     } else {
-      setError('Default credentials not configured in environment');
+      setError('Default credentials not configured');
     }
   };
 
   return (
     <div className="login-container" style={{ backgroundImage: `url(${backgroundImage})` }}>
       <div className="login-overlay"></div>
-      
+
       <div className="login-content">
         <div className="login-card">
-          <img src={logo} alt="Joyce Suits Logo" className="login-logo" />
-          <h1>Joyce Suits Apartments</h1>
+          <img src={logo} alt="Joyce Suites Logo" className="login-logo" />
+          <h1>Joyce Suites Apartments</h1>
           <h2>Caretaker Portal</h2>
 
           {error && (
             <div className="alert alert-error">
               <span>{error}</span>
-              <button 
+              <button
                 onClick={() => setError('')}
                 style={{
                   background: 'none',
@@ -200,6 +272,7 @@ const CaretakerLogin = () => {
                   cursor: 'pointer',
                   marginLeft: '10px'
                 }}
+                aria-label="Close error message"
               >
                 ×
               </button>
@@ -237,54 +310,58 @@ const CaretakerLogin = () => {
               />
             </div>
 
-            {process.env.NODE_ENV === 'development' && 
-             process.env.REACT_APP_DEFAULT_CARETAKER_EMAIL && (
-              <button 
-                type="button" 
-                onClick={fillDefaultCredentials}
-                className="btn btn-secondary"
-                style={{ marginBottom: '10px', width: '100%' }}
-                disabled={loading}
-              >
-                Use Default Credentials
-              </button>
-            )}
+            {process.env.NODE_ENV === 'development' &&
+              process.env.REACT_APP_DEFAULT_CARETAKER_EMAIL && (
+                <button
+                  type="button"
+                  onClick={fillDefaultCredentials}
+                  className="btn btn-secondary"
+                  style={{ marginBottom: '10px', width: '100%' }}
+                  disabled={loading}
+                >
+                  Use Default Credentials
+                </button>
+              )}
 
-            <button 
-              type="submit" 
-              className="btn btn-primary" 
+            <button
+              type="submit"
+              className="btn btn-primary"
               disabled={loading}
             >
               {loading ? 'Verifying...' : 'Login to Caretaker Portal'}
             </button>
           </form>
 
-          {process.env.NODE_ENV === 'development' && 
-           process.env.REACT_APP_DEFAULT_CARETAKER_EMAIL && (
-            <div className="login-info" style={{
-              marginTop: '20px',
-              padding: '12px',
-              backgroundColor: '#f0f9ff',
-              borderRadius: '6px',
-              fontSize: '13px',
-              color: '#0369a1'
-            }}>
-              <strong>🔑 Development Mode:</strong><br />
-              Default credentials available via button above
-            </div>
-          )}
+          {process.env.NODE_ENV === 'development' &&
+            process.env.REACT_APP_DEFAULT_CARETAKER_EMAIL && (
+              <div
+                className="login-info"
+                style={{
+                  marginTop: '20px',
+                  padding: '12px',
+                  backgroundColor: '#f0f9ff',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  color: '#0369a1'
+                }}
+              >
+                <strong>🔑 Development Mode:</strong>
+                <br />
+                Default credentials available via button above
+              </div>
+            )}
         </div>
 
         <div className="auth-navigation">
-          <button 
-            onClick={() => navigate('/login')} 
+          <button
+            onClick={() => navigate('/login')}
             className="nav-btn tenant-btn"
             disabled={loading}
           >
             ← Tenant Login
           </button>
-          <button 
-            onClick={() => navigate('/admin-login')} 
+          <button
+            onClick={() => navigate('/admin-login')}
             className="nav-btn admin-btn"
             disabled={loading}
           >
