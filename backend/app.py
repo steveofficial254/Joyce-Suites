@@ -21,15 +21,11 @@ from routes.mpesa_routes import mpesa_bp, payment_bp
 from config import Config
 from models.base import db
 
-# ✅ CRITICAL: Import all models so db.create_all() knows about them
+# Import all models so db.create_all() knows about them
 from models.user import User
 from models.payment import Payment
 from models.lease import Lease
-feature/backend
 from models.maintenance import MaintenanceRequest
-
-from models.maintenance import Maintenance
-main
 from models.vacate_notice import VacateNotice
 from models.bill import Bill
 from models.message import Message
@@ -52,21 +48,22 @@ def create_app():
     Migrate(app, db)
     
     # CORS configuration
+    cors_origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app",
+        "https://joyce-suites-git-feature-backend-steves-projects-d95e3bef.vercel.app",
+        "https://joyce-suites-ptgu4rwra-steves-projects-d95e3bef.vercel.app",
+        "https://joyce-suites-xdkp.onrender.com",
+        "https://joyce-suites-jcfw.vercel.app",
+        "https://*.vercel.app",
+    ]
+    
     CORS(app, 
          resources={
              r"/api/*": {
-                 "origins": [
-                    "http://localhost:3000", 
-                    "http://127.0.0.1:3000", 
-                    "http://localhost:3001",
-                    "https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app",
-                    "https://joyce-suites-git-feature-backend-steves-projects-d95e3bef.vercel.app",
-                    "https://joyce-suites-ptgu4rwra-steves-projects-d95e3bef.vercel.app", 
-                    "https://joyce-suites-xdkp.onrender.com",
-                    "https://joyce-suites-jcfw.vercel.app",
-                    "https://*.vercel.app"  # Allow all Vercel preview deployments
-                ],
-                 
+                 "origins": cors_origins,
                  "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
                  "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
                  "expose_headers": ["Content-Type", "Authorization"],
@@ -75,7 +72,7 @@ def create_app():
              }
          })
     
-    # Rate limiting - More lenient for development and exempt OPTIONS
+    # Rate limiting
     is_development = os.getenv("FLASK_ENV", "development") == "development"
     
     limiter = Limiter(
@@ -83,12 +80,11 @@ def create_app():
         key_func=get_remote_address,
         default_limits=["1000 per day", "200 per hour"] if is_development else ["200 per day", "50 per hour"],
         storage_uri="memory://",
-        # Exempt OPTIONS requests from rate limiting (CORS preflight)
         default_limits_exempt_when=lambda: request.method == "OPTIONS"
     )
     app.limiter = limiter
     
-    # CSRF Protection (exempt API endpoints)
+    # CSRF Protection
     csrf = CSRFProtect(app)
     csrf.exempt(auth_bp)
     csrf.exempt(tenant_bp)
@@ -103,8 +99,7 @@ def create_app():
     register_cli_commands(app)
     register_request_logging(app)
 
-    # Application initialized
-    app.logger.info("🚀 Application initialized - Use 'flask db upgrade' for database setup")
+    app.logger.info("Application initialized")
 
     return app
 
@@ -118,7 +113,6 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(mpesa_bp, url_prefix="/api/mpesa")
     app.register_blueprint(payment_bp, url_prefix="/api/payments")
 
-    # Health endpoints
     @app.route("/", methods=["GET"])
     def root():
         return jsonify({
@@ -151,14 +145,12 @@ def register_blueprints(app: Flask) -> None:
             "timestamp": datetime.utcnow().isoformat()
         }), 200
     
-    # CORS test endpoint
     @app.route("/api/test-cors", methods=["GET", "OPTIONS"])
     def test_cors():
-        """Test endpoint to verify CORS is working"""
         return jsonify({
             "success": True,
             "message": "CORS is working correctly!",
-            "origin": request.headers.get('Origin'),
+            "origin": request.headers.get("Origin"),
             "method": request.method,
             "timestamp": datetime.utcnow().isoformat()
         }), 200
@@ -204,34 +196,30 @@ def register_cli_commands(app: Flask) -> None:
     """Register CLI commands for DB management."""
     @app.cli.command("init-db")
     def init_db():
-        """Initialize database tables (development only)."""
         if os.getenv("FLASK_ENV") == "production":
-            print("❌ Cannot run init-db in production. Use 'flask db upgrade' instead.")
+            print("Cannot run init-db in production. Use 'flask db upgrade' instead.")
             return
         with app.app_context():
             db.create_all()
-        print("✅ Database initialized successfully.")
+        print("Database initialized successfully.")
 
     @app.cli.command("drop-db")
     def drop_db():
-        """Drop all tables (use with caution)."""
         if os.getenv("FLASK_ENV") == "production":
-            print("❌ Cannot run drop-db in production!")
+            print("Cannot run drop-db in production!")
             return
         confirm = input("Are you sure you want to drop all tables? (y/n): ")
         if confirm.lower() == "y":
             with app.app_context():
                 db.drop_all()
-            print("✅ All tables dropped.")
+            print("All tables dropped.")
         else:
-            print("❌ Operation canceled.")
+            print("Operation canceled.")
 
     @app.cli.command("seed-db")
     def seed_db():
-        """Seed initial data (development/testing only)."""
         if os.getenv("FLASK_ENV") == "production":
-            print("❌ Cannot seed database in production!")
-            print("   Create admin users manually with strong passwords.")
+            print("Cannot seed database in production!")
             return
             
         import uuid
@@ -241,7 +229,6 @@ def register_cli_commands(app: Flask) -> None:
                 print("Database already seeded.")
                 return
 
-            # Create test users (development only)
             admin = User(
                 email="admin@joycesuites.com",
                 username=f"admin_{str(uuid.uuid4())[:8]}",
@@ -280,7 +267,7 @@ def register_cli_commands(app: Flask) -> None:
             
             db.session.add_all([admin, caretaker, tenant])
             db.session.commit()
-            print("✅ Seeded admin, caretaker, and tenant users (DEV ONLY).")
+            print("Seeded admin, caretaker, and tenant users.")
 
 
 def configure_logging(app: Flask) -> None:
@@ -297,7 +284,7 @@ def configure_logging(app: Flask) -> None:
 
     app.logger.addHandler(handler)
     app.logger.setLevel(logging.INFO)
-    app.logger.info(f"🚀 Joyce Suites API started - Env: {os.getenv('FLASK_ENV', 'development')}")
+    app.logger.info(f"Joyce Suites API started - Env: {os.getenv('FLASK_ENV', 'development')}")
 
 
 def check_db_connection(app: Flask) -> bool:
@@ -311,10 +298,9 @@ def check_db_connection(app: Flask) -> bool:
 
 
 def register_request_logging(app: Flask) -> None:
-    """Log all incoming requests for security auditing."""
+    """Log all incoming requests."""
     @app.before_request
     def log_request_info():
-        # Skip logging for OPTIONS requests (CORS preflight)
         if request.method != "OPTIONS":
             app.logger.info(
                 f"{request.method} {request.path} | "
@@ -323,28 +309,23 @@ def register_request_logging(app: Flask) -> None:
             )
 
 
-# ✅ Expose app globally for Gunicorn / Render
+# Expose app globally for Gunicorn / Render
 app = create_app()
 
 
 if __name__ == "__main__":
-    # ✅ Dynamic port binding for Render
     host = os.getenv("FLASK_HOST", "0.0.0.0")
     port = int(os.getenv("PORT", 5000))
     debug = os.getenv("FLASK_ENV", "development") == "development"
 
-    # Verify database connection on startup
     with app.app_context():
         try:
             if check_db_connection(app):
-                app.logger.info("✅ Database connection verified")
+                app.logger.info("Database connection verified")
             else:
-                app.logger.error("❌ Database connection failed")
+                app.logger.error("Database connection failed")
         except Exception as e:
-            app.logger.error(f"❌ Database verification failed: {e}")
+            app.logger.error(f"Database verification failed: {e}")
 
-    print(f"\n🌍 Joyce Suites API running on http://{host}:{port} (Env: {os.getenv('FLASK_ENV')})")
-    print("📚 Database: Use 'flask db upgrade' to apply migrations")
-    print(f"⚡ Rate Limiting: {'Lenient (Development)' if debug else 'Strict (Production)'}")
-    print(f"🔒 CORS: Enabled for localhost:3000, localhost:3001")
+    print(f"\nJoyce Suites API running on http://{host}:{port}")
     app.run(host=host, port=port, debug=debug, use_reloader=debug)
