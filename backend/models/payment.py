@@ -1,3 +1,4 @@
+# backend/models/payment.py
 from datetime import datetime
 from .base import db
 
@@ -21,20 +22,7 @@ class Payment(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships - use string references to avoid circular imports
-    tenant = db.relationship('Tenant', back_populates='payments', foreign_keys=[tenant_id])
-    lease = db.relationship('Lease', back_populates='payments', foreign_keys=[lease_id])
-    
-    def __init__(self, tenant_id, amount, status='pending', payment_method=None, 
-                 reference_number=None, description=None, lease_id=None, amount_paid=0):
-        self.tenant_id = tenant_id
-        self.amount = amount
-        self.amount_paid = amount_paid
-        self.status = status
-        self.payment_method = payment_method
-        self.reference_number = reference_number
-        self.description = description
-        self.lease_id = lease_id
+    # NO RELATIONSHIPS DEFINED HERE - they are defined in Tenant and Lease models
     
     def __repr__(self):
         return f'<Payment {self.id}: {self.amount} {self.status}>'

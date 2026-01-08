@@ -1,7 +1,6 @@
 # backend/models/tenant.py
 from datetime import datetime
 from .base import db
-from .user import User
 
 class Tenant(db.Model):
     __tablename__ = 'tenants'
@@ -17,8 +16,9 @@ class Tenant(db.Model):
     
     # Relationships
     user = db.relationship('User', backref='tenant_profile', uselist=False)
-    leases = db.relationship('Lease', back_populates='tenant')
-    payments = db.relationship('Payment', back_populates='tenant')
+    leases = db.relationship('Lease', back_populates='tenant', lazy='dynamic')
+    payments = db.relationship('Payment', backref='tenant', lazy='dynamic', 
+                               foreign_keys='[Payment.tenant_id]')
     
     def __repr__(self):
         return f'<Tenant {self.id}: {self.user.full_name if self.user else "No User"}>'
