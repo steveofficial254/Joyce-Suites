@@ -1,28 +1,33 @@
 # backend/models/payment.py
 from datetime import datetime
-from .base import db
+from sqlalchemy_serializer import SerializerMixin
+from .base import BaseModel, db
 
 # Define payment status constants
 PAYMENT_STATUSES = ['pending', 'completed', 'failed', 'refunded', 'cancelled', 'paid', 'unpaid']
 
-class Payment(db.Model):
+class Payment(BaseModel, SerializerMixin):
     __tablename__ = 'payments'
     
-    id = db.Column(db.Integer, primary_key=True)
-    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     lease_id = db.Column(db.Integer, db.ForeignKey('leases.id'), nullable=True)
-    amount = db.Column(db.Numeric(10, 2), nullable=False)
-    amount_paid = db.Column(db.Numeric(10, 2), default=0)
+    amount = db.Column(db.Float, nullable=False)
+    amount_paid = db.Column(db.Float, default=0)
     status = db.Column(db.String(20), nullable=False, default='pending')
     payment_method = db.Column(db.String(50))
     payment_date = db.Column(db.DateTime)
     reference_number = db.Column(db.String(100))
     description = db.Column(db.Text)
     notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # NO RELATIONSHIPS DEFINED HERE - they are defined in Tenant and Lease models
+    # Relationships
+    tenant = db.relationship('User', back_populates='payments', foreign_keys=[tenant_id])
+    lease = db.relationship('Lease', back_populates='payments', foreign_keys=[lease_id])
+    
+    serialize_rules = (
+        '-tenant.payments',
+        '-lease.payments',
+    )
     
     def __repr__(self):
         return f'<Payment {self.id}: {self.amount} {self.status}>'
