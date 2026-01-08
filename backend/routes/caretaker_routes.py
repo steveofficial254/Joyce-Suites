@@ -34,7 +34,92 @@ def caretaker_required(f):
 
 
 # =========================
-# DASHBOARD
+# OVERVIEW (NEW - REPLACES DASHBOARD)
+# =========================
+@caretaker_bp.route("/overview", methods=["GET"])
+@caretaker_required
+def get_overview():
+    """Get caretaker dashboard overview."""
+    try:
+        pending_maintenance = MaintenanceRequest.query.filter_by(status="pending").count()
+        in_progress_maintenance = MaintenanceRequest.query.filter_by(status="in_progress").count()
+        completed_today = MaintenanceRequest.query.filter(
+            MaintenanceRequest.status == "completed",
+            MaintenanceRequest.updated_at >= datetime.now().date()
+        ).count()
+
+        # Count based on active leases, not property status
+        occupied_properties = Lease.query.filter_by(status="active").count()
+        total_properties = Property.query.count()
+        vacant_properties = total_properties - occupied_properties
+
+        return jsonify({
+            "success": True,
+            "overview": {
+                "pending_maintenance": pending_maintenance,
+                "in_progress_maintenance": in_progress_maintenance,
+                "completed_today": completed_today,
+                "vacant_properties": vacant_properties,
+                "occupied_properties": occupied_properties,
+                "total_properties": total_properties
+            }
+        }), 200
+
+    except Exception as e:
+        print(f"Error in get_overview: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# =========================
+# MAINTENANCE - CREATE (NEW)
+# =========================
+@caretaker_bp.route("/maintenance/create", methods=["POST"])
+@caretaker_required
+def create_maintenance_request():
+    """Create a new maintenance request."""
+    try:
+        data = request.get_json()
+
+        # Validate required fields
+        for field in ["property_id", "title", "description", "priority"]:
+            if field not in data:
+                return jsonify({"success": False, "error": f"{field} is required"}), 400
+
+        # Check if property exists
+        prop = Property.query.get(data["property_id"])
+        if not prop:
+            return jsonify({"success": False, "error": "Property not found"}), 404
+
+        # Create new maintenance request
+        maintenance = MaintenanceRequest(
+            property_id=data["property_id"],
+            title=data["title"],
+            description=data["description"],
+            priority=data.get("priority", "normal"),
+            status="pending"
+        )
+
+        db.session.add(maintenance)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Maintenance request created successfully",
+            "request": maintenance.to_dict()
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in create_maintenance_request: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# =========================
+# DASHBOARD (LEGACY - KEPT FOR BACKWARD COMPATIBILITY)
 # =========================
 @caretaker_bp.route("/dashboard", methods=["GET"])
 @caretaker_required
@@ -76,7 +161,7 @@ def get_dashboard():
 
 
 # =========================
-# MAINTENANCE
+# MAINTENANCE - LIST & UPDATE
 # =========================
 @caretaker_bp.route("/maintenance", methods=["GET"])
 @caretaker_required
@@ -180,6 +265,193 @@ def send_tenant_notification():
     except Exception as e:
         db.session.rollback()
         print(f"Error in send_tenant_notification: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# =========================
+# ROOMS ENDPOINTS - MATCH DASHBOARD EXPECTATIONS
+# =========================
+@caretaker_bp.route("/rooms/available", methods=["GET"])
+@caretaker_required
+def get_available_rooms():
+    """Get all available (vacant) rooms."""
+    try:
+        # Get all properties that don't have an active lease
+        occupied_property_ids = [lease.property_id for lease in Lease.query.filter_by(status="active").all()]
+        
+        vacant_properties = Property.query.filter(
+            ~Property.id.in_(occupied_property_ids)
+        ).all()
+        
+        rooms = []
+        for prop in vacant_properties:
+            # Convert Decimal to float
+            rent_amount = float(prop.rent_amount) if prop.rent_amount else 0.0
+            
+            rooms.append({
+                "id": prop.id,
+                "name": prop.name,
+                "property_type": prop.property_type,  # FIXED: was 'type'
+                "rent_amount": rent_amount,
+                "status": "vacant",
+                "description": prop.description
+            })
+
+        return jsonify({
+            "success": True,
+            "available_rooms": rooms,
+            "total_available": len(rooms)
+        }), 200
+
+    except Exception as e:
+        print(f"Error in get_available_rooms: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False, 
+            "error": str(e)
+        }), 500
+
+
+@caretaker_bp.route("/rooms/occupied", methods=["GET"])
+@caretaker_required
+def get_occupied_rooms():
+    """Get all occupied rooms with tenant info."""
+    try:
+        # Get all active leases instead of relying on property status
+        active_leases = Lease.query.filter_by(status="active").all()
+        rooms = []
+
+        for lease in active_leases:
+            prop = lease.property
+            if not prop:
+                continue
+            
+            # Convert Decimal to float
+            rent_amount = float(prop.rent_amount) if prop.rent_amount else 0.0
+                
+            room_data = {
+                "id": prop.id,
+                "name": prop.name,
+                "property_type": prop.property_type,  # FIXED: was 'type'
+                "rent_amount": rent_amount,
+                "status": "occupied",
+                "description": prop.description,
+                "tenant_name": lease.tenant.full_name if lease.tenant else None,
+                "tenant_phone": lease.tenant.phone_number if lease.tenant else None,
+                "lease_id": lease.id
+            }
+
+            rooms.append(room_data)
+
+        return jsonify({
+            "success": True,
+            "occupied_rooms": rooms,
+            "total_occupied": len(rooms)
+        }), 200
+
+    except Exception as e:
+        print(f"Error in get_occupied_rooms: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@caretaker_bp.route("/rooms/all", methods=["GET"])
+@caretaker_required
+def get_all_rooms():
+    """Get all rooms (both vacant and occupied)."""
+    try:
+        all_properties = Property.query.all()
+        occupied_property_ids = [lease.property_id for lease in Lease.query.filter_by(status="active").all()]
+        rooms = []
+
+        for prop in all_properties:
+            # Determine actual status based on active leases
+            is_occupied = prop.id in occupied_property_ids
+            
+            # Convert Decimal to float
+            rent_amount = float(prop.rent_amount) if prop.rent_amount else 0.0
+            
+            room_data = {
+                "id": prop.id,
+                "name": prop.name,
+                "property_type": prop.property_type,  # FIXED: was 'type'
+                "rent_amount": rent_amount,
+                "status": "occupied" if is_occupied else "vacant",
+                "description": prop.description,
+                "tenant_name": None,
+                "tenant_phone": None,
+                "lease_id": None
+            }
+
+            # If occupied, get tenant info
+            if is_occupied:
+                lease = Lease.query.filter_by(
+                    property_id=prop.id,
+                    status="active"
+                ).first()
+                
+                if lease and lease.tenant:
+                    room_data["tenant_name"] = lease.tenant.full_name
+                    room_data["tenant_phone"] = lease.tenant.phone_number
+                    room_data["lease_id"] = lease.id
+
+            rooms.append(room_data)
+
+        return jsonify({
+            "success": True,
+            "rooms": rooms,
+            "total": len(rooms)
+        }), 200
+
+    except Exception as e:
+        print(f"Error in get_all_rooms: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@caretaker_bp.route("/rooms/public", methods=["GET"])
+def get_public_rooms():
+    """Public endpoint for tenant registration."""
+    try:
+        # Get all properties that don't have an active lease
+        occupied_property_ids = [lease.property_id for lease in Lease.query.filter_by(status="active").all()]
+        
+        vacant_properties = Property.query.filter(
+            ~Property.id.in_(occupied_property_ids)
+        ).all()
+
+        rooms = []
+        for prop in vacant_properties:
+            # Convert Decimal to float
+            rent_amount = float(prop.rent_amount) if prop.rent_amount else 0.0
+            
+            rooms.append({
+                "id": prop.id,
+                "name": prop.name,
+                "property_type": prop.property_type,  # FIXED: was 'type'
+                "rent_amount": rent_amount,
+                "description": prop.description
+            })
+
+        return jsonify({
+            "success": True,
+            "rooms": rooms,
+            "total": len(rooms)
+        }), 200
+
+    except Exception as e:
+        print(f"Error in get_public_rooms: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
@@ -446,195 +718,6 @@ def mark_payment_status():
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
-
-# =========================
-# ROOMS (PUBLIC — NO AUTH)
-# =========================
-@caretaker_bp.route("/rooms/public", methods=["GET"])
-def get_public_rooms():
-    """Public endpoint for tenant registration."""
-    try:
-        # Get all properties that don't have an active lease
-        occupied_property_ids = [lease.property_id for lease in Lease.query.filter_by(status="active").all()]
-        
-        vacant_properties = Property.query.filter(
-            ~Property.id.in_(occupied_property_ids)
-        ).all()
-
-        rooms = []
-        for prop in vacant_properties:
-            # Convert Decimal to float
-            rent_amount = float(prop.rent_amount) if prop.rent_amount else 0.0
-            
-            rooms.append({
-                "id": prop.id,
-                "name": prop.name,
-                "type": prop.property_type,
-                "rent_amount": rent_amount,
-                "description": prop.description
-            })
-
-        return jsonify({
-            "success": True,
-            "rooms": rooms,
-            "total": len(rooms)
-        }), 200
-
-    except Exception as e:
-        print(f"Error in get_public_rooms: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-# =========================
-# ROOMS (PROTECTED)
-# =========================
-@caretaker_bp.route("/rooms/available", methods=["GET"])
-@caretaker_required
-def get_available_rooms():
-    """Get all available (vacant) rooms."""
-    try:
-        # Get all properties that don't have an active lease
-        occupied_property_ids = [lease.property_id for lease in Lease.query.filter_by(status="active").all()]
-        
-        vacant_properties = Property.query.filter(
-            ~Property.id.in_(occupied_property_ids)
-        ).all()
-        
-        rooms = []
-        for prop in vacant_properties:
-            # Convert Decimal to float
-            rent_amount = float(prop.rent_amount) if prop.rent_amount else 0.0
-            
-            rooms.append({
-                "id": prop.id,
-                "name": prop.name,
-                "type": prop.property_type,
-                "rent_amount": rent_amount,
-                "status": "vacant",
-                "description": prop.description
-            })
-
-        return jsonify({
-            "success": True,
-            "available_rooms": rooms,
-            "total_available": len(rooms)
-        }), 200
-
-    except Exception as e:
-        print(f"Error in get_available_rooms: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            "success": False, 
-            "error": str(e)
-        }), 500
-
-
-@caretaker_bp.route("/rooms/occupied", methods=["GET"])
-@caretaker_required
-def get_occupied_rooms():
-    """Get all occupied rooms with tenant info."""
-    try:
-        # Get all active leases instead of relying on property status
-        active_leases = Lease.query.filter_by(status="active").all()
-        rooms = []
-
-        for lease in active_leases:
-            prop = lease.property
-            if not prop:
-                continue
-            
-            # Convert Decimal to float
-            rent_amount = float(prop.rent_amount) if prop.rent_amount else 0.0
-                
-            room_data = {
-                "id": prop.id,
-                "name": prop.name,
-                "type": prop.property_type,
-                "rent_amount": rent_amount,
-                "status": "occupied",
-                "description": prop.description,
-                "tenant_name": lease.tenant.full_name if lease.tenant else None,
-                "tenant_phone": lease.tenant.phone_number if lease.tenant else None,
-                "lease_id": lease.id
-            }
-
-            rooms.append(room_data)
-
-        return jsonify({
-            "success": True,
-            "occupied_rooms": rooms,
-            "total_occupied": len(rooms)
-        }), 200
-
-    except Exception as e:
-        print(f"Error in get_occupied_rooms: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
-
-
-@caretaker_bp.route("/rooms/all", methods=["GET"])
-@caretaker_required
-def get_all_rooms():
-    """Get all rooms (both vacant and occupied)."""
-    try:
-        all_properties = Property.query.all()
-        occupied_property_ids = [lease.property_id for lease in Lease.query.filter_by(status="active").all()]
-        rooms = []
-
-        for prop in all_properties:
-            # Determine actual status based on active leases
-            is_occupied = prop.id in occupied_property_ids
-            
-            # Convert Decimal to float
-            rent_amount = float(prop.rent_amount) if prop.rent_amount else 0.0
-            
-            room_data = {
-                "id": prop.id,
-                "name": prop.name,
-                "type": prop.property_type,
-                "rent_amount": rent_amount,
-                "status": "occupied" if is_occupied else "vacant",
-                "description": prop.description,
-                "tenant_name": None,
-                "tenant_phone": None,
-                "lease_id": None
-            }
-
-            # If occupied, get tenant info
-            if is_occupied:
-                lease = Lease.query.filter_by(
-                    property_id=prop.id,
-                    status="active"
-                ).first()
-                
-                if lease and lease.tenant:
-                    room_data["tenant_name"] = lease.tenant.full_name
-                    room_data["tenant_phone"] = lease.tenant.phone_number
-                    room_data["lease_id"] = lease.id
-
-            rooms.append(room_data)
-
-        return jsonify({
-            "success": True,
-            "rooms": rooms,
-            "total": len(rooms)
-        }), 200
-
-    except Exception as e:
-        print(f"Error in get_all_rooms: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
 
 
 # =========================

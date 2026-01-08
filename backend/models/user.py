@@ -39,6 +39,12 @@ class User(BaseModel, SerializerMixin):
         back_populates="landlord",
         foreign_keys="Property.landlord_id"
     )
+    payments = db.relationship(
+        'Payment', 
+        back_populates='tenant',
+        foreign_keys='Payment.tenant_id',
+        lazy='dynamic'
+    )
     assigned_maintenance = db.relationship(
         'MaintenanceRequest', 
         foreign_keys='MaintenanceRequest.assigned_to_id',
@@ -64,6 +70,7 @@ class User(BaseModel, SerializerMixin):
         "-assigned_maintenance.assigned_to",
         "-reported_maintenance.reported_by",
         "-messages.user",
+        "-payments.tenant",
         "-notifications.user",
         "-reset_passwords.user"
     )

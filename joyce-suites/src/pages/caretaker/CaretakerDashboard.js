@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Menu, LogOut, X, Bell, Eye, Edit, Trash2, Filter, Search, 
-  Download, Mail, Phone, FileText, ArrowLeft, User, Send, 
+import {
+  Menu, LogOut, X, Bell, Eye, Edit, Trash2, Filter, Search,
+  Download, Mail, Phone, FileText, ArrowLeft, User, Send,
   Check, AlertCircle, Home, Plus, Calendar, DollarSign,
   Building, Users, CreditCard, Key, CheckCircle, Clock, UserPlus,
   RefreshCw, XCircle, Wrench, AlertTriangle, UserX, MessageSquare,
-  TrendingUp, PieChart, FileSpreadsheet, DoorOpen, List
+  TrendingUp, PieChart, FileSpreadsheet, DoorOpen, List, CreditCard as PaymentIcon,
+  FileCheck, AlertOctagon, Home as RoomIcon, CalendarDays, UserCheck,
+  Receipt, FileWarning, ShieldCheck, ShieldX, CalendarCheck, CalendarX,
+  BedDouble, Bath, Square, Layers, MapPin
 } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
 
-const AdminDashboard = () => {
+const CaretakerDashboard = () => {
   const [activePage, setActivePage] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -19,39 +22,44 @@ const AdminDashboard = () => {
 
   // State for all data
   const [overview, setOverview] = useState(null);
-  const [tenants, setTenants] = useState([]);
-  const [contracts, setContracts] = useState([]);
-  const [paymentReport, setPaymentReport] = useState(null);
-  const [occupancyReport, setOccupancyReport] = useState(null);
-  const [availableRooms, setAvailableRooms] = useState([]);
   const [maintenanceRequests, setMaintenanceRequests] = useState([]);
-  const [vacateNotices, setVacateNotices] = useState([]);
+  const [availableRooms, setAvailableRooms] = useState([]);
+  const [occupiedRooms, setOccupiedRooms] = useState([]);
+  const [allRooms, setAllRooms] = useState([]);
+  const [tenants, setTenants] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  
+  const [pendingPayments, setPendingPayments] = useState([]);
+  const [allTenantsPaymentStatus, setAllTenantsPaymentStatus] = useState([]);
+  const [vacateNotices, setVacateNotices] = useState([]);
+
   // Modal states
-  const [selectedTenant, setSelectedTenant] = useState(null);
-  const [showTenantModal, setShowTenantModal] = useState(false);
-  const [showCreateTenantModal, setShowCreateTenantModal] = useState(false);
-  const [showCreateLeaseModal, setShowCreateLeaseModal] = useState(false);
-  const [tenantForLease, setTenantForLease] = useState(null);
-  const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [selectedMaintenanceRequest, setSelectedMaintenanceRequest] = useState(null);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [showCreateMaintenanceModal, setShowCreateMaintenanceModal] = useState(false);
+  const [showSendNotificationModal, setShowSendNotificationModal] = useState(false);
+  const [showMarkPaymentModal, setShowMarkPaymentModal] = useState(false);
+  const [selectedTenantForPayment, setSelectedTenantForPayment] = useState(null);
+  const [showVacateNoticeModal, setShowVacateNoticeModal] = useState(false);
   const [selectedVacateNotice, setSelectedVacateNotice] = useState(null);
-  const [showVacateModal, setShowVacateModal] = useState(false);
+  const [showCreateVacateNoticeModal, setShowCreateVacateNoticeModal] = useState(false);
+  const [selectedLeaseForVacate, setSelectedLeaseForVacate] = useState(null);
 
-  const token = localStorage.getItem('token') || localStorage.getItem('joyce-suites-token');
+  const getToken = () => {
+    return localStorage.getItem('token') || localStorage.getItem('joyce-suites-token');
+  };
 
-  useEffect(() => {
-    console.log('Token check:', token ? 'Token found' : 'No token found');
-    console.log('API Base URL:', API_BASE_URL);
-  }, [token]);
-
-  // Enhanced API call helper with better error handling
+  // Enhanced API call helper
   const apiCall = async (endpoint, options = {}) => {
+    const token = getToken();
+    
+    if (!token) {
+      console.error('No token available');
+      localStorage.clear();
+      window.location.href = '/caretaker-login';
+      return null;
+    }
+
     try {
-      console.log('Making API call to:', `${API_BASE_URL}${endpoint}`);
-      
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers: {
@@ -61,17 +69,13 @@ const AdminDashboard = () => {
         },
       });
 
-      console.log('Response status:', response.status);
-
       if (response.status === 401 || response.status === 403) {
-        console.error('Unauthorized - redirecting to login');
         localStorage.clear();
-        window.location.href = '/admin-login';
+        window.location.href = '/caretaker-login';
         return null;
       }
 
       const data = await response.json();
-      console.log('Response data:', data);
 
       if (!response.ok) {
         throw new Error(data.error || data.message || `HTTP ${response.status}`);
@@ -80,78 +84,19 @@ const AdminDashboard = () => {
       return data;
     } catch (err) {
       console.error('API call error:', err);
-      setError(err.message);
       throw err;
     }
   };
 
   // Fetch functions
   const fetchOverview = async () => {
-    setLoading(true);
     try {
-      const data = await apiCall('/api/admin/overview');
+      const data = await apiCall('/api/caretaker/overview');
       if (data && data.success) {
         setOverview(data.overview);
       }
     } catch (err) {
       console.error('Failed to fetch overview:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchTenants = async () => {
-    try {
-      const data = await apiCall('/api/admin/tenants?page=1&per_page=100');
-      if (data && data.success) {
-        setTenants(data.tenants || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch tenants:', err);
-    }
-  };
-
-  const fetchContracts = async () => {
-    try {
-      const data = await apiCall('/api/admin/contracts?page=1&per_page=100');
-      if (data && data.success) {
-        setContracts(data.contracts || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch contracts:', err);
-    }
-  };
-
-  const fetchPaymentReport = async () => {
-    try {
-      const data = await apiCall('/api/admin/payments/report');
-      if (data && data.success) {
-        setPaymentReport(data.report);
-      }
-    } catch (err) {
-      console.error('Failed to fetch payment report:', err);
-    }
-  };
-
-  const fetchOccupancyReport = async () => {
-    try {
-      const data = await apiCall('/api/admin/occupancy/report');
-      if (data && data.success) {
-        setOccupancyReport(data.report);
-      }
-    } catch (err) {
-      console.error('Failed to fetch occupancy report:', err);
-    }
-  };
-
-  const fetchAvailableRooms = async () => {
-    try {
-      const data = await apiCall('/api/caretaker/rooms/available');
-      if (data && data.success) {
-        setAvailableRooms(data.available_rooms || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch rooms:', err);
     }
   };
 
@@ -166,110 +111,80 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchAvailableRooms = async () => {
+    try {
+      const data = await apiCall('/api/caretaker/rooms/available');
+      if (data && data.success) {
+        setAvailableRooms(data.available_rooms || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch available rooms:', err);
+    }
+  };
+
+  const fetchOccupiedRooms = async () => {
+    try {
+      const data = await apiCall('/api/caretaker/rooms/occupied');
+      if (data && data.success) {
+        setOccupiedRooms(data.occupied_rooms || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch occupied rooms:', err);
+    }
+  };
+
+  const fetchAllRooms = async () => {
+    try {
+      const data = await apiCall('/api/caretaker/rooms/all');
+      if (data && data.success) {
+        setAllRooms(data.rooms || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch all rooms:', err);
+    }
+  };
+
+  const fetchTenants = async () => {
+    try {
+      const data = await apiCall('/api/caretaker/tenants?page=1&per_page=100');
+      if (data && data.success) {
+        setTenants(data.tenants || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch tenants:', err);
+    }
+  };
+
+  const fetchPendingPayments = async () => {
+    try {
+      const data = await apiCall('/api/caretaker/payments/pending');
+      if (data && data.success) {
+        setPendingPayments(data.tenants_with_arrears || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch pending payments:', err);
+    }
+  };
+
+  const fetchAllTenantsPaymentStatus = async () => {
+    try {
+      const data = await apiCall('/api/caretaker/payments/all-tenants');
+      if (data && data.success) {
+        setAllTenantsPaymentStatus(data.tenants || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch payment status:', err);
+    }
+  };
+
   const fetchVacateNotices = async () => {
     try {
-      const data = await apiCall('/api/admin/vacate-notices?page=1&per_page=100');
+      const data = await apiCall('/api/caretaker/vacate-notices?per_page=100');
       if (data && data.success) {
         setVacateNotices(data.notices || []);
       }
     } catch (err) {
       console.error('Failed to fetch vacate notices:', err);
-      // Set empty array if endpoint doesn't exist
-      setVacateNotices([]);
-    }
-  };
-
-  const fetchTenantDetails = async (tenantId) => {
-    setLoading(true);
-    try {
-      const data = await apiCall(`/api/admin/tenant/${tenantId}`);
-      if (data && data.success) {
-        setSelectedTenant(data.tenant);
-        setShowTenantModal(true);
-      }
-    } catch (err) {
-      console.error('Failed to fetch tenant details:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // CRUD operations
-  const handleDeleteTenant = async (tenantId) => {
-    if (!window.confirm('Are you sure you want to delete this tenant?')) {
-      return;
-    }
-
-    try {
-      const data = await apiCall(`/api/admin/tenant/delete/${tenantId}`, { method: 'DELETE' });
-      if (data && data.success) {
-        setSuccessMessage('Tenant deleted successfully');
-        setTenants(tenants.filter(t => t.id !== tenantId));
-        setTimeout(() => setSuccessMessage(''), 3000);
-      }
-    } catch (err) {
-      console.error('Failed to delete tenant:', err);
-    }
-  };
-
-  const handleCreateTenant = async (tenantData) => {
-    try {
-      setLoading(true);
-      const data = await apiCall('/api/admin/tenant/create', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: tenantData.email,
-          password: tenantData.password,
-          full_name: tenantData.name,
-          phone: tenantData.phone,
-          national_id: tenantData.national_id,
-          room_number: tenantData.room_number
-        })
-      });
-      
-      if (data && data.success) {
-        setSuccessMessage('Tenant created successfully');
-        await fetchTenants();
-        await fetchOverview();
-        setShowCreateTenantModal(false);
-        setTimeout(() => setSuccessMessage(''), 3000);
-        
-        const createLease = window.confirm('Create lease for this new tenant now?');
-        if (createLease) {
-          setTenantForLease(data.tenant);
-          await fetchAvailableRooms();
-          setShowCreateLeaseModal(true);
-        }
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateLease = async (leaseData) => {
-    try {
-      setLoading(true);
-      const data = await apiCall('/api/admin/lease/create', {
-        method: 'POST',
-        body: JSON.stringify(leaseData)
-      });
-      
-      if (data && data.success) {
-        setSuccessMessage(`Lease created successfully! Tenant can now sign the lease.`);
-        await fetchContracts();
-        await fetchTenants();
-        await fetchAvailableRooms();
-        await fetchOverview();
-        setShowCreateLeaseModal(false);
-        setTenantForLease(null);
-        setTimeout(() => setSuccessMessage(''), 5000);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -279,7 +194,7 @@ const AdminDashboard = () => {
         method: 'PUT',
         body: JSON.stringify({ status: newStatus })
       });
-      
+
       if (data && data.success) {
         setSuccessMessage('Maintenance request updated');
         await fetchMaintenanceRequests();
@@ -291,17 +206,19 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleSendNotification = async (notificationData) => {
+  const handleCreateMaintenance = async (maintenanceData) => {
     try {
       setLoading(true);
-      const data = await apiCall('/api/caretaker/notifications/send', {
+      const data = await apiCall('/api/caretaker/maintenance/create', {
         method: 'POST',
-        body: JSON.stringify(notificationData)
+        body: JSON.stringify(maintenanceData)
       });
-      
+
       if (data && data.success) {
-        setSuccessMessage('Notification sent successfully');
-        setShowNotificationModal(false);
+        setSuccessMessage('Maintenance request created successfully');
+        await fetchMaintenanceRequests();
+        await fetchOverview();
+        setShowCreateMaintenanceModal(false);
         setTimeout(() => setSuccessMessage(''), 3000);
       }
     } catch (err) {
@@ -311,20 +228,120 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleUpdateVacateNoticeStatus = async (noticeId, newStatus, notes = '') => {
+  const handleSendNotification = async (notificationData) => {
     try {
-      const data = await apiCall(`/api/admin/vacate-notices/${noticeId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ status: newStatus, admin_notes: notes })
+      setLoading(true);
+      const data = await apiCall('/api/caretaker/notifications/send', {
+        method: 'POST',
+        body: JSON.stringify(notificationData)
       });
-      
+
       if (data && data.success) {
-        setSuccessMessage(`Vacate notice ${newStatus} successfully`);
+        setSuccessMessage('Notification sent successfully');
+        setShowSendNotificationModal(false);
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkPayment = async (paymentData) => {
+    try {
+      setLoading(true);
+      const data = await apiCall('/api/caretaker/payments/mark', {
+        method: 'POST',
+        body: JSON.stringify(paymentData)
+      });
+
+      if (data && data.success) {
+        setSuccessMessage(`Payment marked as ${paymentData.status}`);
+        await fetchAllTenantsPaymentStatus();
+        await fetchPendingPayments();
+        setShowMarkPaymentModal(false);
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateVacateNotice = async (noticeData) => {
+    try {
+      setLoading(true);
+      const data = await apiCall('/api/caretaker/vacate-notices', {
+        method: 'POST',
+        body: JSON.stringify(noticeData)
+      });
+
+      if (data && data.success) {
+        setSuccessMessage('Vacate notice created successfully');
+        await fetchVacateNotices();
+        await fetchAllTenantsPaymentStatus();
+        setShowCreateVacateNoticeModal(false);
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateVacateNoticeStatus = async (noticeId, action, notes = '') => {
+    try {
+      let endpoint = '';
+      let method = 'POST';
+      
+      switch (action) {
+        case 'approve':
+          endpoint = `/api/caretaker/vacate-notices/${noticeId}/approve`;
+          break;
+        case 'reject':
+          endpoint = `/api/caretaker/vacate-notices/${noticeId}/reject`;
+          break;
+        case 'complete':
+          endpoint = `/api/caretaker/vacate-notices/${noticeId}/complete`;
+          break;
+        default:
+          return;
+      }
+
+      const data = await apiCall(endpoint, {
+        method,
+        body: notes ? JSON.stringify({ admin_notes: notes }) : undefined
+      });
+
+      if (data && data.success) {
+        setSuccessMessage(`Vacate notice ${action}d successfully`);
+        await fetchVacateNotices();
+        setShowVacateNoticeModal(false);
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleDeleteVacateNotice = async (noticeId) => {
+    if (!window.confirm('Are you sure you want to delete this vacate notice?')) return;
+
+    try {
+      const data = await apiCall(`/api/caretaker/vacate-notices/${noticeId}`, {
+        method: 'DELETE'
+      });
+
+      if (data && data.success) {
+        setSuccessMessage('Vacate notice deleted successfully');
         await fetchVacateNotices();
         setTimeout(() => setSuccessMessage(''), 3000);
       }
     } catch (err) {
-      console.error('Failed to update vacate notice:', err);
+      setError(err.message);
     }
   };
 
@@ -335,112 +352,118 @@ const AdminDashboard = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${API_BASE_URL}/api/auth/logout`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const token = getToken();
+      if (token) {
+        await fetch(`${API_BASE_URL}/api/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      }
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
       localStorage.clear();
-      window.location.href = '/admin-login';
+      window.location.href = '/caretaker-login';
     }
   };
 
   useEffect(() => {
+    const token = getToken();
     if (!token) {
-      console.error('No token found - redirecting to login');
-      window.location.href = '/admin-login';
+      window.location.href = '/caretaker-login';
       return;
     }
 
     const fetchPageData = async () => {
-      console.log('Fetching data for page:', activePage);
       setLoading(true);
+      setError('');
+      
       try {
         switch (activePage) {
           case 'dashboard':
             await Promise.all([
-              fetchOverview(), 
-              fetchTenants(), 
-              fetchPaymentReport(), 
-              fetchOccupancyReport(),
-              fetchVacateNotices(),
-              fetchMaintenanceRequests()
+              fetchOverview().catch(err => console.error('Overview fetch failed:', err)),
+              fetchMaintenanceRequests().catch(err => console.error('Maintenance fetch failed:', err)),
+              fetchAvailableRooms().catch(err => console.error('Rooms fetch failed:', err)),
+              fetchTenants().catch(err => console.error('Tenants fetch failed:', err)),
+              fetchPendingPayments().catch(err => console.error('Payments fetch failed:', err)),
+              fetchVacateNotices().catch(err => console.error('Vacate notices fetch failed:', err))
             ]);
-            break;
-          case 'contracts':
-            await fetchContracts();
-            await fetchTenants();
-            break;
-          case 'reports':
-            await Promise.all([fetchPaymentReport(), fetchOccupancyReport()]);
-            break;
-          case 'properties':
-            await fetchAvailableRooms();
             break;
           case 'maintenance':
             await fetchMaintenanceRequests();
             break;
-          case 'notifications':
-            await fetchTenants();
+          case 'properties':
+            await Promise.all([
+              fetchAvailableRooms(),
+              fetchOccupiedRooms(),
+              fetchAllRooms()
+            ]);
+            break;
+          case 'tenants':
+            await Promise.all([
+              fetchTenants(),
+              fetchAllTenantsPaymentStatus()
+            ]);
+            break;
+          case 'payments':
+            await Promise.all([
+              fetchPendingPayments(),
+              fetchAllTenantsPaymentStatus()
+            ]);
             break;
           case 'vacate':
             await fetchVacateNotices();
+            break;
+          case 'notifications':
             await fetchTenants();
             break;
           default:
             break;
         }
+      } catch (err) {
+        console.error('Page data fetch error:', err);
       } finally {
         setLoading(false);
       }
     };
-
+    
     fetchPageData();
-  }, [activePage, token]);
+  }, [activePage]);
 
   const renderContent = () => {
     switch (activePage) {
       case 'dashboard':
         return (
-          <DashboardPage 
+          <DashboardPage
             overview={overview}
-            paymentReport={paymentReport}
-            occupancyReport={occupancyReport}
-            tenants={tenants}
-            loading={loading}
-            onDeleteTenant={handleDeleteTenant}
-            onViewTenant={fetchTenantDetails}
-            onCreateLease={(tenant) => {
-              setTenantForLease(tenant);
-              fetchAvailableRooms();
-              setShowCreateLeaseModal(true);
-            }}
-            onCreateTenant={() => setShowCreateTenantModal(true)}
-            vacateNotices={vacateNotices}
             maintenanceRequests={maintenanceRequests}
-          />
-        );
-      case 'contracts':
-        return <ContractsPage contracts={contracts} tenants={tenants} loading={loading} />;
-      case 'reports':
-        return (
-          <ReportsPage 
-            paymentReport={paymentReport}
-            occupancyReport={occupancyReport}
+            availableRooms={availableRooms}
+            pendingPayments={pendingPayments}
+            vacateNotices={vacateNotices}
             loading={loading}
-            tenants={tenants}
+            onUpdateStatus={handleUpdateMaintenanceStatus}
+            onViewDetails={(request) => {
+              setSelectedMaintenanceRequest(request);
+              setShowMaintenanceModal(true);
+            }}
+            onCreateMaintenance={() => setShowCreateMaintenanceModal(true)}
+            onMarkPayment={(tenant) => {
+              setSelectedTenantForPayment(tenant);
+              setShowMarkPaymentModal(true);
+            }}
+            onViewVacateNotice={(notice) => {
+              setSelectedVacateNotice(notice);
+              setShowVacateNoticeModal(true);
+            }}
           />
         );
-      case 'properties':
-        return <PropertiesPage availableRooms={availableRooms} loading={loading} />;
       case 'maintenance':
         return (
-          <MaintenancePage 
+          <MaintenancePage
             requests={maintenanceRequests}
             loading={loading}
             onUpdateStatus={handleUpdateMaintenanceStatus}
@@ -448,26 +471,73 @@ const AdminDashboard = () => {
               setSelectedMaintenanceRequest(request);
               setShowMaintenanceModal(true);
             }}
+            onCreateMaintenance={() => setShowCreateMaintenanceModal(true)}
+          />
+        );
+      case 'properties':
+        return (
+          <PropertiesPage
+            availableRooms={availableRooms}
+            occupiedRooms={occupiedRooms}
+            allRooms={allRooms}
+            loading={loading}
+          />
+        );
+      case 'tenants':
+        return (
+          <TenantsPage
+            tenants={tenants}
+            paymentStatus={allTenantsPaymentStatus}
+            loading={loading}
+            onMarkPayment={(tenant) => {
+              setSelectedTenantForPayment(tenant);
+              setShowMarkPaymentModal(true);
+            }}
+            onSendNotification={() => setShowSendNotificationModal(true)}
+            onCreateVacateNotice={(leaseId) => {
+              const tenant = tenants.find(t => t.id === leaseId);
+              if (tenant) {
+                setSelectedLeaseForVacate({
+                  lease_id: leaseId,
+                  tenant_name: tenant.name,
+                  room_number: tenant.room_number
+                });
+                setShowCreateVacateNoticeModal(true);
+              }
+            }}
+          />
+        );
+      case 'payments':
+        return (
+          <PaymentsPage
+            pendingPayments={pendingPayments}
+            allPayments={allTenantsPaymentStatus}
+            loading={loading}
+            onMarkPayment={(tenant) => {
+              setSelectedTenantForPayment(tenant);
+              setShowMarkPaymentModal(true);
+            }}
+          />
+        );
+      case 'vacate':
+        return (
+          <VacatePage
+            notices={vacateNotices}
+            loading={loading}
+            onViewDetails={(notice) => {
+              setSelectedVacateNotice(notice);
+              setShowVacateNoticeModal(true);
+            }}
+            onUpdateStatus={handleUpdateVacateNoticeStatus}
+            onDelete={handleDeleteVacateNotice}
+            onCreateNotice={() => setShowCreateVacateNoticeModal(true)}
           />
         );
       case 'notifications':
         return (
           <NotificationsPage
             tenants={tenants}
-            onSendNotification={() => setShowNotificationModal(true)}
-          />
-        );
-      case 'vacate':
-        return (
-          <VacateNoticesPage
-            notices={vacateNotices}
-            tenants={tenants}
-            loading={loading}
-            onUpdateStatus={handleUpdateVacateNoticeStatus}
-            onViewDetails={(notice) => {
-              setSelectedVacateNotice(notice);
-              setShowVacateModal(true);
-            }}
+            onSendNotification={() => setShowSendNotificationModal(true)}
           />
         );
       default:
@@ -477,7 +547,7 @@ const AdminDashboard = () => {
 
   return (
     <div style={styles.container}>
-      <aside style={{...styles.sidebar, ...(sidebarOpen ? {} : styles.sidebarHidden)}}>
+      <aside style={{ ...styles.sidebar, ...(sidebarOpen ? {} : styles.sidebarHidden) }}>
         <div style={styles.sidebarHeader}>
           <h2 style={styles.sidebarTitle}>Joyce Suites</h2>
           <button style={styles.closeBtn} onClick={() => setSidebarOpen(false)}>
@@ -488,12 +558,12 @@ const AdminDashboard = () => {
         <nav style={styles.nav}>
           {[
             { id: 'dashboard', label: 'Dashboard', icon: Home },
-            { id: 'contracts', label: 'Leases', icon: FileText },
             { id: 'maintenance', label: 'Maintenance', icon: Wrench },
+            { id: 'properties', label: 'Properties', icon: Building },
+            { id: 'tenants', label: 'Tenants', icon: Users },
+            { id: 'payments', label: 'Payments', icon: PaymentIcon },
             { id: 'vacate', label: 'Vacate Notices', icon: DoorOpen },
-            { id: 'notifications', label: 'Notifications', icon: Bell },
-            { id: 'reports', label: 'Reports', icon: FileSpreadsheet },
-            { id: 'properties', label: 'Properties', icon: Building }
+            { id: 'notifications', label: 'Notifications', icon: Bell }
           ].map(item => (
             <button
               key={item.id}
@@ -514,7 +584,7 @@ const AdminDashboard = () => {
             <User size={20} />
           </div>
           <div style={styles.userDetails}>
-            <strong>Admin</strong>
+            <strong>Caretaker</strong>
             <small>Joyce Suites</small>
           </div>
         </div>
@@ -533,13 +603,13 @@ const AdminDashboard = () => {
             <button style={styles.homeBtn} onClick={() => handlePageChange('dashboard')}>
               <Home size={20} />
             </button>
-            <h1 style={styles.headerTitle}>Admin Dashboard</h1>
+            <h1 style={styles.headerTitle}>Caretaker Dashboard</h1>
           </div>
           <div style={styles.headerRight}>
             <button style={styles.refreshBtn} onClick={() => {
               if (activePage === 'dashboard') {
                 fetchOverview();
-                fetchTenants();
+                fetchMaintenanceRequests();
               }
             }}>
               <RefreshCw size={20} />
@@ -574,46 +644,7 @@ const AdminDashboard = () => {
         </section>
       </main>
 
-      {showTenantModal && selectedTenant && (
-        <TenantDetailsModal 
-          tenant={selectedTenant} 
-          onClose={() => {
-            setShowTenantModal(false);
-            setSelectedTenant(null);
-          }}
-        />
-      )}
-
-      {showCreateTenantModal && (
-        <CreateTenantModal
-          onClose={() => setShowCreateTenantModal(false)}
-          onSubmit={handleCreateTenant}
-          loading={loading}
-        />
-      )}
-
-      {showCreateLeaseModal && tenantForLease && (
-        <CreateLeaseModal
-          tenant={tenantForLease}
-          rooms={availableRooms}
-          onClose={() => {
-            setShowCreateLeaseModal(false);
-            setTenantForLease(null);
-          }}
-          onSubmit={handleCreateLease}
-          loading={loading}
-        />
-      )}
-
-      {showNotificationModal && (
-        <SendNotificationModal
-          tenants={tenants}
-          onClose={() => setShowNotificationModal(false)}
-          onSubmit={handleSendNotification}
-          loading={loading}
-        />
-      )}
-
+      {/* Modals */}
       {showMaintenanceModal && selectedMaintenanceRequest && (
         <MaintenanceDetailsModal
           request={selectedMaintenanceRequest}
@@ -625,14 +656,62 @@ const AdminDashboard = () => {
         />
       )}
 
-      {showVacateModal && selectedVacateNotice && (
+      {showCreateMaintenanceModal && (
+        <CreateMaintenanceModal
+          rooms={availableRooms}
+          onClose={() => setShowCreateMaintenanceModal(false)}
+          onSubmit={handleCreateMaintenance}
+          loading={loading}
+        />
+      )}
+
+      {showSendNotificationModal && (
+        <SendNotificationModal
+          tenants={tenants}
+          onClose={() => setShowSendNotificationModal(false)}
+          onSubmit={handleSendNotification}
+          loading={loading}
+        />
+      )}
+
+      {showMarkPaymentModal && selectedTenantForPayment && (
+        <MarkPaymentModal
+          tenant={selectedTenantForPayment}
+          onClose={() => {
+            setShowMarkPaymentModal(false);
+            setSelectedTenantForPayment(null);
+          }}
+          onSubmit={handleMarkPayment}
+          loading={loading}
+        />
+      )}
+
+      {showVacateNoticeModal && selectedVacateNotice && (
         <VacateNoticeDetailsModal
           notice={selectedVacateNotice}
           onClose={() => {
-            setShowVacateModal(false);
+            setShowVacateNoticeModal(false);
             setSelectedVacateNotice(null);
           }}
           onUpdateStatus={handleUpdateVacateNoticeStatus}
+          onDelete={handleDeleteVacateNotice}
+        />
+      )}
+
+      {showCreateVacateNoticeModal && (
+        <CreateVacateNoticeModal
+          leases={occupiedRooms.map(room => ({
+            lease_id: room.lease_id,
+            tenant_name: room.tenant_name,
+            room_number: room.room_number
+          }))}
+          initialData={selectedLeaseForVacate}
+          onClose={() => {
+            setShowCreateVacateNoticeModal(false);
+            setSelectedLeaseForVacate(null);
+          }}
+          onSubmit={handleCreateVacateNotice}
+          loading={loading}
         />
       )}
 
@@ -644,20 +723,19 @@ const AdminDashboard = () => {
 };
 
 // ==================== DASHBOARD PAGE ====================
-const DashboardPage = ({ 
-  overview, 
-  paymentReport, 
-  occupancyReport, 
-  tenants, 
-  loading, 
-  onDeleteTenant, 
-  onViewTenant,
-  onCreateLease,
-  onCreateTenant,
+const DashboardPage = ({
+  overview,
+  maintenanceRequests,
+  availableRooms,
+  pendingPayments,
   vacateNotices,
-  maintenanceRequests
+  loading,
+  onUpdateStatus,
+  onViewDetails,
+  onCreateMaintenance,
+  onMarkPayment,
+  onViewVacateNotice
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
   if (loading || !overview) {
@@ -669,16 +747,13 @@ const DashboardPage = ({
             <p>Loading dashboard...</p>
           </>
         ) : (
-          <div style={{textAlign: 'center'}}>
+          <div style={{ textAlign: 'center' }}>
             <AlertCircle size={48} color="#ef4444" />
-            <p style={{marginTop: '16px', color: '#ef4444', fontWeight: '500'}}>
+            <p style={{ marginTop: '16px', color: '#ef4444', fontWeight: '500' }}>
               Failed to load dashboard data
             </p>
-            <p style={{color: '#6b7280', fontSize: '14px'}}>
-              Check console for errors
-            </p>
-            <button 
-              style={{...styles.btnPrimary, marginTop: '16px'}}
+            <button
+              style={{ ...styles.btnPrimary, marginTop: '16px' }}
               onClick={() => window.location.reload()}
             >
               <RefreshCw size={16} /> Retry
@@ -689,222 +764,260 @@ const DashboardPage = ({
     );
   }
 
-  const filteredTenants = tenants.filter(function(t) {
-    const statusMatch = filterStatus === 'all' || 
-      (filterStatus === 'active' ? t.is_active : !t.is_active);
-    const searchMatch = 
-      (t.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (t.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (t.room_number || '').toString().includes(searchTerm);
-    
-    return statusMatch && searchMatch;
+  const filteredMaintenance = maintenanceRequests.filter(function(r) {
+    return filterStatus === 'all' || r.status === filterStatus;
   });
 
-  // Calculate active tenants count
-  const activeTenantsCount = tenants.filter(function(t) {
-    return t.is_active;
-  }).length || 0;
-
-  // Calculate success rate safely
-  const successRate = paymentReport && paymentReport.total_payments > 0
-    ? Math.round((paymentReport.successful / paymentReport.total_payments) * 100)
-    : 0;
-
-  // Get pending vacate notices
-  const pendingVacate = vacateNotices ? vacateNotices.filter(function(n) {
-    return n.status === 'pending';
-  }) : [];
-
-  // Get recent maintenance
-  const recentMaintenance = maintenanceRequests ? maintenanceRequests.slice(0, 5) : [];
+  const pendingNotices = vacateNotices.filter(n => n.status === 'pending').length;
+  const completedToday = maintenanceRequests.filter(r => 
+    r.status === 'completed' && 
+    new Date(r.updated_at).toDateString() === new Date().toDateString()
+  ).length;
 
   return (
     <>
       <div style={styles.pageHeader}>
-        <h2 style={styles.pageTitle}>System Overview</h2>
-        <div style={styles.actionButtons}>
-          <button style={styles.btnSecondary} onClick={() => window.print()}>
-            <Download size={16} /> Export Report
+        <h2 style={styles.pageTitle}>Caretaker Overview</h2>
+        <div style={styles.headerActions}>
+          <button style={styles.btnSecondary} onClick={onCreateMaintenance}>
+            <Plus size={16} /> Maintenance
           </button>
-          <button style={styles.btnPrimary} onClick={onCreateTenant}>
-            <UserPlus size={16} /> Add New Tenant
+          <button style={styles.btnPrimary} onClick={() => window.location.reload()}>
+            <RefreshCw size={16} /> Refresh
           </button>
         </div>
       </div>
-      
+
       <div style={styles.gridContainer}>
-        <OverviewCard 
-          title="Total Tenants" 
-          value={overview.total_tenants || 0} 
-          icon={Users}
-          color="#3b82f6"
-          subtitle={"Active: " + (activeTenantsCount)}
-        />
-        <OverviewCard 
-          title="Active Leases" 
-          value={overview.active_leases || 0} 
-          icon={FileText}
-          color="#10b981"
-        />
-        <OverviewCard 
-          title="Pending Maintenance" 
-          value={overview.pending_maintenance || 0} 
-          icon={Wrench}
+        <OverviewCard
+          title="Pending Maintenance"
+          value={overview.pending_maintenance || 0}
+          icon={AlertTriangle}
           color="#f59e0b"
         />
-        <OverviewCard 
-          title="Total Revenue" 
-          value={"KSh " + ((overview.total_revenue || 0).toLocaleString())} 
+        <OverviewCard
+          title="Completed Today"
+          value={completedToday}
+          icon={CheckCircle}
+          color="#10b981"
+        />
+        <OverviewCard
+          title="Available Rooms"
+          value={availableRooms.length}
+          icon={Building}
+          color="#3b82f6"
+        />
+        <OverviewCard
+          title="Pending Payments"
+          value={pendingPayments.length}
           icon={DollarSign}
+          color="#ef4444"
+        />
+        <OverviewCard
+          title="Total Tenants"
+          value={overview.occupied_properties || 0}
+          icon={Users}
           color="#8b5cf6"
         />
-        <OverviewCard 
-          title="Occupancy Rate" 
-          value={(occupancyReport ? occupancyReport.occupancy_rate : 0) + "%"} 
-          icon={Building}
-          color="#06b6d4"
-          subtitle={(occupancyReport ? occupancyReport.occupied : 0) + " of " + (occupancyReport ? occupancyReport.total_properties : 0) + " rooms"}
-        />
-        <OverviewCard 
-          title="Payment Success Rate" 
-          value={successRate + "%"} 
-          icon={CheckCircle}
-          color="#ec4899"
+        <OverviewCard
+          title="Vacate Notices"
+          value={pendingNotices}
+          icon={DoorOpen}
+          color="#f97316"
         />
       </div>
 
-      <div style={styles.dashboardGrid}>
-        {/* Left column */}
-        <div style={styles.dashboardColumn}>
-          {paymentReport && (
-            <div style={styles.section}>
-              <h3 style={styles.sectionTitle}>
-                <PieChart size={18} /> Payment Summary
-              </h3>
-              <div style={styles.summaryGrid}>
-                <SummaryCard label="Total Payments" value={paymentReport.total_payments || 0} />
-                <SummaryCard label="Successful" value={paymentReport.successful || 0} color="#10b981" />
-                <SummaryCard label="Pending" value={paymentReport.pending || 0} color="#f59e0b" />
-                <SummaryCard label="Failed" value={paymentReport.failed || 0} color="#ef4444" />
-                <SummaryCard 
-                  label="Total Collected" 
-                  value={"KSh " + ((paymentReport.total_amount || 0).toLocaleString())}
-                  color="#3b82f6"
-                />
-                <SummaryCard 
-                  label="Success Rate" 
-                  value={successRate + "%"}
-                  color="#8b5cf6"
-                />
-              </div>
-            </div>
-          )}
-
+      <div style={styles.columnsContainer}>
+        <div style={styles.column}>
           <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>
-              <TrendingUp size={18} /> Quick Stats
-            </h3>
-            <div style={styles.quickStats}>
-              <div style={styles.quickStat}>
-                <span style={styles.quickStatLabel}>Pending Vacate Notices</span>
-                <span style={styles.quickStatValue}>{pendingVacate.length}</span>
-              </div>
-              <div style={styles.quickStat}>
-                <span style={styles.quickStatLabel}>Available Rooms</span>
-                <span style={styles.quickStatValue}>{occupancyReport ? occupancyReport.vacant : 0}</span>
-              </div>
-              <div style={styles.quickStat}>
-                <span style={styles.quickStatLabel}>Avg. Monthly Rent</span>
-                <span style={styles.quickStatValue}>KSh 5,250</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right column */}
-        <div style={styles.dashboardColumn}>
-          <div style={styles.section}>
-            <div style={styles.sectionHeaderControls}>
+            <div style={styles.sectionHeader}>
               <h3 style={styles.sectionTitle}>
-                <Users size={18} /> Tenant Management ({filteredTenants.length})
+                <Wrench size={18} /> Recent Maintenance ({filteredMaintenance.length})
               </h3>
-              <div style={styles.tableControls}>
-                <div style={styles.searchBox}>
-                  <Search size={16} />
-                  <input
-                    type="text"
-                    placeholder="Search tenants..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={styles.searchInput}
-                  />
-                </div>
-                <select 
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  style={styles.filterSelect}
-                >
-                  <option value="all">All</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                style={styles.filterSelect}
+              >
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
             </div>
-
             <div style={styles.tableWrapper}>
               <table style={styles.table}>
                 <thead style={styles.tableHeader}>
                   <tr>
-                    <th style={styles.th}>Full Name</th>
-                    <th style={styles.th}>Email</th>
+                    <th style={styles.th}>ID</th>
+                    <th style={styles.th}>Title</th>
+                    <th style={styles.th}>Priority</th>
+                    <th style={styles.th}>Status</th>
+                    <th style={styles.th}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMaintenance.length > 0 ? (
+                    filteredMaintenance.slice(0, 5).map(function(req) {
+                      return (
+                        <tr key={req.id} style={styles.tableRow}>
+                          <td style={styles.td}>#{req.id}</td>
+                          <td style={styles.td}>{req.title}</td>
+                          <td style={styles.td}>
+                            <span style={{
+                              ...styles.statusBadge,
+                              backgroundColor: req.priority === 'urgent' ? '#fee2e2' : '#dbeafe',
+                              color: req.priority === 'urgent' ? '#991b1b' : '#1e40af'
+                            }}>
+                              {req.priority}
+                            </span>
+                          </td>
+                          <td style={styles.td}>
+                            <span style={{
+                              ...styles.statusBadge,
+                              backgroundColor: req.status === 'completed' ? '#dcfce7' : '#fef3c7',
+                              color: req.status === 'completed' ? '#166534' : '#92400e'
+                            }}>
+                              {req.status}
+                            </span>
+                          </td>
+                          <td style={styles.td}>
+                            <button
+                              style={styles.btnSmallPrimary}
+                              onClick={() => onViewDetails(req)}
+                              title="View Details"
+                            >
+                              <Eye size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="5" style={{ ...styles.td, textAlign: 'center', padding: '20px' }}>
+                        No maintenance requests
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div style={styles.sectionFooter}>
+              <button style={styles.btnText} onClick={() => window.location.href = '#maintenance'}>
+                View All <ArrowLeft size={14} style={{ transform: 'rotate(180deg)' }} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style={styles.column}>
+          <div style={styles.section}>
+            <div style={styles.sectionHeader}>
+              <h3 style={styles.sectionTitle}>
+                <DollarSign size={18} /> Pending Payments ({pendingPayments.length})
+              </h3>
+            </div>
+            <div style={styles.tableWrapper}>
+              <table style={styles.table}>
+                <thead style={styles.tableHeader}>
+                  <tr>
+                    <th style={styles.th}>Tenant</th>
+                    <th style={styles.th}>Room</th>
+                    <th style={styles.th}>Pending</th>
+                    <th style={styles.th}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingPayments.length > 0 ? (
+                    pendingPayments.slice(0, 5).map(function(tenant) {
+                      return (
+                        <tr key={tenant.tenant_id} style={styles.tableRow}>
+                          <td style={styles.td}>{tenant.tenant_name}</td>
+                          <td style={styles.td}>{tenant.room_number || 'N/A'}</td>
+                          <td style={styles.td}>
+                            <span style={styles.badgeWarning}>
+                              {tenant.pending_payments} payments
+                            </span>
+                          </td>
+                          <td style={styles.td}>
+                            <button
+                              style={styles.btnSmallPrimary}
+                              onClick={() => onMarkPayment(tenant)}
+                              title="Mark Payment"
+                            >
+                              <Check size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="4" style={{ ...styles.td, textAlign: 'center', padding: '20px' }}>
+                        No pending payments
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style={styles.section}>
+            <div style={styles.sectionHeader}>
+              <h3 style={styles.sectionTitle}>
+                <DoorOpen size={18} /> Recent Vacate Notices
+              </h3>
+            </div>
+            <div style={styles.tableWrapper}>
+              <table style={styles.table}>
+                <thead style={styles.tableHeader}>
+                  <tr>
+                    <th style={styles.th}>Tenant</th>
                     <th style={styles.th}>Room</th>
                     <th style={styles.th}>Status</th>
                     <th style={styles.th}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTenants.slice(0, 5).map(function(tenant) {
-                    return (
-                      <tr key={tenant.id} style={styles.tableRow}>
-                        <td style={styles.td}>{tenant.name || 'N/A'}</td>
-                        <td style={styles.td}>{tenant.email}</td>
-                        <td style={styles.td}>Room {tenant.room_number || 'N/A'}</td>
-                        <td style={styles.td}>
-                          <span style={{
-                            ...styles.statusBadge,
-                            backgroundColor: tenant.is_active ? '#dcfce7' : '#fee2e2',
-                            color: tenant.is_active ? '#166534' : '#991b1b'
-                          }}>
-                            {tenant.is_active ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td style={styles.td}>
-                          <div style={styles.actionButtons}>
-                            <button 
+                  {vacateNotices.length > 0 ? (
+                    vacateNotices.slice(0, 5).map(function(notice) {
+                      return (
+                        <tr key={notice.id} style={styles.tableRow}>
+                          <td style={styles.td}>{notice.tenant_name}</td>
+                          <td style={styles.td}>{notice.room_number || 'N/A'}</td>
+                          <td style={styles.td}>
+                            <span style={{
+                              ...styles.statusBadge,
+                              backgroundColor: 
+                                notice.status === 'approved' ? '#dcfce7' :
+                                notice.status === 'rejected' ? '#fee2e2' :
+                                notice.status === 'completed' ? '#dbeafe' : '#fef3c7',
+                              color: 
+                                notice.status === 'approved' ? '#166534' :
+                                notice.status === 'rejected' ? '#991b1b' :
+                                notice.status === 'completed' ? '#1e40af' : '#92400e'
+                            }}>
+                              {notice.status}
+                            </span>
+                          </td>
+                          <td style={styles.td}>
+                            <button
                               style={styles.btnSmallPrimary}
-                              onClick={() => onViewTenant(tenant.id)}
+                              onClick={() => onViewVacateNotice(notice)}
                               title="View Details"
                             >
                               <Eye size={14} />
                             </button>
-                            <button 
-                              style={styles.btnSmallSuccess}
-                              onClick={() => onCreateLease(tenant)}
-                              title="Create Lease"
-                            >
-                              <FileText size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {filteredTenants.length > 5 && (
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
                     <tr>
-                      <td colSpan="5" style={{...styles.td, textAlign: 'center'}}>
-                        <button style={styles.btnText} onClick={() => window.location.hash = '#tenants'}>
-                          {"View all " + filteredTenants.length + " tenants →"}
-                        </button>
+                      <td colSpan="4" style={{ ...styles.td, textAlign: 'center', padding: '20px' }}>
+                        No vacate notices
                       </td>
                     </tr>
                   )}
@@ -914,167 +1027,16 @@ const DashboardPage = ({
           </div>
         </div>
       </div>
-
-      {/* Recent Activities */}
-      <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>Recent Activities</h3>
-        <div style={styles.activitiesGrid}>
-          {recentMaintenance.length > 0 && (
-            <div style={styles.activityCard}>
-              <h4 style={styles.activityTitle}>Recent Maintenance</h4>
-              {recentMaintenance.map(function(req) {
-                return (
-                  <div key={req.id} style={styles.activityItem}>
-                    <span>{req.title}</span>
-                    <span style={{
-                      ...styles.statusBadge,
-                      backgroundColor: req.status === 'pending' ? '#fef3c7' : '#dcfce7',
-                      color: req.status === 'pending' ? '#92400e' : '#166534'
-                    }}>
-                      {req.status}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          
-          {pendingVacate.length > 0 && (
-            <div style={styles.activityCard}>
-              <h4 style={styles.activityTitle}>Pending Vacate Notices</h4>
-              {pendingVacate.slice(0, 3).map(function(notice) {
-                return (
-                  <div key={notice.id} style={styles.activityItem}>
-                    <span>Room {notice.lease ? notice.lease.room_number : 'N/A'}</span>
-                    <span style={styles.textMuted}>
-                      {notice.vacate_date ? new Date(notice.vacate_date).toLocaleDateString() : 'N/A'}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-    </>
-  );
-};
-
-// ==================== CONTRACTS PAGE ====================
-const ContractsPage = ({ contracts, tenants, loading }) => {
-  const [filterStatus, setFilterStatus] = useState('all');
-
-  if (loading) {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p>Loading contracts...</p>
-      </div>
-    );
-  }
-
-  const filtered = filterStatus === 'all' 
-    ? contracts 
-    : contracts.filter(function(c) {
-        return c.status === filterStatus;
-      });
-
-  const enhancedContracts = filtered.map(function(contract) {
-    const tenant = tenants.find(function(t) {
-      return t.id === contract.tenant_id;
-    });
-    return {
-      ...contract,
-      tenant_name: tenant ? tenant.name : contract.tenant_name || 'Unknown'
-    };
-  });
-
-  return (
-    <>
-      <div style={styles.pageHeaderControls}>
-        <h2 style={styles.pageTitle}>Lease Contracts ({enhancedContracts.length})</h2>
-        <div style={styles.filterSection}>
-          <label style={styles.filterLabel}><Filter size={16} /> Filter:</label>
-          <select 
-            value={filterStatus} 
-            onChange={(e) => setFilterStatus(e.target.value)} 
-            style={styles.filterSelect}
-          >
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="expired">Expired</option>
-            <option value="terminated">Terminated</option>
-          </select>
-        </div>
-      </div>
-
-      <div style={styles.section}>
-        <div style={styles.tableWrapper}>
-          <table style={styles.table}>
-            <thead style={styles.tableHeader}>
-              <tr>
-                <th style={styles.th}>ID</th>
-                <th style={styles.th}>Tenant</th>
-                <th style={styles.th}>Property</th>
-                <th style={styles.th}>Start Date</th>
-                <th style={styles.th}>Rent</th>
-                <th style={styles.th}>Deposit</th>
-                <th style={styles.th}>Status</th>
-                <th style={styles.th}>Signed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {enhancedContracts.length > 0 ? (
-                enhancedContracts.map(function(c) {
-                  return (
-                    <tr key={c.id} style={styles.tableRow}>
-                      <td style={styles.td}>#{c.id}</td>
-                      <td style={styles.td}>{c.tenant_name}</td>
-                      <td style={styles.td}>{c.property_name}</td>
-                      <td style={styles.td}>{c.start_date ? new Date(c.start_date).toLocaleDateString() : 'N/A'}</td>
-                      <td style={styles.td}>KSh {(c.rent_amount || 0).toLocaleString()}</td>
-                      <td style={styles.td}>KSh {((c.rent_amount * 1.07) || 0).toLocaleString()}</td>
-                      <td style={styles.td}>
-                        <span style={{
-                          ...styles.statusBadge,
-                          backgroundColor: c.status === 'active' ? '#dcfce7' : '#fee2e2',
-                          color: c.status === 'active' ? '#166534' : '#991b1b'
-                        }}>
-                          {c.status}
-                        </span>
-                      </td>
-                      <td style={styles.td}>
-                        <span style={{
-                          ...styles.statusBadge,
-                          backgroundColor: c.signed_by_tenant ? '#dcfce7' : '#fef3c7',
-                          color: c.signed_by_tenant ? '#166534' : '#92400e'
-                        }}>
-                          {c.signed_by_tenant ? 'Signed' : 'Pending'}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan="8" style={{...styles.td, textAlign: 'center', padding: '40px'}}>
-                    No contracts found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </>
   );
 };
 
 // ==================== MAINTENANCE PAGE ====================
-const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) => {
+const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails, onCreateMaintenance }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
-  
+  const [searchTerm, setSearchTerm] = useState('');
+
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -1087,63 +1049,54 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
   const filtered = requests.filter(function(r) {
     const statusMatch = filterStatus === 'all' || r.status === filterStatus;
     const priorityMatch = filterPriority === 'all' || r.priority === filterPriority;
-    return statusMatch && priorityMatch;
+    const searchMatch = !searchTerm || 
+      r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.description.toLowerCase().includes(searchTerm.toLowerCase());
+    return statusMatch && priorityMatch && searchMatch;
   });
-
-  const priorityColor = function(priority) {
-    switch(priority) {
-      case 'urgent': return '#ef4444';
-      case 'high': return '#f59e0b';
-      case 'normal': return '#3b82f6';
-      case 'low': return '#6b7280';
-      default: return '#6b7280';
-    }
-  };
-
-  const statusColor = function(status) {
-    switch(status) {
-      case 'completed': return { bg: '#dcfce7', color: '#166534' };
-      case 'in_progress': return { bg: '#dbeafe', color: '#1e40af' };
-      case 'pending': return { bg: '#fef3c7', color: '#92400e' };
-      case 'cancelled': return { bg: '#fee2e2', color: '#991b1b' };
-      default: return { bg: '#f3f4f6', color: '#4b5563' };
-    }
-  };
 
   return (
     <>
-      <div style={styles.pageHeaderControls}>
+      <div style={styles.pageHeader}>
         <h2 style={styles.pageTitle}>Maintenance Requests ({filtered.length})</h2>
-        <div style={{display: 'flex', gap: '12px'}}>
-          <div style={styles.filterSection}>
-            <label style={styles.filterLabel}>Status:</label>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              style={styles.filterSelect}
-            >
-              <option value="all">All</option>
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
-          <div style={styles.filterSection}>
-            <label style={styles.filterLabel}>Priority:</label>
-            <select
-              value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value)}
-              style={styles.filterSelect}
-            >
-              <option value="all">All</option>
-              <option value="urgent">Urgent</option>
-              <option value="high">High</option>
-              <option value="normal">Normal</option>
-              <option value="low">Low</option>
-            </select>
-          </div>
+        <button style={styles.btnPrimary} onClick={onCreateMaintenance}>
+          <Plus size={16} /> Create Request
+        </button>
+      </div>
+
+      <div style={styles.filterBar}>
+        <div style={styles.searchBox}>
+          <Search size={16} />
+          <input
+            type="text"
+            placeholder="Search maintenance requests..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={styles.searchInput}
+          />
         </div>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          style={styles.filterSelect}
+        >
+          <option value="all">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="in_progress">In Progress</option>
+          <option value="completed">Completed</option>
+        </select>
+
+        <select
+          value={filterPriority}
+          onChange={(e) => setFilterPriority(e.target.value)}
+          style={styles.filterSelect}
+        >
+          <option value="all">All Priority</option>
+          <option value="urgent">Urgent</option>
+          <option value="high">High</option>
+          <option value="normal">Normal</option>
+          <option value="low">Low</option>
+        </select>
       </div>
 
       <div style={styles.section}>
@@ -1163,7 +1116,6 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
             <tbody>
               {filtered.length > 0 ? (
                 filtered.map(function(req) {
-                  const colors = statusColor(req.status);
                   return (
                     <tr key={req.id} style={styles.tableRow}>
                       <td style={styles.td}>#{req.id}</td>
@@ -1172,8 +1124,8 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
                       <td style={styles.td}>
                         <span style={{
                           ...styles.statusBadge,
-                          backgroundColor: priorityColor(req.priority) + '20',
-                          color: priorityColor(req.priority)
+                          backgroundColor: req.priority === 'urgent' ? '#fee2e2' : '#dbeafe',
+                          color: req.priority === 'urgent' ? '#991b1b' : '#1e40af'
                         }}>
                           {req.priority}
                         </span>
@@ -1181,8 +1133,8 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
                       <td style={styles.td}>
                         <span style={{
                           ...styles.statusBadge,
-                          backgroundColor: colors.bg,
-                          color: colors.color
+                          backgroundColor: req.status === 'completed' ? '#dcfce7' : '#fef3c7',
+                          color: req.status === 'completed' ? '#166534' : '#92400e'
                         }}>
                           {req.status}
                         </span>
@@ -1192,29 +1144,20 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
                       </td>
                       <td style={styles.td}>
                         <div style={styles.actionButtons}>
-                          <button 
+                          <button
                             style={styles.btnSmallPrimary}
                             onClick={() => onViewDetails(req)}
                             title="View Details"
                           >
                             <Eye size={14} />
                           </button>
-                          {req.status === 'pending' && (
-                            <button 
-                              style={styles.btnSmallSuccess}
-                              onClick={() => onUpdateStatus(req.id, 'in_progress')}
-                              title="Start Work"
-                            >
-                              <Check size={14} />
-                            </button>
-                          )}
-                          {req.status === 'in_progress' && (
-                            <button 
+                          {req.status !== 'completed' && (
+                            <button
                               style={styles.btnSmallSuccess}
                               onClick={() => onUpdateStatus(req.id, 'completed')}
                               title="Mark Complete"
                             >
-                              <CheckCircle size={14} />
+                              <Check size={14} />
                             </button>
                           )}
                         </div>
@@ -1224,7 +1167,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
                 })
               ) : (
                 <tr>
-                  <td colSpan="7" style={{...styles.td, textAlign: 'center', padding: '40px'}}>
+                  <td colSpan="7" style={{ ...styles.td, textAlign: 'center', padding: '40px' }}>
                     No maintenance requests found
                   </td>
                 </tr>
@@ -1237,10 +1180,478 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
   );
 };
 
-// ==================== VACATE NOTICES PAGE ====================
-const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDetails }) => {
-  const [filterStatus, setFilterStatus] = useState('all');
+// ==================== PROPERTIES PAGE ====================
+const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading }) => {
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p>Loading properties...</p>
+      </div>
+    );
+  }
+
+  const roomsToShow = activeTab === 'available' ? availableRooms : 
+                     activeTab === 'occupied' ? occupiedRooms : allRooms;
+
+  const filteredRooms = roomsToShow.filter(room => 
+    !searchTerm || 
+    room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    room.property_type.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <>
+      <div style={styles.pageHeader}>
+        <h2 style={styles.pageTitle}>Property Management</h2>
+        <div style={styles.tabs}>
+          <button
+            style={{
+              ...styles.tabButton,
+              ...(activeTab === 'all' ? styles.tabButtonActive : {})
+            }}
+            onClick={() => setActiveTab('all')}
+          >
+            All Rooms ({allRooms.length})
+          </button>
+          <button
+            style={{
+              ...styles.tabButton,
+              ...(activeTab === 'available' ? styles.tabButtonActive : {})
+            }}
+            onClick={() => setActiveTab('available')}
+          >
+            Available ({availableRooms.length})
+          </button>
+          <button
+            style={{
+              ...styles.tabButton,
+              ...(activeTab === 'occupied' ? styles.tabButtonActive : {})
+            }}
+            onClick={() => setActiveTab('occupied')}
+          >
+            Occupied ({occupiedRooms.length})
+          </button>
+        </div>
+      </div>
+
+      <div style={styles.filterBar}>
+        <div style={styles.searchBox}>
+          <Search size={16} />
+          <input
+            type="text"
+            placeholder="Search rooms..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={styles.searchInput}
+          />
+        </div>
+      </div>
+
+      <div style={styles.section}>
+        {filteredRooms.length === 0 ? (
+          <div style={styles.emptyState}>
+            <Building size={48} />
+            <p>No rooms found</p>
+          </div>
+        ) : (
+          <div style={styles.roomsGrid}>
+            {filteredRooms.map(function(room) {
+              return (
+                <div key={room.id} style={styles.roomCard}>
+                  <div style={styles.roomHeader}>
+                    <Building size={20} />
+                    <span style={styles.roomName}>{room.name}</span>
+                    <span style={{
+                      ...styles.roomStatus,
+                      backgroundColor: room.status === 'occupied' ? '#dcfce7' : '#dbeafe',
+                      color: room.status === 'occupied' ? '#166534' : '#1e40af'
+                    }}>
+                      {room.status}
+                    </span>
+                  </div>
+                  <div style={styles.roomDetails}>
+                    <div style={styles.roomDetail}>
+                      <span>Type:</span>
+                      <span>{room.property_type}</span>
+                    </div>
+                    <div style={styles.roomDetail}>
+                      <span>Rent:</span>
+                      <span style={styles.rentAmount}>
+                        KSh {room.rent_amount ? room.rent_amount.toLocaleString() : '0'}
+                      </span>
+                    </div>
+                    {room.tenant_name && (
+                      <div style={styles.roomDetail}>
+                        <span>Tenant:</span>
+                        <span>{room.tenant_name}</span>
+                      </div>
+                    )}
+                    {room.tenant_phone && (
+                      <div style={styles.roomDetail}>
+                        <span>Phone:</span>
+                        <span>{room.tenant_phone}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div style={styles.roomFooter}>
+                    {room.status === 'occupied' && (
+                      <button style={styles.btnSmallSecondary}>
+                        <Phone size={14} /> Contact
+                      </button>
+                    )}
+                    <button style={styles.btnSmallPrimary}>
+                      <Eye size={14} /> Details
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
+
+// ==================== TENANTS PAGE ====================
+const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNotification, onCreateVacateNotice }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState('all');
+
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p>Loading tenants...</p>
+      </div>
+    );
+  }
+
+  const tenantsWithPayment = tenants.map(tenant => {
+    const payment = paymentStatus.find(p => p.tenant_id === tenant.id);
+    return {
+      ...tenant,
+      current_month_paid: payment?.current_month_paid || false,
+      last_payment_date: payment?.last_payment_date,
+      rent_amount: payment?.rent_amount || 0
+    };
+  });
+
+  const filteredTenants = tenantsWithPayment.filter(tenant => {
+    const searchMatch = !searchTerm || 
+      tenant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tenant.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tenant.room_number.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const paymentMatch = paymentFilter === 'all' ||
+      (paymentFilter === 'paid' && tenant.current_month_paid) ||
+      (paymentFilter === 'unpaid' && !tenant.current_month_paid);
+    
+    return searchMatch && paymentMatch;
+  });
+
+  return (
+    <>
+      <div style={styles.pageHeader}>
+        <h2 style={styles.pageTitle}>Tenants Management ({filteredTenants.length})</h2>
+        <div style={styles.headerActions}>
+          <button style={styles.btnSecondary} onClick={onSendNotification}>
+            <Send size={16} /> Notify
+          </button>
+          <button style={styles.btnPrimary} onClick={() => window.location.reload()}>
+            <RefreshCw size={16} />
+          </button>
+        </div>
+      </div>
+
+      <div style={styles.filterBar}>
+        <div style={styles.searchBox}>
+          <Search size={16} />
+          <input
+            type="text"
+            placeholder="Search tenants..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={styles.searchInput}
+          />
+        </div>
+        <select
+          value={paymentFilter}
+          onChange={(e) => setPaymentFilter(e.target.value)}
+          style={styles.filterSelect}
+        >
+          <option value="all">All Payment Status</option>
+          <option value="paid">Paid This Month</option>
+          <option value="unpaid">Unpaid This Month</option>
+        </select>
+      </div>
+
+      <div style={styles.section}>
+        <div style={styles.tableWrapper}>
+          <table style={styles.table}>
+            <thead style={styles.tableHeader}>
+              <tr>
+                <th style={styles.th}>Tenant Name</th>
+                <th style={styles.th}>Room</th>
+                <th style={styles.th}>Contact</th>
+                <th style={styles.th}>Rent Amount</th>
+                <th style={styles.th}>Payment Status</th>
+                <th style={styles.th}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTenants.length > 0 ? (
+                filteredTenants.map(function(tenant) {
+                  return (
+                    <tr key={tenant.id} style={styles.tableRow}>
+                      <td style={styles.td}>
+                        <div style={styles.tenantInfo}>
+                          <User size={16} />
+                          <span>{tenant.name}</span>
+                        </div>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={styles.roomBadge}>{tenant.room_number || 'N/A'}</span>
+                      </td>
+                      <td style={styles.td}>
+                        <div style={styles.contactInfo}>
+                          <div>{tenant.phone_number}</div>
+                          <small>{tenant.email}</small>
+                        </div>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={styles.rentAmount}>
+                          KSh {tenant.rent_amount ? tenant.rent_amount.toLocaleString() : '0'}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{
+                          ...styles.statusBadge,
+                          backgroundColor: tenant.current_month_paid ? '#dcfce7' : '#fee2e2',
+                          color: tenant.current_month_paid ? '#166534' : '#991b1b'
+                        }}>
+                          {tenant.current_month_paid ? 'Paid' : 'Unpaid'}
+                        </span>
+                        {tenant.last_payment_date && (
+                          <div style={styles.paymentDate}>
+                            Last: {new Date(tenant.last_payment_date).toLocaleDateString()}
+                          </div>
+                        )}
+                      </td>
+                      <td style={styles.td}>
+                        <div style={styles.actionButtons}>
+                          <button
+                            style={styles.btnSmallPrimary}
+                            onClick={() => onMarkPayment(tenant)}
+                            title="Mark Payment"
+                          >
+                            <CreditCard size={14} />
+                          </button>
+                          <button
+                            style={styles.btnSmallSecondary}
+                            onClick={() => onCreateVacateNotice(tenant.id)}
+                            title="Create Vacate Notice"
+                          >
+                            <DoorOpen size={14} />
+                          </button>
+                          <button
+                            style={styles.btnSmallSecondary}
+                            onClick={() => onSendNotification()}
+                            title="Send Notification"
+                          >
+                            <Send size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="6" style={{ ...styles.td, textAlign: 'center', padding: '40px' }}>
+                    No tenants found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ==================== PAYMENTS PAGE ====================
+const PaymentsPage = ({ pendingPayments, allPayments, loading, onMarkPayment }) => {
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p>Loading payments...</p>
+      </div>
+    );
+  }
+
+  const paymentsToShow = activeTab === 'pending' ? pendingPayments : allPayments;
   
+  const filteredPayments = paymentsToShow.filter(payment => 
+    !searchTerm || 
+    payment.tenant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    payment.room_number.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPending = pendingPayments.reduce((sum, p) => sum + (p.pending_payments || 0), 0);
+  const paidCount = allPayments.filter(p => p.current_month_paid).length;
+  const unpaidCount = allPayments.filter(p => !p.current_month_paid).length;
+
+  return (
+    <>
+      <div style={styles.pageHeader}>
+        <h2 style={styles.pageTitle}>Payments Management</h2>
+        <div style={styles.tabs}>
+          <button
+            style={{
+              ...styles.tabButton,
+              ...(activeTab === 'all' ? styles.tabButtonActive : {})
+            }}
+            onClick={() => setActiveTab('all')}
+          >
+            All Payments ({allPayments.length})
+          </button>
+          <button
+            style={{
+              ...styles.tabButton,
+              ...(activeTab === 'pending' ? styles.tabButtonActive : {})
+            }}
+            onClick={() => setActiveTab('pending')}
+          >
+            Pending ({pendingPayments.length})
+          </button>
+        </div>
+      </div>
+
+      <div style={styles.gridContainer}>
+        <OverviewCard
+          title="Paid This Month"
+          value={paidCount}
+          icon={CheckCircle}
+          color="#10b981"
+        />
+        <OverviewCard
+          title="Unpaid This Month"
+          value={unpaidCount}
+          icon={AlertCircle}
+          color="#ef4444"
+        />
+        <OverviewCard
+          title="Total Pending"
+          value={totalPending}
+          icon={FileWarning}
+          color="#f59e0b"
+        />
+        <OverviewCard
+          title="Total Tenants"
+          value={allPayments.length}
+          icon={Users}
+          color="#3b82f6"
+        />
+      </div>
+
+      <div style={styles.filterBar}>
+        <div style={styles.searchBox}>
+          <Search size={16} />
+          <input
+            type="text"
+            placeholder="Search tenants..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={styles.searchInput}
+          />
+        </div>
+      </div>
+
+      <div style={styles.section}>
+        <div style={styles.tableWrapper}>
+          <table style={styles.table}>
+            <thead style={styles.tableHeader}>
+              <tr>
+                <th style={styles.th}>Tenant Name</th>
+                <th style={styles.th}>Room</th>
+                <th style={styles.th}>Rent Amount</th>
+                <th style={styles.th}>Status</th>
+                <th style={styles.th}>Last Payment</th>
+                <th style={styles.th}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPayments.length > 0 ? (
+                filteredPayments.map(function(payment) {
+                  return (
+                    <tr key={payment.tenant_id || payment.id} style={styles.tableRow}>
+                      <td style={styles.td}>{payment.tenant_name}</td>
+                      <td style={styles.td}>
+                        <span style={styles.roomBadge}>{payment.room_number || 'N/A'}</span>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={styles.rentAmount}>
+                          KSh {payment.rent_amount ? payment.rent_amount.toLocaleString() : '0'}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{
+                          ...styles.statusBadge,
+                          backgroundColor: payment.current_month_paid ? '#dcfce7' : 
+                                        payment.pending_payments > 0 ? '#fee2e2' : '#fef3c7',
+                          color: payment.current_month_paid ? '#166534' : 
+                                payment.pending_payments > 0 ? '#991b1b' : '#92400e'
+                        }}>
+                          {payment.current_month_paid ? 'Paid' : 
+                           payment.pending_payments > 0 ? `Pending (${payment.pending_payments})` : 'Unpaid'}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        {payment.last_payment_date ? 
+                          new Date(payment.last_payment_date).toLocaleDateString() : 'Never'}
+                      </td>
+                      <td style={styles.td}>
+                        <button
+                          style={styles.btnSmallPrimary}
+                          onClick={() => onMarkPayment(payment)}
+                          title="Mark Payment"
+                        >
+                          <CreditCard size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="6" style={{ ...styles.td, textAlign: 'center', padding: '40px' }}>
+                    No payments found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ==================== VACATE PAGE ====================
+const VacatePage = ({ notices, loading, onViewDetails, onUpdateStatus, onDelete, onCreateNotice }) => {
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -1250,43 +1661,80 @@ const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDe
     );
   }
 
-  // Handle case where notices is null or undefined
-  const noticesList = notices || [];
+  const filtered = notices.filter(notice => {
+    const statusMatch = filterStatus === 'all' || notice.status === filterStatus;
+    const searchMatch = !searchTerm || 
+      notice.tenant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      notice.property_name.toLowerCase().includes(searchTerm.toLowerCase());
+    return statusMatch && searchMatch;
+  });
 
-  const filtered = filterStatus === 'all' 
-    ? noticesList 
-    : noticesList.filter(function(n) {
-        return n.status === filterStatus;
-      });
-
-  const statusColor = function(status) {
-    switch(status) {
-      case 'pending': return { bg: '#fef3c7', color: '#92400e' };
-      case 'approved': return { bg: '#dbeafe', color: '#1e40af' };
-      case 'rejected': return { bg: '#fee2e2', color: '#991b1b' };
-      case 'completed': return { bg: '#dcfce7', color: '#166534' };
-      default: return { bg: '#f3f4f6', color: '#4b5563' };
-    }
+  const summary = {
+    pending: notices.filter(n => n.status === 'pending').length,
+    approved: notices.filter(n => n.status === 'approved').length,
+    rejected: notices.filter(n => n.status === 'rejected').length,
+    completed: notices.filter(n => n.status === 'completed').length,
+    total: notices.length
   };
 
   return (
     <>
-      <div style={styles.pageHeaderControls}>
-        <h2 style={styles.pageTitle}>Vacate Notices ({filtered.length})</h2>
-        <div style={styles.filterSection}>
-          <label style={styles.filterLabel}>Status:</label>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            style={styles.filterSelect}
-          >
-            <option value="all">All</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-            <option value="completed">Completed</option>
-          </select>
+      <div style={styles.pageHeader}>
+        <h2 style={styles.pageTitle}>Vacate Notices Management</h2>
+        <button style={styles.btnPrimary} onClick={onCreateNotice}>
+          <Plus size={16} /> Create Notice
+        </button>
+      </div>
+
+      <div style={styles.gridContainer}>
+        <OverviewCard
+          title="Pending"
+          value={summary.pending}
+          icon={Clock}
+          color="#f59e0b"
+        />
+        <OverviewCard
+          title="Approved"
+          value={summary.approved}
+          icon={CheckCircle}
+          color="#10b981"
+        />
+        <OverviewCard
+          title="Rejected"
+          value={summary.rejected}
+          icon={XCircle}
+          color="#ef4444"
+        />
+        <OverviewCard
+          title="Completed"
+          value={summary.completed}
+          icon={ShieldCheck}
+          color="#3b82f6"
+        />
+      </div>
+
+      <div style={styles.filterBar}>
+        <div style={styles.searchBox}>
+          <Search size={16} />
+          <input
+            type="text"
+            placeholder="Search vacate notices..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={styles.searchInput}
+          />
         </div>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          style={styles.filterSelect}
+        >
+          <option value="all">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="completed">Completed</option>
+        </select>
       </div>
 
       <div style={styles.section}>
@@ -1294,52 +1742,53 @@ const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDe
           <table style={styles.table}>
             <thead style={styles.tableHeader}>
               <tr>
-                <th style={styles.th}>ID</th>
                 <th style={styles.th}>Tenant</th>
-                <th style={styles.th}>Room</th>
+                <th style={styles.th}>Property</th>
                 <th style={styles.th}>Vacate Date</th>
-                <th style={styles.th}>Days Left</th>
                 <th style={styles.th}>Status</th>
+                <th style={styles.th}>Created</th>
                 <th style={styles.th}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length > 0 ? (
                 filtered.map(function(notice) {
-                  const colors = statusColor(notice.status);
-                  const daysLeft = notice.vacate_date 
-                    ? Math.ceil((new Date(notice.vacate_date) - new Date()) / (1000 * 60 * 60 * 24))
-                    : 0;
-                  
                   return (
                     <tr key={notice.id} style={styles.tableRow}>
-                      <td style={styles.td}>#{notice.id}</td>
-                      <td style={styles.td}>{notice.tenant_name || 'Unknown'}</td>
-                      <td style={styles.td}>Room {notice.room_number || 'N/A'}</td>
+                      <td style={styles.td}>
+                        <div style={styles.tenantInfo}>
+                          <User size={16} />
+                          <span>{notice.tenant_name}</span>
+                        </div>
+                        {notice.room_number && (
+                          <small style={styles.roomNumber}>Room {notice.room_number}</small>
+                        )}
+                      </td>
+                      <td style={styles.td}>{notice.property_name}</td>
                       <td style={styles.td}>
                         {notice.vacate_date ? new Date(notice.vacate_date).toLocaleDateString() : 'N/A'}
                       </td>
                       <td style={styles.td}>
                         <span style={{
                           ...styles.statusBadge,
-                          backgroundColor: daysLeft <= 7 ? '#fee2e2' : daysLeft <= 30 ? '#fef3c7' : '#dcfce7',
-                          color: daysLeft <= 7 ? '#991b1b' : daysLeft <= 30 ? '#92400e' : '#166534'
-                        }}>
-                          {daysLeft} days
-                        </span>
-                      </td>
-                      <td style={styles.td}>
-                        <span style={{
-                          ...styles.statusBadge,
-                          backgroundColor: colors.bg,
-                          color: colors.color
+                          backgroundColor: 
+                            notice.status === 'approved' ? '#dcfce7' :
+                            notice.status === 'rejected' ? '#fee2e2' :
+                            notice.status === 'completed' ? '#dbeafe' : '#fef3c7',
+                          color: 
+                            notice.status === 'approved' ? '#166534' :
+                            notice.status === 'rejected' ? '#991b1b' :
+                            notice.status === 'completed' ? '#1e40af' : '#92400e'
                         }}>
                           {notice.status}
                         </span>
                       </td>
                       <td style={styles.td}>
+                        {notice.created_at ? new Date(notice.created_at).toLocaleDateString() : 'N/A'}
+                      </td>
+                      <td style={styles.td}>
                         <div style={styles.actionButtons}>
-                          <button 
+                          <button
                             style={styles.btnSmallPrimary}
                             onClick={() => onViewDetails(notice)}
                             title="View Details"
@@ -1348,21 +1797,39 @@ const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDe
                           </button>
                           {notice.status === 'pending' && (
                             <>
-                              <button 
+                              <button
                                 style={styles.btnSmallSuccess}
-                                onClick={() => onUpdateStatus(notice.id, 'approved')}
+                                onClick={() => onUpdateStatus(notice.id, 'approve')}
                                 title="Approve"
                               >
                                 <Check size={14} />
                               </button>
-                              <button 
+                              <button
                                 style={styles.btnSmallDanger}
-                                onClick={() => onUpdateStatus(notice.id, 'rejected')}
+                                onClick={() => onUpdateStatus(notice.id, 'reject')}
                                 title="Reject"
                               >
                                 <X size={14} />
                               </button>
                             </>
+                          )}
+                          {notice.status === 'approved' && (
+                            <button
+                              style={styles.btnSmallSuccess}
+                              onClick={() => onUpdateStatus(notice.id, 'complete')}
+                              title="Mark Complete"
+                            >
+                              <ShieldCheck size={14} />
+                            </button>
+                          )}
+                          {notice.status === 'pending' && (
+                            <button
+                              style={styles.btnSmallDanger}
+                              onClick={() => onDelete(notice.id)}
+                              title="Delete"
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           )}
                         </div>
                       </td>
@@ -1371,16 +1838,8 @@ const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDe
                 })
               ) : (
                 <tr>
-                  <td colSpan="7" style={{...styles.td, textAlign: 'center', padding: '40px'}}>
-                    <div style={{padding: '40px 20px', textAlign: 'center'}}>
-                      <DoorOpen size={48} color="#9ca3af" />
-                      <p style={{marginTop: '16px', color: '#6b7280'}}>
-                        No vacate notices found
-                      </p>
-                      <p style={{color: '#9ca3af', fontSize: '14px', marginTop: '8px'}}>
-                        The vacate notices API endpoint may not be implemented yet
-                      </p>
-                    </div>
+                  <td colSpan="6" style={{ ...styles.td, textAlign: 'center', padding: '40px' }}>
+                    No vacate notices found
                   </td>
                 </tr>
               )}
@@ -1394,34 +1853,28 @@ const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDe
 
 // ==================== NOTIFICATIONS PAGE ====================
 const NotificationsPage = ({ tenants, onSendNotification }) => {
-  const activeTenantsCount = tenants.filter(function(t) {
-    return t.is_active;
-  }).length;
+  const activeTenantsCount = tenants.filter(t => t.is_active).length;
 
   return (
     <>
       <div style={styles.pageHeader}>
-        <h2 style={styles.pageTitle}>Notifications</h2>
+        <h2 style={styles.pageTitle}>Send Notifications</h2>
         <button style={styles.btnPrimary} onClick={onSendNotification}>
           <Send size={16} /> Send Notification
         </button>
       </div>
 
       <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>Send notifications to tenants</h3>
-        <p style={{color: '#6b7280', marginBottom: '20px'}}>
-          You can send notifications to all tenants, specific tenants, or the caretaker.
-        </p>
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px'}}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
           <div style={styles.infoCard}>
             <Users size={32} color="#3b82f6" />
             <h4>Total Tenants</h4>
-            <p style={{fontSize: '24px', fontWeight: '600', margin: '8px 0'}}>{tenants.length}</p>
+            <p style={{ fontSize: '24px', fontWeight: '600', margin: '8px 0' }}>{tenants.length}</p>
           </div>
           <div style={styles.infoCard}>
             <Bell size={32} color="#10b981" />
             <h4>Active Recipients</h4>
-            <p style={{fontSize: '24px', fontWeight: '600', margin: '8px 0'}}>
+            <p style={{ fontSize: '24px', fontWeight: '600', margin: '8px 0' }}>
               {activeTenantsCount}
             </p>
           </div>
@@ -1431,838 +1884,7 @@ const NotificationsPage = ({ tenants, onSendNotification }) => {
   );
 };
 
-// ==================== REPORTS PAGE ====================
-const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
-  if (loading) {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p>Loading reports...</p>
-      </div>
-    );
-  }
-
-  // Calculate detailed occupancy statistics
-  const occupancyStats = occupancyReport ? {
-    total: occupancyReport.total_properties || 0,
-    occupied: occupancyReport.occupied || 0,
-    vacant: occupancyReport.vacant || 0,
-    occupancyRate: occupancyReport.occupancy_rate || 0,
-    activeLeases: occupancyReport.active_leases || 0,
-    vacantRate: occupancyReport.total_properties > 0 
-      ? Math.round((occupancyReport.vacant / occupancyReport.total_properties) * 100)
-      : 0
-  } : null;
-
-  // Calculate payment statistics
-  const paymentStats = paymentReport ? {
-    total: paymentReport.total_payments || 0,
-    successful: paymentReport.successful || 0,
-    pending: paymentReport.pending || 0,
-    failed: paymentReport.failed || 0,
-    totalAmount: paymentReport.total_amount || 0,
-    successRate: paymentReport.total_payments > 0
-      ? Math.round((paymentReport.successful / paymentReport.total_payments) * 100)
-      : 0,
-    avgPayment: paymentReport.successful > 0
-      ? Math.round(paymentReport.total_amount / paymentReport.successful)
-      : 0
-  } : null;
-
-  return (
-    <>
-      <h2 style={styles.pageTitle}>Reports & Analytics</h2>
-
-      {paymentStats && (
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>
-            <DollarSign size={18} /> Payment Report
-          </h3>
-          <div style={styles.summaryGrid}>
-            <SummaryCard label="Total Payments" value={paymentStats.total} />
-            <SummaryCard label="Successful" value={paymentStats.successful} color="#10b981" />
-            <SummaryCard label="Pending" value={paymentStats.pending} color="#f59e0b" />
-            <SummaryCard label="Failed" value={paymentStats.failed} color="#ef4444" />
-            <SummaryCard 
-              label="Total Amount" 
-              value={"KSh " + paymentStats.totalAmount.toLocaleString()}
-              color="#3b82f6"
-            />
-            <SummaryCard 
-              label="Success Rate" 
-              value={paymentStats.successRate + "%"}
-              color="#8b5cf6"
-            />
-            <SummaryCard 
-              label="Average Payment" 
-              value={"KSh " + paymentStats.avgPayment.toLocaleString()}
-              color="#06b6d4"
-            />
-            <SummaryCard 
-              label="Collection Efficiency" 
-              value={(paymentStats.total > 0 ? Math.round((paymentStats.successful / tenants.length * 100)) : 0) + "%"}
-              color="#ec4899"
-            />
-          </div>
-        </div>
-      )}
-
-      {occupancyStats && (
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>
-            <Building size={18} /> Occupancy Report
-          </h3>
-          <div style={styles.summaryGrid}>
-            <SummaryCard label="Total Properties" value={occupancyStats.total} />
-            <SummaryCard label="Occupied" value={occupancyStats.occupied} color="#10b981" />
-            <SummaryCard label="Vacant" value={occupancyStats.vacant} color="#f59e0b" />
-            <SummaryCard label="Active Leases" value={occupancyStats.activeLeases} color="#3b82f6" />
-            <SummaryCard 
-              label="Occupancy Rate" 
-              value={occupancyStats.occupancyRate + "%"}
-              color="#8b5cf6"
-            />
-            <SummaryCard 
-              label="Vacant Rate" 
-              value={occupancyStats.vacantRate + "%"}
-              color="#ef4444"
-            />
-            <SummaryCard 
-              label="Room Utilization" 
-              value={(occupancyStats.total > 0 ? Math.round((occupancyStats.occupied / occupancyStats.total) * 100) : 0) + "%"}
-              color="#06b6d4"
-            />
-            <SummaryCard 
-              label="Lease Coverage" 
-              value={(occupancyStats.total > 0 ? Math.round((occupancyStats.activeLeases / occupancyStats.occupied) * 100) : 0) + "%"}
-              color="#ec4899"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Financial Summary */}
-      <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>Financial Summary</h3>
-        <div style={styles.financialSummary}>
-          <div style={styles.financialCard}>
-            <h4>Monthly Revenue Potential</h4>
-            <p style={styles.financialValue}>
-              {"KSh " + (occupancyStats ? (occupancyStats.total * 5250).toLocaleString() : '0')}
-            </p>
-            <small style={styles.financialNote}>Based on average rent of KSh 5,250</small>
-          </div>
-          <div style={styles.financialCard}>
-            <h4>Collection Rate</h4>
-            <p style={{...styles.financialValue, color: paymentStats?.successRate > 80 ? '#10b981' : '#f59e0b'}}>
-              {(paymentStats ? paymentStats.successRate : 0) + "%"}
-            </p>
-            <small style={styles.financialNote}>Payment success rate</small>
-          </div>
-          <div style={styles.financialCard}>
-            <h4>Revenue per Room</h4>
-            <p style={styles.financialValue}>
-              {"KSh " + (paymentStats && occupancyStats?.occupied > 0 
-                ? Math.round(paymentStats.totalAmount / occupancyStats.occupied).toLocaleString()
-                : '0')}
-            </p>
-            <small style={styles.financialNote}>Average per occupied room</small>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-};
-
-// ==================== PROPERTIES PAGE ====================
-const PropertiesPage = ({ availableRooms, loading }) => {
-  if (loading) {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p>Loading properties...</p>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <h2 style={styles.pageTitle}>Properties Management</h2>
-
-      <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>Available Rooms ({availableRooms.length})</h3>
-        {availableRooms.length === 0 ? (
-          <div style={styles.emptyState}>
-            <Building size={48} />
-            <p>No available rooms found</p>
-          </div>
-        ) : (
-          <div style={styles.roomsGrid}>
-            {availableRooms.map(function(room) {
-              return (
-                <div key={room.id} style={styles.roomCard}>
-                  <div style={styles.roomHeader}>
-                    <Building size={20} />
-                    <span style={styles.roomName}>{room.name}</span>
-                    <span style={styles.roomTypeBadge}>
-                      {room.property_type}
-                    </span>
-                  </div>
-                  <div style={styles.roomDetails}>
-                    <div style={styles.roomDetail}>
-                      <span style={styles.detailLabel}>Monthly Rent:</span>
-                      <span style={styles.detailValue}>{"KSh " + (room.rent_amount ? room.rent_amount.toLocaleString() : '0')}</span>
-                    </div>
-                    <div style={styles.roomDetail}>
-                      <span style={styles.detailLabel}>Deposit:</span>
-                      <span style={styles.detailValue}>
-                        {"KSh " + ((room.rent_amount * 1.07) ? (room.rent_amount * 1.07).toLocaleString() : '0')}
-                      </span>
-                    </div>
-                    <div style={styles.roomDetail}>
-                      <span style={styles.detailLabel}>Status:</span>
-                      <span style={{...styles.statusBadge, backgroundColor: '#dcfce7', color: '#166534'}}>
-                        Vacant
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </>
-  );
-};
-
-// ==================== TENANT DETAILS MODAL ====================
-const TenantDetailsModal = ({ tenant, onClose }) => {
-  const [activeTab, setActiveTab] = useState('personal');
-
-  // Extract all tenant data including personal info
-  const tenantData = {
-    personal: {
-      'Full Name': tenant ? tenant.name : 'N/A',
-      'Email': tenant ? tenant.email : 'N/A',
-      'Phone Number': tenant ? (tenant.phone_number || tenant.phone) : 'N/A',
-      'National ID': tenant ? tenant.national_id : 'N/A',
-      'Room Number': tenant && tenant.room_number ? "Room " + tenant.room_number : 'N/A',
-      'Status': tenant && tenant.is_active ? 'Active' : 'Inactive',
-      'Date Joined': tenant && tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : 'N/A'
-    },
-    lease: tenant && tenant.lease ? {
-      'Lease ID': "#" + tenant.lease.id,
-      'Property': tenant.lease.property_name || 'N/A',
-      'Start Date': tenant.lease.start_date ? new Date(tenant.lease.start_date).toLocaleDateString() : 'N/A',
-      'End Date': tenant.lease.end_date ? new Date(tenant.lease.end_date).toLocaleDateString() : 'N/A',
-      'Monthly Rent': "KSh " + (tenant.lease.rent_amount ? tenant.lease.rent_amount.toLocaleString() : '0'),
-      'Deposit Amount': "KSh " + ((tenant.lease.rent_amount * 1.07) ? (tenant.lease.rent_amount * 1.07).toLocaleString() : '0'),
-      'Lease Status': tenant.lease.status || 'N/A',
-      'Lease Signed': tenant.lease.signed_by_tenant ? 'Yes' : 'No',
-      'Signed Date': tenant.lease.signed_at ? new Date(tenant.lease.signed_at).toLocaleDateString() : 'N/A'
-    } : null,
-    payments: tenant && tenant.recent_payments ? tenant.recent_payments.map(function(p) {
-      return {
-        'Date': p.created_at ? new Date(p.created_at).toLocaleDateString() : 'N/A',
-        'Amount': "KSh " + (p.amount ? p.amount.toLocaleString() : '0'),
-        'Status': p.status || 'N/A',
-        'Transaction ID': p.transaction_id || 'N/A'
-      };
-    }) : [],
-    maintenance: tenant && tenant.recent_maintenance ? tenant.recent_maintenance.map(function(m) {
-      return {
-        'Title': m.title || 'N/A',
-        'Description': m.description || 'N/A',
-        'Priority': m.priority || 'N/A',
-        'Status': m.status || 'N/A',
-        'Date Reported': m.created_at ? new Date(m.created_at).toLocaleDateString() : 'N/A'
-      };
-    }) : []
-  };
-
-  return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={{...styles.modalContent, maxWidth: '800px'}} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <h3>Tenant Details</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
-        </div>
-
-        <div style={styles.modalTabs}>
-          <button 
-            style={{...styles.modalTab, ...(activeTab === 'personal' ? styles.modalTabActive : {})}}
-            onClick={() => setActiveTab('personal')}
-          >
-            Personal Info
-          </button>
-          <button 
-            style={{...styles.modalTab, ...(activeTab === 'lease' ? styles.modalTabActive : {})}}
-            onClick={() => setActiveTab('lease')}
-            disabled={!tenantData.lease}
-          >
-            Lease Info
-          </button>
-          <button 
-            style={{...styles.modalTab, ...(activeTab === 'payments' ? styles.modalTabActive : {})}}
-            onClick={() => setActiveTab('payments')}
-            disabled={!tenantData.payments || tenantData.payments.length === 0}
-          >
-            Payments
-          </button>
-          <button 
-            style={{...styles.modalTab, ...(activeTab === 'maintenance' ? styles.modalTabActive : {})}}
-            onClick={() => setActiveTab('maintenance')}
-            disabled={!tenantData.maintenance || tenantData.maintenance.length === 0}
-          >
-            Maintenance
-          </button>
-        </div>
-
-        <div style={styles.modalBody}>
-          {activeTab === 'personal' && (
-            <div style={styles.detailsGrid}>
-              {Object.entries(tenantData.personal).map(function([key, value]) {
-                return (
-                  <div key={key} style={styles.detailItem}>
-                    <label style={styles.detailLabel}>{key}</label>
-                    <p style={styles.detailValue}>{value}</p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {activeTab === 'lease' && tenantData.lease && (
-            <div>
-              <div style={styles.detailsGrid}>
-                {Object.entries(tenantData.lease).map(function([key, value]) {
-                  return (
-                    <div key={key} style={styles.detailItem}>
-                      <label style={styles.detailLabel}>{key}</label>
-                      <p style={styles.detailValue}>{value}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'payments' && tenantData.payments && tenantData.payments.length > 0 ? (
-            <div style={styles.tableWrapper}>
-              <table style={styles.table}>
-                <thead style={styles.tableHeader}>
-                  <tr>
-                    <th style={styles.th}>Date</th>
-                    <th style={styles.th}>Amount</th>
-                    <th style={styles.th}>Status</th>
-                    <th style={styles.th}>Transaction ID</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tenantData.payments.map(function(payment, idx) {
-                    return (
-                      <tr key={idx} style={styles.tableRow}>
-                        <td style={styles.td}>{payment.Date}</td>
-                        <td style={styles.td}>{payment.Amount}</td>
-                        <td style={styles.td}>
-                          <span style={{
-                            ...styles.statusBadge,
-                            backgroundColor: payment.Status === 'successful' ? '#dcfce7' : '#fee2e2',
-                            color: payment.Status === 'successful' ? '#166534' : '#991b1b'
-                          }}>
-                            {payment.Status}
-                          </span>
-                        </td>
-                        <td style={styles.td}>{payment['Transaction ID']}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : activeTab === 'payments' && (
-            <div style={styles.emptyState}>
-              <DollarSign size={32} />
-              <p>No payment history</p>
-            </div>
-          )}
-
-          {activeTab === 'maintenance' && tenantData.maintenance && tenantData.maintenance.length > 0 ? (
-            <div style={styles.tableWrapper}>
-              <table style={styles.table}>
-                <thead style={styles.tableHeader}>
-                  <tr>
-                    <th style={styles.th}>Title</th>
-                    <th style={styles.th}>Priority</th>
-                    <th style={styles.th}>Status</th>
-                    <th style={styles.th}>Date Reported</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tenantData.maintenance.map(function(req, idx) {
-                    return (
-                      <tr key={idx} style={styles.tableRow}>
-                        <td style={styles.td}>{req.Title}</td>
-                        <td style={styles.td}>{req.Priority}</td>
-                        <td style={styles.td}>
-                          <span style={{
-                            ...styles.statusBadge,
-                            backgroundColor: req.Status === 'completed' ? '#dcfce7' : '#fef3c7',
-                            color: req.Status === 'completed' ? '#166534' : '#92400e'
-                          }}>
-                            {req.Status}
-                          </span>
-                        </td>
-                        <td style={styles.td}>{req['Date Reported']}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : activeTab === 'maintenance' && (
-            <div style={styles.emptyState}>
-              <Wrench size={32} />
-              <p>No maintenance requests</p>
-            </div>
-          )}
-        </div>
-
-        <div style={styles.modalFooter}>
-          <button style={styles.btnSecondary} onClick={onClose}>Close</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ==================== CREATE TENANT MODAL ====================
-const CreateTenantModal = ({ onClose, onSubmit, loading }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    national_id: '',
-    password: 'Default@123',
-    room_number: ''
-  });
-  const [errors, setErrors] = useState({});
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    if (errors[e.target.name]) {
-      setErrors({...errors, [e.target.name]: ''});
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
-    if (!formData.national_id.trim()) newErrors.national_id = 'National ID is required';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    onSubmit(formData);
-  };
-
-  return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <h3>Create New Tenant</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div style={styles.modalBody}>
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Full Name *</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="John Doe"
-                style={{...styles.formInput, ...(errors.name ? styles.inputError : {})}}
-              />
-              {errors.name && <span style={styles.errorText}>{errors.name}</span>}
-            </div>
-            
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Email Address *</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="john@example.com"
-                style={{...styles.formInput, ...(errors.email ? styles.inputError : {})}}
-              />
-              {errors.email && <span style={styles.errorText}>{errors.email}</span>}
-            </div>
-            
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Phone Number *</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="0712345678"
-                style={{...styles.formInput, ...(errors.phone ? styles.inputError : {})}}
-              />
-              {errors.phone && <span style={styles.errorText}>{errors.phone}</span>}
-            </div>
-            
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>National ID *</label>
-              <input
-                type="text"
-                name="national_id"
-                value={formData.national_id}
-                onChange={handleChange}
-                placeholder="12345678"
-                style={{...styles.formInput, ...(errors.national_id ? styles.inputError : {})}}
-              />
-              {errors.national_id && <span style={styles.errorText}>{errors.national_id}</span>}
-            </div>
-            
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Room Number (Optional)</label>
-              <input
-                type="text"
-                name="room_number"
-                value={formData.room_number}
-                onChange={handleChange}
-                placeholder="22"
-                style={styles.formInput}
-              />
-              <small style={styles.formHelp}>Will be assigned when creating lease</small>
-            </div>
-            
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Default Password</label>
-              <input
-                type="text"
-                name="password"
-                value={formData.password}
-                readOnly
-                style={styles.formInput}
-              />
-              <small style={styles.formHelp}>Tenant can change this after login</small>
-            </div>
-          </div>
-          
-          <div style={styles.modalFooter}>
-            <button type="button" style={styles.btnSecondary} onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" style={styles.btnPrimary} disabled={loading}>
-              {loading ? 'Creating...' : 'Create Tenant'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// ==================== CREATE LEASE MODAL ====================
-const CreateLeaseModal = ({ tenant, rooms, onClose, onSubmit, loading }) => {
-  const [formData, setFormData] = useState({
-    tenant_id: tenant.id,
-    property_id: '',
-    rent_amount: '',
-    start_date: new Date().toISOString().split('T')[0]
-  });
-  const [errors, setErrors] = useState({});
-  const [selectedRoom, setSelectedRoom] = useState(null);
-
-  useEffect(() => {
-    if (rooms.length > 0 && !formData.property_id) {
-      const firstRoom = rooms[0];
-      setFormData(prev => ({
-        ...prev,
-        property_id: firstRoom.id,
-        rent_amount: firstRoom.rent_amount
-      }));
-      setSelectedRoom(firstRoom);
-    }
-  }, [rooms]);
-
-  const handleRoomChange = (e) => {
-    const roomId = parseInt(e.target.value);
-    const room = rooms.find(function(r) {
-      return r.id === roomId;
-    });
-    setFormData({
-      ...formData,
-      property_id: roomId,
-      rent_amount: room ? room.rent_amount : ''
-    });
-    setSelectedRoom(room);
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newErrors = {};
-    if (!formData.property_id) newErrors.property_id = 'Please select a room';
-    if (!formData.rent_amount || formData.rent_amount <= 0) newErrors.rent_amount = 'Valid rent amount required';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    onSubmit(formData);
-  };
-
-  const calculateDeposit = (rent) => {
-    return rent * 1.07;
-  };
-
-  return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <h3>Create Lease for {tenant.name}</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div style={styles.modalBody}>
-            <div style={styles.tenantInfoSummary}>
-              <p><strong>Tenant:</strong> {tenant.name}</p>
-              <p><strong>Email:</strong> {tenant.email}</p>
-              <p><strong>Phone:</strong> {tenant.phone || 'N/A'}</p>
-            </div>
-            
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Select Room *</label>
-              {rooms.length === 0 ? (
-                <div style={styles.alertWarning}>
-                  <AlertCircle size={16} />
-                  <span>No available rooms found</span>
-                </div>
-              ) : (
-                <select 
-                  value={formData.property_id}
-                  onChange={handleRoomChange}
-                  style={{...styles.formSelect, ...(errors.property_id ? styles.inputError : {})}}
-                >
-                  <option value="">Choose a room...</option>
-                  {rooms.map(function(room) {
-                    return (
-                      <option key={room.id} value={room.id}>
-                        {room.name} - {room.property_type} - KSh {room.rent_amount ? room.rent_amount.toLocaleString() : '0'}/month
-                      </option>
-                    );
-                  })}
-                </select>
-              )}
-              {errors.property_id && <span style={styles.errorText}>{errors.property_id}</span>}
-            </div>
-            
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Monthly Rent (KSh) *</label>
-              <input
-                type="number"
-                value={formData.rent_amount}
-                onChange={(e) => setFormData({...formData, rent_amount: e.target.value})}
-                placeholder="Enter rent amount"
-                style={{...styles.formInput, ...(errors.rent_amount ? styles.inputError : {})}}
-                min="0"
-                step="100"
-              />
-              {errors.rent_amount && <span style={styles.errorText}>{errors.rent_amount}</span>}
-            </div>
-
-            {formData.rent_amount > 0 && (
-              <div style={styles.leaseCalculations}>
-                <h4 style={{margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600'}}>Lease Calculations</h4>
-                <div style={styles.calculationRow}>
-                  <span>Monthly Rent:</span>
-                  <strong>{"KSh " + parseFloat(formData.rent_amount).toLocaleString()}</strong>
-                </div>
-                <div style={styles.calculationRow}>
-                  <span>Security Deposit (7%):</span>
-                  <strong>{"KSh " + calculateDeposit(parseFloat(formData.rent_amount)).toLocaleString()}</strong>
-                </div>
-                <div style={{...styles.calculationRow, borderTop: '1px solid #e5e7eb', paddingTop: '8px', marginTop: '8px'}}>
-                  <span>Initial Payment Required:</span>
-                  <strong style={{color: '#3b82f6'}}>
-                    {"KSh " + (parseFloat(formData.rent_amount) + calculateDeposit(parseFloat(formData.rent_amount))).toLocaleString()}
-                  </strong>
-                </div>
-              </div>
-            )}
-            
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Lease Start Date *</label>
-              <input
-                type="date"
-                value={formData.start_date}
-                onChange={(e) => setFormData({...formData, start_date: e.target.value})}
-                style={styles.formInput}
-              />
-            </div>
-            
-            <div style={styles.leaseTermsNote}>
-              <h4 style={{margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600'}}>Lease Terms</h4>
-              <p style={{margin: '4px 0'}}>1-year lease term (auto-calculated)</p>
-              <p style={{margin: '4px 0'}}>Tenant must sign lease agreement before making payments</p>
-              <p style={{margin: '4px 0'}}>Rent payment due on 5th of each month</p>
-            </div>
-          </div>
-          
-          <div style={styles.modalFooter}>
-            <button type="button" style={styles.btnSecondary} onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" style={styles.btnPrimary} disabled={loading || rooms.length === 0}>
-              {loading ? 'Creating...' : 'Create Lease'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// ==================== SEND NOTIFICATION MODAL ====================
-const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
-  const [formData, setFormData] = useState({
-    tenant_id: '',
-    title: '',
-    message: '',
-    type: 'general'
-  });
-  const [errors, setErrors] = useState({});
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    if (errors[e.target.name]) {
-      setErrors({...errors, [e.target.name]: ''});
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newErrors = {};
-    if (!formData.tenant_id) newErrors.tenant_id = 'Please select a tenant';
-    if (!formData.title.trim()) newErrors.title = 'Title is required';
-    if (!formData.message.trim()) newErrors.message = 'Message is required';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    onSubmit(formData);
-  };
-
-  return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <h3>Send Notification</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div style={styles.modalBody}>
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Select Tenant *</label>
-              <select 
-                name="tenant_id"
-                value={formData.tenant_id}
-                onChange={handleChange}
-                style={{...styles.formSelect, ...(errors.tenant_id ? styles.inputError : {})}}
-              >
-                <option value="">Choose a tenant...</option>
-                {tenants.filter(function(t) {
-                  return t.is_active;
-                }).map(function(tenant) {
-                  return (
-                    <option key={tenant.id} value={tenant.id}>
-                      {tenant.name} - Room {tenant.room_number || 'N/A'}
-                    </option>
-                  );
-                })}
-              </select>
-              {errors.tenant_id && <span style={styles.errorText}>{errors.tenant_id}</span>}
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Notification Type *</label>
-              <select 
-                name="type"
-                value={formData.type}
-                onChange={handleChange}
-                style={styles.formSelect}
-              >
-                <option value="general">General</option>
-                <option value="urgent">Urgent</option>
-                <option value="payment">Payment Reminder</option>
-                <option value="maintenance">Maintenance</option>
-              </select>
-            </div>
-            
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Title *</label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                placeholder="e.g., Rent Payment Reminder"
-                style={{...styles.formInput, ...(errors.title ? styles.inputError : {})}}
-              />
-              {errors.title && <span style={styles.errorText}>{errors.title}</span>}
-            </div>
-            
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Message *</label>
-              <textarea
-                name="message"
-                value={formData.message}
-                onChange={handleChange}
-                placeholder="Enter your notification message..."
-                rows="5"
-                style={{...styles.formInput, ...(errors.message ? styles.inputError : {}), resize: 'vertical'}}
-              />
-              {errors.message && <span style={styles.errorText}>{errors.message}</span>}
-            </div>
-          </div>
-          
-          <div style={styles.modalFooter}>
-            <button type="button" style={styles.btnSecondary} onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" style={styles.btnPrimary} disabled={loading}>
-              {loading ? 'Sending...' : 'Send Notification'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// ==================== MAINTENANCE DETAILS MODAL ====================
+// ==================== MODALS ====================
 const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
@@ -2302,24 +1924,18 @@ const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
                 {request.status}
               </span>
             </div>
-            <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Created</label>
-              <p style={styles.detailValue}>
-                {request.created_at ? new Date(request.created_at).toLocaleDateString() : 'N/A'}
-              </p>
-            </div>
           </div>
 
-          <div style={{marginTop: '20px'}}>
+          <div style={{ marginTop: '20px' }}>
             <label style={styles.detailLabel}>Title</label>
-            <p style={{...styles.detailValue, fontSize: '16px', fontWeight: '600', margin: '8px 0'}}>
+            <p style={{ ...styles.detailValue, fontSize: '16px', fontWeight: '600', margin: '8px 0' }}>
               {request.title}
             </p>
           </div>
 
-          <div style={{marginTop: '16px'}}>
+          <div style={{ marginTop: '16px' }}>
             <label style={styles.detailLabel}>Description</label>
-            <p style={{...styles.detailValue, lineHeight: '1.6', margin: '8px 0'}}>
+            <p style={{ ...styles.detailValue, lineHeight: '1.6', margin: '8px 0' }}>
               {request.description}
             </p>
           </div>
@@ -2327,7 +1943,7 @@ const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
 
         <div style={styles.modalFooter}>
           {request.status === 'pending' && (
-            <button 
+            <button
               style={styles.btnPrimary}
               onClick={() => {
                 onUpdateStatus(request.id, 'in_progress');
@@ -2338,14 +1954,14 @@ const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
             </button>
           )}
           {request.status === 'in_progress' && (
-            <button 
+            <button
               style={styles.btnPrimary}
               onClick={() => {
                 onUpdateStatus(request.id, 'completed');
                 onClose();
               }}
             >
-              Mark as Complete
+              Mark Complete
             </button>
           )}
           <button style={styles.btnSecondary} onClick={onClose}>
@@ -2357,46 +1973,437 @@ const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
   );
 };
 
-// ==================== VACATE NOTICE DETAILS MODAL ====================
-const VacateNoticeDetailsModal = ({ notice, onClose, onUpdateStatus }) => {
-  const [notes, setNotes] = useState(notice.admin_notes || '');
-  const [action, setAction] = useState('');
+const CreateMaintenanceModal = ({ rooms, onClose, onSubmit, loading }) => {
+  const [formData, setFormData] = useState({
+    property_id: '',
+    title: '',
+    description: '',
+    priority: 'normal'
+  });
+  const [errors, setErrors] = useState({});
 
-  const handleApprove = () => {
-    if (window.confirm('Are you sure you want to approve this vacate notice?')) {
-      onUpdateStatus(notice.id, 'approved', notes);
-      onClose();
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: '' });
     }
   };
 
-  const handleReject = () => {
-    if (window.confirm('Are you sure you want to reject this vacate notice?')) {
-      onUpdateStatus(notice.id, 'rejected', notes);
-      onClose();
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const newErrors = {};
+    if (!formData.property_id) newErrors.property_id = 'Please select a room';
+    if (!formData.title.trim()) newErrors.title = 'Title is required';
+    if (!formData.description.trim()) newErrors.description = 'Description is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    onSubmit(formData);
+  };
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h3>Create Maintenance Request</h3>
+          <button style={styles.modalClose} onClick={onClose}>×</button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={styles.modalBody}>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Select Room *</label>
+              <select
+                name="property_id"
+                value={formData.property_id}
+                onChange={handleChange}
+                style={{ ...styles.formSelect, ...(errors.property_id ? styles.inputError : {}) }}
+              >
+                <option value="">Choose a room...</option>
+                {rooms.map(room => (
+                  <option key={room.id} value={room.id}>
+                    {room.name}
+                  </option>
+                ))}
+              </select>
+              {errors.property_id && <span style={styles.errorText}>{errors.property_id}</span>}
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Priority *</label>
+              <select
+                name="priority"
+                value={formData.priority}
+                onChange={handleChange}
+                style={styles.formSelect}
+              >
+                <option value="low">Low</option>
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Title *</label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="e.g., Broken window in Room 12"
+                style={{ ...styles.formInput, ...(errors.title ? styles.inputError : {}) }}
+              />
+              {errors.title && <span style={styles.errorText}>{errors.title}</span>}
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Description *</label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Provide details about the maintenance issue..."
+                rows="5"
+                style={{ ...styles.formInput, ...(errors.description ? styles.inputError : {}), resize: 'vertical' }}
+              />
+              {errors.description && <span style={styles.errorText}>{errors.description}</span>}
+            </div>
+          </div>
+
+          <div style={styles.modalFooter}>
+            <button type="button" style={styles.btnSecondary} onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" style={styles.btnPrimary} disabled={loading}>
+              {loading ? 'Creating...' : 'Create Request'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
+  const [formData, setFormData] = useState({
+    tenant_id: '',
+    title: '',
+    message: '',
+    type: 'general'
+  });
+  const [errors, setErrors] = useState({});
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: '' });
     }
   };
 
-  const handleComplete = () => {
-    if (window.confirm('Are you sure you want to mark this vacate notice as completed?')) {
-      onUpdateStatus(notice.id, 'completed', notes);
-      onClose();
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const newErrors = {};
+    if (!formData.tenant_id) newErrors.tenant_id = 'Please select a tenant';
+    if (!formData.title.trim()) newErrors.title = 'Title is required';
+    if (!formData.message.trim()) newErrors.message = 'Message is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    onSubmit(formData);
+  };
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h3>Send Notification</h3>
+          <button style={styles.modalClose} onClick={onClose}>×</button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={styles.modalBody}>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Select Tenant *</label>
+              <select
+                name="tenant_id"
+                value={formData.tenant_id}
+                onChange={handleChange}
+                style={{ ...styles.formSelect, ...(errors.tenant_id ? styles.inputError : {}) }}
+              >
+                <option value="">Choose a tenant...</option>
+                {tenants.filter(t => t.is_active).map(tenant => (
+                  <option key={tenant.id} value={tenant.id}>
+                    {tenant.name} - Room {tenant.room_number || 'N/A'}
+                  </option>
+                ))}
+              </select>
+              {errors.tenant_id && <span style={styles.errorText}>{errors.tenant_id}</span>}
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Notification Type *</label>
+              <select
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                style={styles.formSelect}
+              >
+                <option value="general">General</option>
+                <option value="urgent">Urgent</option>
+                <option value="maintenance">Maintenance</option>
+              </select>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Title *</label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="Notification title..."
+                style={{ ...styles.formInput, ...(errors.title ? styles.inputError : {}) }}
+              />
+              {errors.title && <span style={styles.errorText}>{errors.title}</span>}
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Message *</label>
+              <textarea
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                placeholder="Enter your notification message..."
+                rows="5"
+                style={{ ...styles.formInput, ...(errors.message ? styles.inputError : {}), resize: 'vertical' }}
+              />
+              {errors.message && <span style={styles.errorText}>{errors.message}</span>}
+            </div>
+          </div>
+
+          <div style={styles.modalFooter}>
+            <button type="button" style={styles.btnSecondary} onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" style={styles.btnPrimary} disabled={loading}>
+              {loading ? 'Sending...' : 'Send Notification'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
+  const [formData, setFormData] = useState({
+    tenant_id: tenant.tenant_id || tenant.id || '',
+    amount: tenant.rent_amount || 0,
+    status: 'paid',
+    payment_method: 'cash'
+  });
+  const [errors, setErrors] = useState({});
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    if (name === 'amount') {
+      // Ensure amount is a number
+      const numValue = value === '' ? '' : parseFloat(value);
+      setFormData({
+        ...formData,
+        [name]: numValue
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
+    
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' });
     }
   };
 
-  const statusColor = function(status) {
-    switch(status) {
-      case 'pending': return { bg: '#fef3c7', color: '#92400e' };
-      case 'approved': return { bg: '#dbeafe', color: '#1e40af' };
-      case 'rejected': return { bg: '#fee2e2', color: '#991b1b' };
-      case 'completed': return { bg: '#dcfce7', color: '#166534' };
-      default: return { bg: '#f3f4f6', color: '#4b5563' };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const newErrors = {};
+    
+    // Validation
+    if (!formData.tenant_id) {
+      newErrors.tenant_id = 'Tenant ID is required';
     }
+    if (!formData.amount || formData.amount <= 0) {
+      newErrors.amount = 'Amount must be greater than 0';
+    }
+    if (!formData.status || !['paid', 'unpaid'].includes(formData.status)) {
+      newErrors.status = 'Status must be "paid" or "unpaid"';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    // Prepare data exactly as backend expects
+    const submitData = {
+      tenant_id: parseInt(formData.tenant_id),
+      amount: parseFloat(formData.amount),
+      status: formData.status,
+      payment_method: formData.payment_method || 'manual'
+    };
+
+    onSubmit(submitData);
   };
 
-  const colors = statusColor(notice.status);
-  const daysLeft = notice.vacate_date 
-    ? Math.ceil((new Date(notice.vacate_date) - new Date()) / (1000 * 60 * 60 * 24))
-    : 0;
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h3>Record Payment</h3>
+          <button style={styles.modalClose} onClick={onClose}>×</button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={styles.modalBody}>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Tenant Information</label>
+              <div style={{ 
+                backgroundColor: '#f9fafb', 
+                padding: '12px', 
+                borderRadius: '6px',
+                margin: '8px 0'
+              }}>
+                <p style={{ margin: '0 0 4px 0', fontWeight: '600' }}>
+                  {tenant.tenant_name || tenant.name || 'N/A'}
+                </p>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  fontSize: '14px',
+                  color: '#6b7280'
+                }}>
+                  <span>Room: {tenant.room_number || 'N/A'}</span>
+                  <span>Rent: KSh {tenant.rent_amount ? tenant.rent_amount.toLocaleString() : '0'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Tenant ID *</label>
+              <input
+                type="text"
+                name="tenant_id"
+                value={formData.tenant_id}
+                onChange={handleChange}
+                placeholder="Tenant ID"
+                style={{ ...styles.formInput, ...(errors.tenant_id ? styles.inputError : {}) }}
+                disabled={!!tenant.tenant_id || !!tenant.id}
+              />
+              {errors.tenant_id && <span style={styles.errorText}>{errors.tenant_id}</span>}
+              <small style={styles.helpText}>
+                This should be populated automatically
+              </small>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Payment Status *</label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                style={{ ...styles.formSelect, ...(errors.status ? styles.inputError : {}) }}
+              >
+                <option value="paid">Paid</option>
+                <option value="unpaid">Unpaid</option>
+              </select>
+              {errors.status && <span style={styles.errorText}>{errors.status}</span>}
+              <small style={styles.helpText}>
+                • Paid: Mark payment as completed<br/>
+                • Unpaid: Mark payment as not received
+              </small>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Amount (KES) *</label>
+              <input
+                type="number"
+                name="amount"
+                value={formData.amount}
+                onChange={handleChange}
+                placeholder="Enter amount"
+                min="1"
+                step="0.01"
+                style={{ ...styles.formInput, ...(errors.amount ? styles.inputError : {}) }}
+              />
+              {errors.amount && <span style={styles.errorText}>{errors.amount}</span>}
+              <small style={styles.helpText}>
+                Amount to be recorded
+              </small>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Payment Method</label>
+              <select
+                name="payment_method"
+                value={formData.payment_method}
+                onChange={handleChange}
+                style={styles.formSelect}
+              >
+                <option value="cash">Cash</option>
+                <option value="manual">Manual</option>
+                <option value="mpesa">M-Pesa</option>
+                <option value="bank">Bank Transfer</option>
+              </select>
+              <small style={styles.helpText}>
+                How was this payment received?
+              </small>
+            </div>
+          </div>
+
+          <div style={styles.modalFooter}>
+            <button type="button" style={styles.btnSecondary} onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" style={styles.btnPrimary} disabled={loading}>
+              {loading ? (
+                <>
+                  <div style={{
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid white',
+                    borderTopColor: 'transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    marginRight: '8px'
+                  }}></div>
+                  Processing...
+                </>
+              ) : 'Record Payment'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const VacateNoticeDetailsModal = ({ notice, onClose, onUpdateStatus, onDelete }) => {
+  const [actionNotes, setActionNotes] = useState('');
 
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
@@ -2409,71 +2416,68 @@ const VacateNoticeDetailsModal = ({ notice, onClose, onUpdateStatus }) => {
         <div style={styles.modalBody}>
           <div style={styles.detailsGrid}>
             <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Notice ID</label>
-              <p style={styles.detailValue}>#{notice.id}</p>
-            </div>
-            <div style={styles.detailItem}>
               <label style={styles.detailLabel}>Tenant</label>
-              <p style={styles.detailValue}>{notice.tenant_name || 'Unknown'}</p>
+              <p style={styles.detailValue}>{notice.tenant_name}</p>
             </div>
             <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Room Number</label>
-              <p style={styles.detailValue}>Room {notice.room_number || 'N/A'}</p>
+              <label style={styles.detailLabel}>Room</label>
+              <p style={styles.detailValue}>{notice.room_number || 'N/A'}</p>
+            </div>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Property</label>
+              <p style={styles.detailValue}>{notice.property_name}</p>
             </div>
             <div style={styles.detailItem}>
               <label style={styles.detailLabel}>Status</label>
               <span style={{
                 ...styles.statusBadge,
-                backgroundColor: colors.bg,
-                color: colors.color
+                backgroundColor: 
+                  notice.status === 'approved' ? '#dcfce7' :
+                  notice.status === 'rejected' ? '#fee2e2' :
+                  notice.status === 'completed' ? '#dbeafe' : '#fef3c7',
+                color: 
+                  notice.status === 'approved' ? '#166534' :
+                  notice.status === 'rejected' ? '#991b1b' :
+                  notice.status === 'completed' ? '#1e40af' : '#92400e'
               }}>
                 {notice.status}
               </span>
             </div>
-            <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Vacate Date</label>
-              <p style={styles.detailValue}>
-                {notice.vacate_date ? new Date(notice.vacate_date).toLocaleDateString() : 'N/A'}
-              </p>
-            </div>
-            <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Days Remaining</label>
-              <p style={styles.detailValue}>
-                <span style={{
-                  ...styles.statusBadge,
-                  backgroundColor: daysLeft <= 7 ? '#fee2e2' : daysLeft <= 30 ? '#fef3c7' : '#dcfce7',
-                  color: daysLeft <= 7 ? '#991b1b' : daysLeft <= 30 ? '#92400e' : '#166534'
-                }}>
-                  {daysLeft} days
-                </span>
-              </p>
-            </div>
           </div>
 
-          <div style={{marginTop: '16px'}}>
-            <label style={styles.detailLabel}>Reason for Vacating</label>
-            <p style={{...styles.detailValue, lineHeight: '1.6', margin: '8px 0'}}>
+          <div style={{ marginTop: '20px' }}>
+            <label style={styles.detailLabel}>Vacate Date</label>
+            <p style={{ ...styles.detailValue, fontSize: '16px', fontWeight: '600', margin: '8px 0' }}>
+              {new Date(notice.vacate_date).toLocaleDateString()}
+            </p>
+          </div>
+
+          <div style={{ marginTop: '16px' }}>
+            <label style={styles.detailLabel}>Reason</label>
+            <p style={{ ...styles.detailValue, lineHeight: '1.6', margin: '8px 0' }}>
               {notice.reason || 'No reason provided'}
             </p>
           </div>
 
-          <div style={{marginTop: '16px'}}>
-            <label style={styles.detailLabel}>Admin Notes</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any notes or comments..."
-              rows="4"
-              style={styles.formInput}
-            />
-          </div>
-
           {notice.admin_notes && (
-            <div style={{marginTop: '16px'}}>
-              <label style={styles.detailLabel}>Previous Notes</label>
-              <p style={{...styles.detailValue, lineHeight: '1.6', margin: '8px 0'}}>
+            <div style={{ marginTop: '16px' }}>
+              <label style={styles.detailLabel}>Admin Notes</label>
+              <p style={{ ...styles.detailValue, lineHeight: '1.6', margin: '8px 0' }}>
                 {notice.admin_notes}
               </p>
+            </div>
+          )}
+
+          {notice.status === 'pending' && (
+            <div style={{ marginTop: '24px' }}>
+              <label style={styles.formLabel}>Action Notes (Optional)</label>
+              <textarea
+                value={actionNotes}
+                onChange={(e) => setActionNotes(e.target.value)}
+                placeholder="Add notes for approval/rejection..."
+                rows="3"
+                style={styles.formInput}
+              />
             </div>
           )}
         </div>
@@ -2481,44 +2485,170 @@ const VacateNoticeDetailsModal = ({ notice, onClose, onUpdateStatus }) => {
         <div style={styles.modalFooter}>
           {notice.status === 'pending' && (
             <>
-              <button style={styles.btnSecondary} onClick={onClose}>Cancel</button>
-              <button style={styles.btnDanger} onClick={handleReject}>Reject</button>
-              <button style={styles.btnSuccess} onClick={handleApprove}>Approve</button>
+              <button
+                style={styles.btnSuccess}
+                onClick={() => {
+                  onUpdateStatus(notice.id, 'approve', actionNotes);
+                  onClose();
+                }}
+              >
+                Approve
+              </button>
+              <button
+                style={styles.btnDanger}
+                onClick={() => {
+                  onUpdateStatus(notice.id, 'reject', actionNotes);
+                  onClose();
+                }}
+              >
+                Reject
+              </button>
+              <button
+                style={styles.btnSecondary}
+                onClick={() => {
+                  onDelete(notice.id);
+                  onClose();
+                }}
+              >
+                Delete
+              </button>
             </>
           )}
           {notice.status === 'approved' && (
-            <>
-              <button style={styles.btnSecondary} onClick={onClose}>Close</button>
-              <button style={styles.btnPrimary} onClick={handleComplete}>Mark as Completed</button>
-            </>
+            <button
+              style={styles.btnSuccess}
+              onClick={() => {
+                onUpdateStatus(notice.id, 'complete');
+                onClose();
+              }}
+            >
+              Mark Complete
+            </button>
           )}
-          {(notice.status === 'rejected' || notice.status === 'completed') && (
-            <button style={styles.btnSecondary} onClick={onClose}>Close</button>
-          )}
+          <button style={styles.btnSecondary} onClick={onClose}>
+            Close
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
+const CreateVacateNoticeModal = ({ leases, initialData, onClose, onSubmit, loading }) => {
+  const [formData, setFormData] = useState({
+    lease_id: initialData?.lease_id || '',
+    vacate_date: '',
+    reason: ''
+  });
+  const [errors, setErrors] = useState({});
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: '' });
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const newErrors = {};
+    if (!formData.lease_id) newErrors.lease_id = 'Please select a lease';
+    if (!formData.vacate_date) newErrors.vacate_date = 'Vacate date is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    onSubmit(formData);
+  };
+
+  // Set minimum date to tomorrow
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const minDate = tomorrow.toISOString().split('T')[0];
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h3>Create Vacate Notice</h3>
+          <button style={styles.modalClose} onClick={onClose}>×</button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={styles.modalBody}>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Select Tenant/Lease *</label>
+              <select
+                name="lease_id"
+                value={formData.lease_id}
+                onChange={handleChange}
+                style={{ ...styles.formSelect, ...(errors.lease_id ? styles.inputError : {}) }}
+              >
+                <option value="">Choose a tenant...</option>
+                {leases.map(lease => (
+                  <option key={lease.lease_id} value={lease.lease_id}>
+                    {lease.tenant_name} - Room {lease.room_number || 'N/A'}
+                  </option>
+                ))}
+              </select>
+              {errors.lease_id && <span style={styles.errorText}>{errors.lease_id}</span>}
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Vacate Date *</label>
+              <input
+                type="date"
+                name="vacate_date"
+                value={formData.vacate_date}
+                onChange={handleChange}
+                min={minDate}
+                style={{ ...styles.formInput, ...(errors.vacate_date ? styles.inputError : {}) }}
+              />
+              {errors.vacate_date && <span style={styles.errorText}>{errors.vacate_date}</span>}
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Reason (Optional)</label>
+              <textarea
+                name="reason"
+                value={formData.reason}
+                onChange={handleChange}
+                placeholder="Enter reason for vacating..."
+                rows="4"
+                style={styles.formInput}
+              />
+            </div>
+          </div>
+
+          <div style={styles.modalFooter}>
+            <button type="button" style={styles.btnSecondary} onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" style={styles.btnPrimary} disabled={loading}>
+              {loading ? 'Creating...' : 'Create Notice'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // ==================== HELPER COMPONENTS ====================
-const OverviewCard = ({ title, value, icon: Icon, color, subtitle }) => (
+const OverviewCard = ({ title, value, icon: Icon, color }) => (
   <div style={styles.overviewCard}>
-    <div style={{...styles.cardIcon, backgroundColor: color + '20', color: color}}>
+    <div style={{ ...styles.cardIcon, backgroundColor: color + '20', color: color }}>
       <Icon size={24} />
     </div>
     <div style={styles.cardContent}>
       <h3 style={styles.cardTitle}>{title}</h3>
       <p style={styles.cardValue}>{value}</p>
-      {subtitle && <p style={styles.cardSubtitle}>{subtitle}</p>}
     </div>
-  </div>
-);
-
-const SummaryCard = ({ label, value, color = '#6b7280' }) => (
-  <div style={styles.summaryCard}>
-    <span style={styles.summaryLabel}>{label}</span>
-    <span style={{...styles.summaryValue, color: color}}>{value}</span>
   </div>
 );
 
@@ -2559,7 +2689,7 @@ const styles = {
     color: '#fbbf24'
   },
   closeBtn: {
-    background: 'none',
+    background: 'transparent',
     border: 'none',
     color: 'white',
     cursor: 'pointer',
@@ -2578,7 +2708,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    background: 'none',
+    background: 'transparent',
     border: 'none',
     color: '#d1d5db',
     cursor: 'pointer',
@@ -2620,7 +2750,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '8px',
-    background: '#ef4444',
+    backgroundColor: '#ef4444',
     border: 'none',
     borderRadius: '6px',
     color: 'white',
@@ -2646,8 +2776,7 @@ const styles = {
     padding: '0 24px',
     position: 'sticky',
     top: 0,
-    zIndex: 10,
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+    zIndex: 11
   },
   headerLeft: {
     display: 'flex',
@@ -2656,20 +2785,19 @@ const styles = {
   },
   menuBtn: {
     display: 'none',
-    background: 'none',
+    background: 'transparent',
     border: 'none',
     cursor: 'pointer',
     padding: '8px'
   },
   homeBtn: {
-    background: 'none',
+    background: 'transparent',
     border: '1px solid #e5e7eb',
     borderRadius: '6px',
     cursor: 'pointer',
     padding: '8px',
     display: 'flex',
-    alignItems: 'center',
-    transition: 'all 0.2s'
+    alignItems: 'center'
   },
   headerTitle: {
     margin: 0,
@@ -2683,14 +2811,13 @@ const styles = {
     gap: '12px'
   },
   refreshBtn: {
-    background: 'none',
+    background: 'transparent',
     border: '1px solid #e5e7eb',
     borderRadius: '6px',
     cursor: 'pointer',
     padding: '8px',
     display: 'flex',
-    alignItems: 'center',
-    transition: 'all 0.2s'
+    alignItems: 'center'
   },
   notificationBadge: {
     position: 'relative',
@@ -2718,8 +2845,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    fontSize: '14px',
-    borderBottom: '1px solid #fecaca'
+    fontSize: '14px'
   },
   successBanner: {
     backgroundColor: '#dcfce7',
@@ -2728,12 +2854,11 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    fontSize: '14px',
-    borderBottom: '1px solid #bbf7d0'
+    fontSize: '14px'
   },
   closeBannerBtn: {
     marginLeft: 'auto',
-    background: 'none',
+    background: 'transparent',
     border: 'none',
     fontSize: '20px',
     cursor: 'pointer',
@@ -2753,62 +2878,78 @@ const styles = {
     flexWrap: 'wrap',
     gap: '16px'
   },
-  pageHeaderControls: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '24px',
-    flexWrap: 'wrap',
-    gap: '16px'
-  },
   pageTitle: {
     margin: 0,
     fontSize: '24px',
     fontWeight: '600',
     color: '#111827'
   },
-  actionButtons: {
+  headerActions: {
     display: 'flex',
-    gap: '12px',
-    alignItems: 'center'
+    gap: '12px'
   },
-  filterSection: {
+  tabs: {
     display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
+    gap: '8px',
+    borderBottom: '1px solid #e5e7eb',
+    marginBottom: '24px'
   },
-  filterLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
+  tabButton: {
+    padding: '10px 20px',
+    background: 'transparent',
+    border: 'none',
+    borderBottom: '2px solid transparent',
+    cursor: 'pointer',
     fontSize: '14px',
+    fontWeight: '500',
     color: '#6b7280'
   },
+  tabButtonActive: {
+    color: '#3b82f6',
+    borderBottomColor: '#3b82f6'
+  },
+  filterBar: {
+    display: 'flex',
+    gap: '12px',
+    marginBottom: '24px',
+    flexWrap: 'wrap'
+  },
+  searchBox: {
+    flex: 1,
+    maxWidth: '400px',
+    position: 'relative'
+  },
+  searchInput: {
+    width: '100%',
+    padding: '10px 12px 10px 40px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px'
+  },
   filterSelect: {
-    padding: '8px 12px',
+    padding: '10px 12px',
     border: '1px solid #d1d5db',
     borderRadius: '6px',
     fontSize: '14px',
     backgroundColor: 'white',
     cursor: 'pointer',
-    transition: 'all 0.2s'
+    minWidth: '150px'
   },
-  gridContainer: {
+  columnsContainer: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-    gap: '20px',
-    marginBottom: '32px'
+    gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+    gap: '24px'
   },
-  dashboardGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '24px',
-    marginBottom: '32px'
-  },
-  dashboardColumn: {
+  column: {
     display: 'flex',
     flexDirection: 'column',
     gap: '24px'
+  },
+  gridContainer: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+    gap: '16px',
+    marginBottom: '32px'
   },
   overviewCard: {
     backgroundColor: 'white',
@@ -2818,8 +2959,7 @@ const styles = {
     alignItems: 'center',
     gap: '16px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    border: '1px solid #e5e7eb',
-    transition: 'all 0.2s'
+    border: '1px solid #e5e7eb'
   },
   cardIcon: {
     width: '48px',
@@ -2839,34 +2979,19 @@ const styles = {
     fontWeight: '500'
   },
   cardValue: {
-    margin: '0 0 4px 0',
+    margin: 0,
     fontSize: '24px',
     fontWeight: '600',
     color: '#111827'
-  },
-  cardSubtitle: {
-    margin: 0,
-    fontSize: '12px',
-    color: '#9ca3af'
   },
   section: {
     backgroundColor: 'white',
     borderRadius: '8px',
     padding: '24px',
-    marginBottom: '24px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
     border: '1px solid #e5e7eb'
   },
-  sectionTitle: {
-    margin: '0 0 20px 0',
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#111827',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  },
-  sectionHeaderControls: {
+  sectionHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -2874,120 +2999,18 @@ const styles = {
     flexWrap: 'wrap',
     gap: '16px'
   },
-  tableControls: {
-    display: 'flex',
-    gap: '12px',
-    alignItems: 'center'
-  },
-  searchBox: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '8px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    backgroundColor: 'white',
-    transition: 'all 0.2s'
-  },
-  searchInput: {
-    border: 'none',
-    outline: 'none',
-    fontSize: '14px',
-    width: '200px',
-    backgroundColor: 'transparent'
-  },
-  summaryGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '16px'
-  },
-  summaryCard: {
-    padding: '16px',
-    backgroundColor: '#f9fafb',
-    borderRadius: '6px',
-    border: '1px solid #e5e7eb',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-    transition: 'all 0.2s'
-  },
-  summaryLabel: {
-    fontSize: '14px',
-    color: '#6b7280',
-    fontWeight: '500'
-  },
-  summaryValue: {
-    fontSize: '24px',
-    fontWeight: '600'
-  },
-  quickStats: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-    gap: '16px'
-  },
-  quickStat: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px'
-  },
-  quickStatLabel: {
-    fontSize: '14px',
-    color: '#6b7280'
-  },
-  quickStatValue: {
-    fontSize: '20px',
-    fontWeight: '600',
-    color: '#111827'
-  },
-  financialSummary: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-    gap: '16px'
-  },
-  financialCard: {
-    padding: '20px',
-    backgroundColor: '#f8fafc',
-    borderRadius: '8px',
-    border: '1px solid #e5e7eb',
-    textAlign: 'center'
-  },
-  financialValue: {
-    fontSize: '28px',
+  sectionTitle: {
+    margin: 0,
+    fontSize: '18px',
     fontWeight: '600',
     color: '#111827',
-    margin: '8px 0'
-  },
-  financialNote: {
-    fontSize: '12px',
-    color: '#6b7280'
-  },
-  activitiesGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '16px'
-  },
-  activityCard: {
-    padding: '16px',
-    backgroundColor: '#f9fafb',
-    borderRadius: '8px',
-    border: '1px solid #e5e7eb'
-  },
-  activityTitle: {
-    margin: '0 0 12px 0',
-    fontSize: '16px',
-    fontWeight: '600',
-    color: '#111827'
-  },
-  activityItem: {
     display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '8px 0',
-    borderBottom: '1px solid #e5e7eb'
+    gap: '8px'
   },
-  textMuted: {
-    color: '#6b7280',
-    fontSize: '14px'
+  sectionFooter: {
+    marginTop: '16px',
+    textAlign: 'right'
   },
   tableWrapper: {
     overflowX: 'auto',
@@ -2997,8 +3020,7 @@ const styles = {
   table: {
     width: '100%',
     borderCollapse: 'collapse',
-    fontSize: '14px',
-    minWidth: '800px'
+    fontSize: '14px'
   },
   tableHeader: {
     backgroundColor: '#f9fafb',
@@ -3009,29 +3031,42 @@ const styles = {
     textAlign: 'left',
     fontWeight: '600',
     color: '#374151',
-    borderRight: '1px solid #e5e7eb'
+    whiteSpace: 'nowrap'
   },
   tableRow: {
-    borderBottom: '1px solid #e5e7eb',
-    transition: 'all 0.2s'
+    borderBottom: '1px solid #e5e7eb'
   },
   td: {
     padding: '12px 16px',
     color: '#6b7280',
-    borderRight: '1px solid #e5e7eb'
+    verticalAlign: 'top'
   },
   statusBadge: {
     display: 'inline-block',
     padding: '4px 12px',
     borderRadius: '12px',
     fontSize: '12px',
-    fontWeight: '500',
-    whiteSpace: 'nowrap'
+    fontWeight: '500'
   },
-  actionButtons: {
+  badgeWarning: {
+    display: 'inline-block',
+    padding: '4px 12px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500',
+    backgroundColor: '#fef3c7',
+    color: '#92400e'
+  },
+  btnText: {
+    background: 'transparent',
+    border: 'none',
+    color: '#3b82f6',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
     display: 'flex',
-    gap: '8px',
-    flexWrap: 'wrap'
+    alignItems: 'center',
+    gap: '4px'
   },
   btnPrimary: {
     padding: '10px 16px',
@@ -3044,8 +3079,7 @@ const styles = {
     fontWeight: '500',
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    transition: 'all 0.2s'
+    gap: '8px'
   },
   btnSecondary: {
     padding: '10px 16px',
@@ -3056,7 +3090,9 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500',
-    transition: 'all 0.2s'
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
   },
   btnSuccess: {
     padding: '10px 16px',
@@ -3066,8 +3102,7 @@ const styles = {
     borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '14px',
-    fontWeight: '500',
-    transition: 'all 0.2s'
+    fontWeight: '500'
   },
   btnDanger: {
     padding: '10px 16px',
@@ -3077,17 +3112,7 @@ const styles = {
     borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '14px',
-    fontWeight: '500',
-    transition: 'all 0.2s'
-  },
-  btnText: {
-    background: 'none',
-    border: 'none',
-    color: '#3b82f6',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    padding: '8px'
+    fontWeight: '500'
   },
   btnSmallPrimary: {
     padding: '6px 12px',
@@ -3097,8 +3122,18 @@ const styles = {
     borderRadius: '4px',
     cursor: 'pointer',
     display: 'flex',
+    alignItems: 'center'
+  },
+  btnSmallSecondary: {
+    padding: '6px 12px',
+    backgroundColor: 'white',
+    color: '#374151',
+    border: '1px solid #d1d5db',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    display: 'flex',
     alignItems: 'center',
-    transition: 'all 0.2s'
+    gap: '4px'
   },
   btnSmallSuccess: {
     padding: '6px 12px',
@@ -3108,8 +3143,7 @@ const styles = {
     borderRadius: '4px',
     cursor: 'pointer',
     display: 'flex',
-    alignItems: 'center',
-    transition: 'all 0.2s'
+    alignItems: 'center'
   },
   btnSmallDanger: {
     padding: '6px 12px',
@@ -3119,8 +3153,7 @@ const styles = {
     borderRadius: '4px',
     cursor: 'pointer',
     display: 'flex',
-    alignItems: 'center',
-    transition: 'all 0.2s'
+    alignItems: 'center'
   },
   loadingContainer: {
     display: 'flex',
@@ -3157,8 +3190,7 @@ const styles = {
     border: '1px solid #e5e7eb',
     borderRadius: '8px',
     padding: '16px',
-    backgroundColor: 'white',
-    transition: 'all 0.2s'
+    backgroundColor: 'white'
   },
   roomHeader: {
     display: 'flex',
@@ -3173,44 +3205,74 @@ const styles = {
     fontWeight: '600',
     color: '#111827'
   },
-  roomTypeBadge: {
+  roomStatus: {
     padding: '4px 8px',
-    backgroundColor: '#dbeafe',
-    color: '#1e40af',
-    borderRadius: '4px',
+    borderRadius: '12px',
     fontSize: '12px',
     fontWeight: '500'
   },
   roomDetails: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px'
+    gap: '8px',
+    marginBottom: '16px'
   },
   roomDetail: {
     display: 'flex',
     justifyContent: 'space-between',
     fontSize: '14px'
   },
-  detailLabel: {
-    color: '#6b7280',
-    fontSize: '14px',
-    fontWeight: '500',
-    marginBottom: '4px'
+  rentAmount: {
+    fontWeight: '600',
+    color: '#111827'
   },
-  detailValue: {
-    color: '#111827',
-    fontSize: '14px',
-    margin: 0
+  roomFooter: {
+    display: 'flex',
+    gap: '8px',
+    justifyContent: 'flex-end'
   },
   infoCard: {
     padding: '24px',
     backgroundColor: '#f9fafb',
     borderRadius: '8px',
     border: '1px solid #e5e7eb',
-    textAlign: 'center',
-    transition: 'all 0.2s'
+    textAlign: 'center'
   },
-   modalOverlay: {
+  tenantInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  contactInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px'
+  },
+  roomBadge: {
+    display: 'inline-block',
+    padding: '4px 8px',
+    backgroundColor: '#dbeafe',
+    color: '#1e40af',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '500'
+  },
+  paymentDate: {
+    fontSize: '12px',
+    color: '#6b7280',
+    marginTop: '4px'
+  },
+  actionButtons: {
+    display: 'flex',
+    gap: '8px'
+  },
+  roomNumber: {
+    display: 'block',
+    fontSize: '12px',
+    color: '#6b7280',
+    marginTop: '4px'
+  },
+  modalOverlay: {
     position: 'fixed',
     top: 0,
     left: 0,
@@ -3221,95 +3283,44 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
-    padding: '20px',
-    backdropFilter: 'blur(4px)',
-    overflowY: 'auto'  // ← Add this to allow scrolling if modal is too large
+    padding: '20px'
   },
-
   modalContent: {
     backgroundColor: 'white',
     borderRadius: '12px',
     maxWidth: '600px',
     width: '100%',
-    minHeight: 'auto',
-    maxHeight: 'calc(100vh - 40px)',  // ← Allow modal to take up space, leaving 20px padding on top/bottom
+    maxHeight: '90vh',
     display: 'flex',
-    flexDirection: 'column',
-    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-    overflow: 'visible',  // ← Changed from hidden
-    margin: 'auto'  // ← Center the modal
+    flexDirection: 'column'
   },
-
   modalHeader: {
     padding: '20px 24px',
     borderBottom: '1px solid #e5e7eb',
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
-    flexShrink: 0  // ← Prevent from shrinking
+    alignItems: 'center'
   },
-
   modalClose: {
-    background: 'none',
+    background: 'transparent',
     border: 'none',
     fontSize: '28px',
     cursor: 'pointer',
     color: '#6b7280',
     padding: '0',
-    lineHeight: 1,
-    transition: 'all 0.2s',
-    width: '32px',
-    height: '32px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
+    lineHeight: 1
   },
-
-  modalTabs: {
-    display: 'flex',
-    borderBottom: '1px solid #e5e7eb',
-    padding: '0 24px',
-    backgroundColor: '#f9fafb',
-    flexShrink: 0,  // ← Prevent from shrinking
-    overflowX: 'auto'  // ← Allow horizontal scroll if needed
-  },
-
-  modalTab: {
-    padding: '12px 16px',
-    background: 'none',
-    border: 'none',
-    borderBottom: '2px solid transparent',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    color: '#6b7280',
-    transition: 'all 0.2s',
-    whiteSpace: 'nowrap'  // ← Prevent text wrap
-  },
-
-  modalTabActive: {
-    color: '#3b82f6',
-    borderBottomColor: '#3b82f6'
-  },
-
   modalBody: {
     padding: '24px',
     overflowY: 'auto',
-    overflowX: 'hidden',
-    flex: 1,
-    minHeight: 0  // ← CRITICAL: allows flex child to scroll
+    flex: 1
   },
-
   modalFooter: {
     padding: '16px 24px',
     borderTop: '1px solid #e5e7eb',
     display: 'flex',
     gap: '12px',
-    justifyContent: 'flex-end',
-    backgroundColor: '#f9fafb',
-    flexShrink: 0,  // ← Prevent from shrinking
-    flexWrap: 'wrap'  // ← Allow wrapping on small screens
+    justifyContent: 'flex-end'
   },
   detailsGrid: {
     display: 'grid',
@@ -3320,6 +3331,16 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '4px'
+  },
+  detailLabel: {
+    color: '#6b7280',
+    fontSize: '14px',
+    fontWeight: '500'
+  },
+  detailValue: {
+    color: '#111827',
+    fontSize: '14px',
+    margin: 0
   },
   formGroup: {
     marginBottom: '16px'
@@ -3337,8 +3358,7 @@ const styles = {
     border: '1px solid #d1d5db',
     borderRadius: '6px',
     fontSize: '14px',
-    boxSizing: 'border-box',
-    transition: 'all 0.2s'
+    boxSizing: 'border-box'
   },
   formSelect: {
     width: '100%',
@@ -3348,8 +3368,7 @@ const styles = {
     fontSize: '14px',
     backgroundColor: 'white',
     boxSizing: 'border-box',
-    cursor: 'pointer',
-    transition: 'all 0.2s'
+    cursor: 'pointer'
   },
   inputError: {
     borderColor: '#ef4444'
@@ -3360,53 +3379,12 @@ const styles = {
     marginTop: '4px',
     display: 'block'
   },
-  formHelp: {
+  helpText: {
     fontSize: '12px',
     color: '#6b7280',
     marginTop: '4px',
-    display: 'block'
-  },
-  tenantInfoSummary: {
-    backgroundColor: '#f9fafb',
-    padding: '16px',
-    borderRadius: '6px',
-    marginBottom: '20px',
-    fontSize: '14px',
-    border: '1px solid #e5e7eb'
-  },
-  alertWarning: {
-    backgroundColor: '#fef3c7',
-    color: '#92400e',
-    padding: '12px',
-    borderRadius: '6px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '14px',
-    border: '1px solid #fde68a'
-  },
-  leaseCalculations: {
-    backgroundColor: '#f8fafc',
-    padding: '16px',
-    borderRadius: '6px',
-    margin: '16px 0',
-    fontSize: '14px',
-    border: '1px solid #e5e7eb'
-  },
-  calculationRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: '8px',
-    fontSize: '14px'
-  },
-  leaseTermsNote: {
-    backgroundColor: '#f0f9ff',
-    padding: '16px',
-    borderRadius: '6px',
-    marginTop: '16px',
-    fontSize: '13px',
-    color: '#0369a1',
-    border: '1px solid #bae6fd'
+    display: 'block',
+    lineHeight: '1.4'
   },
   overlay: {
     position: 'fixed',
@@ -3415,9 +3393,20 @@ const styles = {
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 99,
-    display: 'none'
+    zIndex: 99
   }
 };
 
-export default AdminDashboard;
+// Add animation for spinner
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+export default CaretakerDashboard;

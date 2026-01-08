@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
@@ -33,6 +32,60 @@ const AdminLogin = () => {
     if (error) setError('');
   };
 
+  const clearStoredAuth = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('joyce-suites-token');
+    localStorage.removeItem('joyce-suites-user');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userFullName');
+  };
+
+  const getErrorMessage = (err, status = null, responseData = null) => {
+    // Network/connectivity errors
+    if (err?.message?.includes('Failed to fetch')) {
+      return 'Network error: Unable to reach the server. Please check your internet connection.';
+    }
+
+    if (err instanceof TypeError) {
+      return 'Connection failed. Please check your internet and try again.';
+    }
+
+    if (err instanceof SyntaxError) {
+      return 'Server returned invalid data. Please try again.';
+    }
+
+    // HTTP status-based errors
+    if (status === 401) {
+      return 'Invalid email or password. Please try again.';
+    }
+
+    if (status === 403) {
+      return 'Access denied. This portal is for administrators only.';
+    }
+
+    if (status === 400) {
+      return responseData?.error || 'Invalid login credentials.';
+    }
+
+    if (status && status >= 500) {
+      return 'Server error. Please try again later.';
+    }
+
+    // API response errors
+    if (responseData?.error) {
+      return responseData.error;
+    }
+
+    if (responseData?.message) {
+      return responseData.message;
+    }
+
+    // Generic fallback
+    return 'Login failed. Please try again.';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -40,9 +93,7 @@ const AdminLogin = () => {
 
     try {
       console.log('🧹 Clearing old tokens...');
-      localStorage.removeItem('token');
-      localStorage.removeItem('joyce-suites-token');
-      localStorage.removeItem('joyce-suites-user');
+      clearStoredAuth();
 
       if (!formData.email || !formData.password) {
         setError('Email and password are required');
@@ -50,13 +101,16 @@ const AdminLogin = () => {
         return;
       }
 
-      console.log('📡 Attempting admin login with email:', formData.email);
+      const email = formData.email.trim().toLowerCase();
+      console.log('📡 Attempting admin login with email:', email);
 
-      const response = await fetch(`${config.apibaseurl}/api/auth/login`, {
+      // Build login URL
+      const API_BASE_URL = 'https://joyce-suites-xdkp.onrender.com';
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: formData.email.trim().toLowerCase(),
+          email: email,
           password: formData.password
         })
       });
@@ -65,28 +119,28 @@ const AdminLogin = () => {
       
       if (!contentType || !contentType.includes('application/json')) {
         console.error('❌ Invalid response format from server');
-        setError('Server error: Invalid response format. Ensure Flask is running on port 5000.');
+        setError('Server error: Invalid response format.');
         setLoading(false);
         return;
       }
 
       const data = await response.json();
-      console.log('📨 Login response:', data);
+      console.log('📨 Login response status:', response.status);
 
       if (!response.ok) {
         console.error('❌ Login failed with status:', response.status);
-        localStorage.removeItem('joyce-suites-token');
-        localStorage.removeItem('joyce-suites-user');
-        setError(data.error || data.message || 'Login failed');
+        clearStoredAuth();
+        const errorMsg = getErrorMessage(null, response.status, data);
+        setError(errorMsg);
         setLoading(false);
         return;
       }
 
       if (!data.success) {
         console.error('❌ Response marked as not successful');
-        localStorage.removeItem('joyce-suites-token');
-        localStorage.removeItem('joyce-suites-user');
-        setError(data.error || 'Login failed');
+        clearStoredAuth();
+        const errorMsg = getErrorMessage(null, null, data);
+        setError(errorMsg);
         setLoading(false);
         return;
       }
@@ -94,8 +148,7 @@ const AdminLogin = () => {
       // Validate response
       if (!data.user || !data.user.role) {
         console.error('❌ Invalid response structure');
-        localStorage.removeItem('joyce-suites-token');
-        localStorage.removeItem('joyce-suites-user');
+        clearStoredAuth();
         setError('Invalid response from server');
         setLoading(false);
         return;
@@ -104,8 +157,7 @@ const AdminLogin = () => {
       // Check if user is admin
       if (data.user.role !== 'admin') {
         console.error('❌ User is not an admin, role is:', data.user.role);
-        localStorage.removeItem('joyce-suites-token');
-        localStorage.removeItem('joyce-suites-user');
+        clearStoredAuth();
         setError('Admin access required. Please use your admin credentials.');
         setLoading(false);
         return;
@@ -118,7 +170,7 @@ const AdminLogin = () => {
         return;
       }
 
-      // ✅ Store authentication data with CORRECT key
+      // ✅ Store authentication data
       console.log('💾 Saving admin token and user data...');
       localStorage.setItem('joyce-suites-token', data.token);
       localStorage.setItem('userRole', data.user.role);
@@ -147,15 +199,27 @@ const AdminLogin = () => {
 
     } catch (err) {
       console.error('❌ Login error:', err);
-      localStorage.removeItem('joyce-suites-token');
-      localStorage.removeItem('joyce-suites-user');
+      clearStoredAuth();
       
-      if (err.message.includes('Failed to fetch')) {
-        setError('Cannot connect to server. Please ensure Flask is running on port 5000.');
-      } else {
-        setError('Connection error. Please check your internet and try again.');
-      }
+      const errorMsg = getErrorMessage(err);
+      setError(errorMsg);
       setLoading(false);
+    }
+  };
+
+  // Helper to fill default credentials (development only)
+  const fillDefaultCredentials = () => {
+    const defaultEmail = process.env.REACT_APP_DEFAULT_ADMIN_EMAIL;
+    const defaultPassword = process.env.REACT_APP_DEFAULT_ADMIN_PASSWORD;
+
+    if (defaultEmail && defaultPassword) {
+      setFormData({
+        email: defaultEmail,
+        password: defaultPassword
+      });
+      setError('');
+    } else {
+      setError('Default credentials not configured');
     }
   };
 
@@ -165,8 +229,8 @@ const AdminLogin = () => {
       
       <div className="login-content">
         <div className="login-card">
-          <img src={logo} alt="Joyce Suits Logo" className="login-logo" />
-          <h1>Joyce Suits Apartments</h1>
+          <img src={logo} alt="Joyce Suites Logo" className="login-logo" />
+          <h1>Joyce Suites Apartments</h1>
           <h2>Admin Portal</h2>
 
           {error && (
@@ -182,6 +246,7 @@ const AdminLogin = () => {
                   cursor: 'pointer',
                   marginLeft: '10px'
                 }}
+                aria-label="Close error message"
               >
                 ×
               </button>
@@ -197,7 +262,7 @@ const AdminLogin = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                placeholder="Enter your email"
+                placeholder="admin@joycesuites.com"
                 required
                 disabled={loading}
                 autoComplete="email"
@@ -219,6 +284,19 @@ const AdminLogin = () => {
               />
             </div>
 
+            {process.env.NODE_ENV === 'development' &&
+              process.env.REACT_APP_DEFAULT_ADMIN_EMAIL && (
+                <button
+                  type="button"
+                  onClick={fillDefaultCredentials}
+                  className="btn btn-secondary"
+                  style={{ marginBottom: '10px', width: '100%' }}
+                  disabled={loading}
+                >
+                  Use Default Credentials
+                </button>
+              )}
+
             <button 
               type="submit" 
               className="btn btn-primary" 
@@ -228,18 +306,45 @@ const AdminLogin = () => {
             </button>
           </form>
 
-          <div className="login-info" style={{
-            marginTop: '20px',
-            padding: '12px',
-            backgroundColor: '#f0f9ff',
-            borderRadius: '6px',
-            fontSize: '13px',
-            color: '#0369a1'
-          }}>
-            <strong></strong><br />
-            Email:<br />
-            Password: 
-          </div>
+          {process.env.NODE_ENV === 'development' &&
+            process.env.REACT_APP_DEFAULT_ADMIN_EMAIL && (
+              <div
+                className="login-info"
+                style={{
+                  marginTop: '20px',
+                  padding: '12px',
+                  backgroundColor: '#f0f9ff',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  color: '#0369a1'
+                }}
+              >
+                <strong>🔑 Development Mode:</strong>
+                <br />
+                Default credentials available via button above
+              </div>
+            )}
+
+          {process.env.NODE_ENV === 'development' && (
+            <div
+              className="login-info"
+              style={{
+                marginTop: '15px',
+                padding: '10px',
+                backgroundColor: '#fff3cd',
+                borderRadius: '6px',
+                fontSize: '12px',
+                color: '#856404',
+                border: '1px solid #ffeaa7'
+              }}
+            >
+              <strong>⚠️ Default Credentials:</strong>
+              <br />
+              Email: admin@joycesuites.com
+              <br />
+              Password: Admin@123456
+            </div>
+          )}
         </div>
 
         <div className="auth-navigation">

@@ -25,7 +25,11 @@ from models.base import db
 from models.user import User
 from models.payment import Payment
 from models.lease import Lease
+feature/backend
 from models.maintenance import MaintenanceRequest
+
+from models.maintenance import Maintenance
+main
 from models.vacate_notice import VacateNotice
 from models.bill import Bill
 from models.message import Message
