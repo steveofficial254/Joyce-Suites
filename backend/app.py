@@ -21,6 +21,15 @@ from routes.mpesa_routes import mpesa_bp, payment_bp
 from config import Config
 from models.base import db
 
+# ✅ CRITICAL: Import all models so db.create_all() knows about them
+from models.user import User
+from models.room import Room
+from models.lease import Lease
+from models.payment import Payment
+from models.maintenance import Maintenance
+from models.vacate_notice import VacateNotice
+# Add any other models you have here
+
 # Load environment variables
 load_dotenv()
 
@@ -217,7 +226,6 @@ def register_cli_commands(app: Flask) -> None:
             print("   Create admin users manually with strong passwords.")
             return
             
-        from models.user import User
         import uuid
 
         with app.app_context():
