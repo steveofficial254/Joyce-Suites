@@ -23,12 +23,16 @@ from models.base import db
 
 # ✅ CRITICAL: Import all models so db.create_all() knows about them
 from models.user import User
-from models.room import Room
-from models.lease import Lease
 from models.payment import Payment
+from models.lease import Lease
 from models.maintenance import Maintenance
 from models.vacate_notice import VacateNotice
-# Add any other models you have here
+from models.bill import Bill
+from models.message import Message
+from models.notification import Notification
+from models.property import Property
+from models.property_image import PropertyImage
+from models.reset_password import ResetPassword
 
 # Load environment variables
 load_dotenv()
