@@ -21,6 +21,19 @@ from routes.mpesa_routes import mpesa_bp, payment_bp
 from config import Config
 from models.base import db
 
+# ✅ CRITICAL: Import all models so db.create_all() knows about them
+from models.user import User
+from models.payment import Payment
+from models.lease import Lease
+from models.maintenance import MaintenanceRequest
+from models.vacate_notice import VacateNotice
+from models.bill import Bill
+from models.message import Message
+from models.notification import Notification
+from models.property import Property
+from models.property_image import PropertyImage
+from models.reset_password import ResetPassword
+
 # Load environment variables
 load_dotenv()
 
@@ -43,10 +56,13 @@ def create_app():
                     "http://127.0.0.1:3000", 
                     "http://localhost:3001",
                     "https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app",
-                    "https://joyce-suites-git-feature-backend-steves-projects-d95e3bef.vercel.app",  # ADD THIS
-                    "https://joyce-suites.onrender.com",
-                    "https://*.vercel.app"  # Allow all Vercel preview deployments
+                    "https://joyce-suites-git-feature-backend-steves-projects-d95e3bef.vercel.app",
+                    "https://joyce-suites-ptgu4rwra-steves-projects-d95e3bef.vercel.app", 
+                    "https://joyce-suites-xdkp.onrender.com",
+                    "https://joyce-suites-jcfw.vercel.app",
+                    "https://*.vercel.app" # Allow all Vercel preview deployments
                 ],
+                 
                  "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
                  "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
                  "expose_headers": ["Content-Type", "Authorization"],
@@ -214,7 +230,6 @@ def register_cli_commands(app: Flask) -> None:
             print("   Create admin users manually with strong passwords.")
             return
             
-        from models.user import User
         import uuid
 
         with app.app_context():
