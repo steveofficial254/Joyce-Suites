@@ -11075,3 +11075,15 @@ WHERE leases.tenant_id = ? AND leases.status = ?
 2025-12-31 19:22:39,124 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
 2026-01-04 13:54:06,375 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
 2026-01-04 13:54:13,041 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
+2026-01-10 16:13:19,849 - INFO - Joyce Suites API started - Env: development
+2026-01-10 16:13:19,872 - INFO - Application initialized
+2026-01-10 16:13:34,994 - INFO - Joyce Suites API started - Env: development
+2026-01-10 16:13:35,021 - INFO - Application initialized
+2026-01-10 16:14:13,408 - INFO - Joyce Suites API started - Env: development
+2026-01-10 16:14:13,432 - INFO - Application initialized
+2026-01-10 16:15:14,318 - INFO - Joyce Suites API started - Env: development
+2026-01-10 16:15:14,340 - INFO - Application initialized
+2026-01-10 16:15:14,342 - INFO - Joyce Suites API started - Env: development
+2026-01-10 16:15:14,342 - INFO - Joyce Suites API started - Env: development
+2026-01-10 16:15:14,363 - INFO - Application initialized
+2026-01-10 16:15:14,363 - INFO - Application initialized
