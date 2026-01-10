@@ -764,7 +764,6 @@ const DashboardPage = ({
   onViewDetails,
   onCreateMaintenance,
   onMarkPayment,
-  onMarkPayment,
   onViewVacateNotice,
   onViewAllMaintenance
 }) => {
