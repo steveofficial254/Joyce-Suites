@@ -362,7 +362,7 @@ def get_tenant_details(tenant_id):
                 'id': payment.id,
                 'amount': float(payment.amount) if payment.amount else 0,
                 'status': payment.status,
-                'payment_type': payment.payment_type,
+                'payment_type': payment.payment_method,
                 'created_at': payment.created_at.isoformat() if payment.created_at else None
             })
         
@@ -832,7 +832,7 @@ def get_payment_report():
                 'property_name': payment.lease.property.name if payment.lease and payment.lease.property else "Unknown",
                 'amount': float(payment.amount) if payment.amount else 0,
                 'status': payment.status,
-                'payment_type': payment.payment_type,
+                'payment_type': payment.payment_method,
                 'payment_date': payment.created_at.date().isoformat() if payment.created_at else None,
                 'created_at': payment.created_at.isoformat() if payment.created_at else None
             })
