@@ -11087,3 +11087,15 @@ WHERE leases.tenant_id = ? AND leases.status = ?
 2026-01-10 16:15:14,342 - INFO - Joyce Suites API started - Env: development
 2026-01-10 16:15:14,363 - INFO - Application initialized
 2026-01-10 16:15:14,363 - INFO - Application initialized
+2026-01-10 16:39:15,115 - INFO - Joyce Suites API started - Env: development
+2026-01-10 16:39:15,141 - INFO - Application initialized
+2026-01-10 16:39:15,143 - INFO - Joyce Suites API started - Env: development
+2026-01-10 16:39:15,143 - INFO - Joyce Suites API started - Env: development
+2026-01-10 16:39:15,166 - INFO - Application initialized
+2026-01-10 16:39:15,166 - INFO - Application initialized
+2026-01-10 16:40:03,897 - INFO - Joyce Suites API started - Env: development
+2026-01-10 16:40:03,917 - INFO - Application initialized
+2026-01-10 16:40:03,920 - INFO - Joyce Suites API started - Env: development
+2026-01-10 16:40:03,920 - INFO - Joyce Suites API started - Env: development
+2026-01-10 16:40:03,943 - INFO - Application initialized
+2026-01-10 16:40:03,943 - INFO - Application initialized

@@ -687,6 +687,7 @@ def mark_payment_status():
             print(f"Creating new payment record")
             # Create new payment record (without due_date field)
             new_payment = Payment(
+                tenant_id=lease.tenant_id,
                 lease_id=lease.id,
                 amount=amount,
                 status=data["status"],
