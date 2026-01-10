@@ -44,6 +44,9 @@ const CaretakerDashboard = () => {
   const [showCreateVacateNoticeModal, setShowCreateVacateNoticeModal] = useState(false);
   const [selectedLeaseForVacate, setSelectedLeaseForVacate] = useState(null);
 
+  const [showPropertyDetailsModal, setShowPropertyDetailsModal] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState(null);
+
   const getToken = () => {
     return localStorage.getItem('token') || localStorage.getItem('joyce-suites-token');
   };
@@ -313,7 +316,7 @@ const CaretakerDashboard = () => {
 
       const data = await apiCall(endpoint, {
         method,
-        body: notes ? JSON.stringify({ admin_notes: notes }) : undefined
+        body: JSON.stringify(notes ? { admin_notes: notes } : {})
       });
 
       if (data && data.success) {
@@ -451,6 +454,7 @@ const CaretakerDashboard = () => {
               setShowMaintenanceModal(true);
             }}
             onCreateMaintenance={() => setShowCreateMaintenanceModal(true)}
+            onViewAllMaintenance={() => handlePageChange('maintenance')}
             onMarkPayment={(tenant) => {
               setSelectedTenantForPayment(tenant);
               setShowMarkPaymentModal(true);
@@ -481,6 +485,10 @@ const CaretakerDashboard = () => {
             occupiedRooms={occupiedRooms}
             allRooms={allRooms}
             loading={loading}
+            onViewDetails={(property) => {
+              setSelectedProperty(property);
+              setShowPropertyDetailsModal(true);
+            }}
           />
         );
       case 'tenants':
@@ -603,6 +611,15 @@ const CaretakerDashboard = () => {
             <button style={styles.homeBtn} onClick={() => handlePageChange('dashboard')}>
               <Home size={20} />
             </button>
+            {activePage !== 'dashboard' && (
+              <button
+                style={{ ...styles.homeBtn, marginLeft: '8px' }}
+                onClick={() => handlePageChange('dashboard')}
+                title="Back to Dashboard"
+              >
+                <ArrowLeft size={20} />
+              </button>
+            )}
             <h1 style={styles.headerTitle}>Caretaker Dashboard</h1>
           </div>
           <div style={styles.headerRight}>
@@ -700,11 +717,14 @@ const CaretakerDashboard = () => {
 
       {showCreateVacateNoticeModal && (
         <CreateVacateNoticeModal
-          leases={occupiedRooms.map(room => ({
-            lease_id: room.lease_id,
-            tenant_name: room.tenant_name,
-            room_number: room.room_number
-          }))}
+          leases={
+            // Filter only occupied rooms for the dropdown to avoid errors if object structure differs
+            occupiedRooms.length > 0 ? occupiedRooms.map(room => ({
+              lease_id: room.lease_id,
+              tenant_name: room.tenant_name,
+              room_number: room.name // Occupied room name/number
+            })) : []
+          }
           initialData={selectedLeaseForVacate}
           onClose={() => {
             setShowCreateVacateNoticeModal(false);
@@ -712,6 +732,16 @@ const CaretakerDashboard = () => {
           }}
           onSubmit={handleCreateVacateNotice}
           loading={loading}
+        />
+      )}
+
+      {showPropertyDetailsModal && selectedProperty && (
+        <PropertyDetailsModal
+          property={selectedProperty}
+          onClose={() => {
+            setShowPropertyDetailsModal(false);
+            setSelectedProperty(null);
+          }}
         />
       )}
 
@@ -734,7 +764,9 @@ const DashboardPage = ({
   onViewDetails,
   onCreateMaintenance,
   onMarkPayment,
-  onViewVacateNotice
+  onMarkPayment,
+  onViewVacateNotice,
+  onViewAllMaintenance
 }) => {
   const [filterStatus, setFilterStatus] = useState('all');
 
@@ -904,7 +936,10 @@ const DashboardPage = ({
               </table>
             </div>
             <div style={styles.sectionFooter}>
-              <button style={styles.btnText} onClick={() => window.location.href = '#maintenance'}>
+              <button
+                style={styles.btnText}
+                onClick={onViewAllMaintenance || (() => { })}
+              >
                 View All <ArrowLeft size={14} style={{ transform: 'rotate(180deg)' }} />
               </button>
             </div>
@@ -1181,7 +1216,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails, onC
 };
 
 // ==================== PROPERTIES PAGE ====================
-const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading }) => {
+const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading, onViewDetails }) => {
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -1299,11 +1334,14 @@ const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading }) =>
                   </div>
                   <div style={styles.roomFooter}>
                     {room.status === 'occupied' && (
-                      <button style={styles.btnSmallSecondary}>
+                      <button style={styles.btnSmallSecondary} title={room.tenant_phone || "No phone number"}>
                         <Phone size={14} /> Contact
                       </button>
                     )}
-                    <button style={styles.btnSmallPrimary}>
+                    <button
+                      style={styles.btnSmallPrimary}
+                      onClick={() => onViewDetails(room)}
+                    >
                       <Eye size={14} /> Details
                     </button>
                   </div>
@@ -2634,6 +2672,85 @@ const CreateVacateNoticeModal = ({ leases, initialData, onClose, onSubmit, loadi
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+};
+
+
+
+const PropertyDetailsModal = ({ property, onClose }) => {
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h3>Property Details</h3>
+          <button style={styles.modalClose} onClick={onClose}>×</button>
+        </div>
+
+        <div style={styles.modalBody}>
+          <div style={styles.detailsGrid}>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Property Name/Number</label>
+              <p style={styles.detailValue}>{property.name}</p>
+            </div>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Type</label>
+              <p style={styles.detailValue}>{property.property_type}</p>
+            </div>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Status</label>
+              <span style={{
+                ...styles.statusBadge,
+                backgroundColor: property.status === 'occupied' ? '#dcfce7' : '#dbeafe',
+                color: property.status === 'occupied' ? '#166534' : '#1e40af'
+              }}>
+                {property.status}
+              </span>
+            </div>
+            <div style={styles.detailItem}>
+              <label style={styles.detailLabel}>Rent Amount</label>
+              <p style={styles.detailValue}>
+                KSh {property.rent_amount ? property.rent_amount.toLocaleString() : '0'}
+              </p>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '20px' }}>
+            <label style={styles.detailLabel}>Description</label>
+            <p style={{ ...styles.detailValue, lineHeight: '1.6', margin: '8px 0' }}>
+              {property.description || 'No description provided.'}
+            </p>
+          </div>
+
+          {property.status === 'occupied' && (
+            <div style={{
+              marginTop: '24px',
+              backgroundColor: '#f9fafb',
+              padding: '16px',
+              borderRadius: '8px',
+              border: '1px solid #e5e7eb'
+            }}>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: '600' }}>Current Tenant</h4>
+              <div style={styles.detailsGrid}>
+                <div style={styles.detailItem}>
+                  <label style={styles.detailLabel}>Name</label>
+                  <p style={styles.detailValue}>{property.tenant_name || 'N/A'}</p>
+                </div>
+                <div style={styles.detailItem}>
+                  <label style={styles.detailLabel}>Phone</label>
+                  <p style={styles.detailValue}>{property.tenant_phone || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={styles.modalFooter}>
+          <button style={styles.btnSecondary} onClick={onClose}>
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );

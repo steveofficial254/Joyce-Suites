@@ -469,9 +469,9 @@ def get_pending_payments():
         tenants_with_arrears = []
 
         for lease in active_leases:
-            pending = Payment.query.filter_by(
-                lease_id=lease.id,
-                status="pending"
+            pending = Payment.query.filter(
+                Payment.lease_id == lease.id,
+                Payment.status.in_(['pending', 'unpaid'])
             ).count()
 
             if pending > 0:
