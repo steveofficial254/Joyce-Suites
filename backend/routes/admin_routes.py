@@ -808,12 +808,12 @@ def get_payment_report():
     try:
         # Get payment statistics
         total_payments = Payment.query.count()
-        successful_payments = Payment.query.filter_by(status='completed').count()
-        pending_payments = Payment.query.filter_by(status='pending').count()
+        successful_payments = Payment.query.filter_by(status='paid').count()
+        pending_payments = Payment.query.filter(Payment.status.in_(['pending', 'unpaid'])).count()
         failed_payments = Payment.query.filter_by(status='failed').count()
         
         total_amount = db.session.query(func.sum(Payment.amount))\
-            .filter_by(status='completed').scalar() or 0
+            .filter_by(status='paid').scalar() or 0
         
         # Get recent payments
         recent = Payment.query\
@@ -847,7 +847,7 @@ def get_payment_report():
                 .filter(
                     Payment.created_at >= month_start,
                     Payment.created_at <= month_end,
-                    Payment.status == 'completed'
+                    Payment.status == 'paid'
                 ).scalar() or 0
             
             monthly_data.append({
