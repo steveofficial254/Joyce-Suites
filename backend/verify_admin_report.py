@@ -18,12 +18,12 @@ with app.app_context():
         # 1. Stats
         print("Fetching stats...")
         total_payments = Payment.query.count()
-        successful_payments = Payment.query.filter_by(status='completed').count()
-        pending_payments = Payment.query.filter_by(status='pending').count()
+        successful_payments = Payment.query.filter_by(status='paid').count()
+        pending_payments = Payment.query.filter(Payment.status.in_(['pending', 'unpaid'])).count()
         failed_payments = Payment.query.filter_by(status='failed').count()
         
         total_amount = db.session.query(func.sum(Payment.amount))\
-            .filter_by(status='completed').scalar() or 0
+            .filter_by(status='paid').scalar() or 0
             
         print(f"Stats: Total={total_payments}, Success={successful_payments}, Pending={pending_payments}, Failed={failed_payments}, Amount={total_amount}")
 
@@ -71,7 +71,7 @@ with app.app_context():
                 .filter(
                     Payment.created_at >= month_start,
                     Payment.created_at <= month_end,
-                    Payment.status == 'completed'
+                    Payment.status == 'paid'
                 ).scalar() or 0
             
             monthly_data.append({
