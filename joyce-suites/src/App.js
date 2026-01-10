@@ -17,6 +17,7 @@ import CaretakerDashboard from './pages/caretaker/CaretakerDashboard';
 import TenantPayments from './pages/tenant/TenantPayment';
 import TenantProfile from './pages/tenant/TenantProfile';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import MenuPage from './pages/MenuPage';
 
 // Loading Component
 const LoadingSpinner = () => (
@@ -96,47 +97,47 @@ function AppContent() {
   return (
     <Routes>
       {/* Landing/Home Route */}
-      <Route 
-        path="/" 
+      <Route
+        path="/"
         element={
           <PublicRoute restricted={false}>
-            <Navigate to="/register-tenant" replace />
+            <MenuPage />
           </PublicRoute>
-        } 
+        }
       />
 
       {/* Public Auth Routes */}
-      <Route 
-        path="/register-tenant" 
+      <Route
+        path="/register-tenant"
         element={
           <PublicRoute>
             <TenantRegister />
           </PublicRoute>
-        } 
+        }
       />
-      <Route 
-        path="/login" 
+      <Route
+        path="/login"
         element={
           <PublicRoute>
             <TenantLogin />
           </PublicRoute>
-        } 
+        }
       />
-      <Route 
-        path="/caretaker-login" 
+      <Route
+        path="/caretaker-login"
         element={
           <PublicRoute>
             <CaretakerLogin />
           </PublicRoute>
-        } 
+        }
       />
-      <Route 
-        path="/admin-login" 
+      <Route
+        path="/admin-login"
         element={
           <PublicRoute>
             <AdminLogin />
           </PublicRoute>
-        } 
+        }
       />
 
       {/* Lease Agreement - Protected for tenants */}
@@ -196,21 +197,21 @@ function AppContent() {
       />
 
       {/* Error Routes */}
-      <Route 
-        path="/unauthorized" 
-        element={<UnauthorizedPage />} 
+      <Route
+        path="/unauthorized"
+        element={<UnauthorizedPage />}
       />
 
       {/* Catch-all route */}
-      <Route 
-        path="*" 
+      <Route
+        path="*"
         element={
           <div className="not-found-container">
             <h1>404 - Page Not Found</h1>
             <p>The page you're looking for doesn't exist.</p>
             <Navigate to="/" replace />
           </div>
-        } 
+        }
       />
     </Routes>
   );
