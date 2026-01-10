@@ -51,7 +51,7 @@ const CaretakerDashboard = () => {
   // Enhanced API call helper
   const apiCall = async (endpoint, options = {}) => {
     const token = getToken();
-    
+
     if (!token) {
       console.error('No token available');
       localStorage.clear();
@@ -296,7 +296,7 @@ const CaretakerDashboard = () => {
     try {
       let endpoint = '';
       let method = 'POST';
-      
+
       switch (action) {
         case 'approve':
           endpoint = `/api/caretaker/vacate-notices/${noticeId}/approve`;
@@ -380,7 +380,7 @@ const CaretakerDashboard = () => {
     const fetchPageData = async () => {
       setLoading(true);
       setError('');
-      
+
       try {
         switch (activePage) {
           case 'dashboard':
@@ -430,7 +430,7 @@ const CaretakerDashboard = () => {
         setLoading(false);
       }
     };
-    
+
     fetchPageData();
   }, [activePage]);
 
@@ -764,13 +764,13 @@ const DashboardPage = ({
     );
   }
 
-  const filteredMaintenance = maintenanceRequests.filter(function(r) {
+  const filteredMaintenance = maintenanceRequests.filter(function (r) {
     return filterStatus === 'all' || r.status === filterStatus;
   });
 
   const pendingNotices = vacateNotices.filter(n => n.status === 'pending').length;
-  const completedToday = maintenanceRequests.filter(r => 
-    r.status === 'completed' && 
+  const completedToday = maintenanceRequests.filter(r =>
+    r.status === 'completed' &&
     new Date(r.updated_at).toDateString() === new Date().toDateString()
   ).length;
 
@@ -858,7 +858,7 @@ const DashboardPage = ({
                 </thead>
                 <tbody>
                   {filteredMaintenance.length > 0 ? (
-                    filteredMaintenance.slice(0, 5).map(function(req) {
+                    filteredMaintenance.slice(0, 5).map(function (req) {
                       return (
                         <tr key={req.id} style={styles.tableRow}>
                           <td style={styles.td}>#{req.id}</td>
@@ -930,7 +930,7 @@ const DashboardPage = ({
                 </thead>
                 <tbody>
                   {pendingPayments.length > 0 ? (
-                    pendingPayments.slice(0, 5).map(function(tenant) {
+                    pendingPayments.slice(0, 5).map(function (tenant) {
                       return (
                         <tr key={tenant.tenant_id} style={styles.tableRow}>
                           <td style={styles.td}>{tenant.tenant_name}</td>
@@ -982,7 +982,7 @@ const DashboardPage = ({
                 </thead>
                 <tbody>
                   {vacateNotices.length > 0 ? (
-                    vacateNotices.slice(0, 5).map(function(notice) {
+                    vacateNotices.slice(0, 5).map(function (notice) {
                       return (
                         <tr key={notice.id} style={styles.tableRow}>
                           <td style={styles.td}>{notice.tenant_name}</td>
@@ -990,14 +990,14 @@ const DashboardPage = ({
                           <td style={styles.td}>
                             <span style={{
                               ...styles.statusBadge,
-                              backgroundColor: 
+                              backgroundColor:
                                 notice.status === 'approved' ? '#dcfce7' :
-                                notice.status === 'rejected' ? '#fee2e2' :
-                                notice.status === 'completed' ? '#dbeafe' : '#fef3c7',
-                              color: 
+                                  notice.status === 'rejected' ? '#fee2e2' :
+                                    notice.status === 'completed' ? '#dbeafe' : '#fef3c7',
+                              color:
                                 notice.status === 'approved' ? '#166534' :
-                                notice.status === 'rejected' ? '#991b1b' :
-                                notice.status === 'completed' ? '#1e40af' : '#92400e'
+                                  notice.status === 'rejected' ? '#991b1b' :
+                                    notice.status === 'completed' ? '#1e40af' : '#92400e'
                             }}>
                               {notice.status}
                             </span>
@@ -1046,10 +1046,10 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails, onC
     );
   }
 
-  const filtered = requests.filter(function(r) {
+  const filtered = requests.filter(function (r) {
     const statusMatch = filterStatus === 'all' || r.status === filterStatus;
     const priorityMatch = filterPriority === 'all' || r.priority === filterPriority;
-    const searchMatch = !searchTerm || 
+    const searchMatch = !searchTerm ||
       r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.description.toLowerCase().includes(searchTerm.toLowerCase());
     return statusMatch && priorityMatch && searchMatch;
@@ -1115,7 +1115,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails, onC
             </thead>
             <tbody>
               {filtered.length > 0 ? (
-                filtered.map(function(req) {
+                filtered.map(function (req) {
                   return (
                     <tr key={req.id} style={styles.tableRow}>
                       <td style={styles.td}>#{req.id}</td>
@@ -1194,11 +1194,11 @@ const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading }) =>
     );
   }
 
-  const roomsToShow = activeTab === 'available' ? availableRooms : 
-                     activeTab === 'occupied' ? occupiedRooms : allRooms;
+  const roomsToShow = activeTab === 'available' ? availableRooms :
+    activeTab === 'occupied' ? occupiedRooms : allRooms;
 
-  const filteredRooms = roomsToShow.filter(room => 
-    !searchTerm || 
+  const filteredRooms = roomsToShow.filter(room =>
+    !searchTerm ||
     room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     room.property_type.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -1259,7 +1259,7 @@ const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading }) =>
           </div>
         ) : (
           <div style={styles.roomsGrid}>
-            {filteredRooms.map(function(room) {
+            {filteredRooms.map(function (room) {
               return (
                 <div key={room.id} style={styles.roomCard}>
                   <div style={styles.roomHeader}>
@@ -1342,15 +1342,15 @@ const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNot
   });
 
   const filteredTenants = tenantsWithPayment.filter(tenant => {
-    const searchMatch = !searchTerm || 
+    const searchMatch = !searchTerm ||
       tenant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       tenant.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       tenant.room_number.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const paymentMatch = paymentFilter === 'all' ||
       (paymentFilter === 'paid' && tenant.current_month_paid) ||
       (paymentFilter === 'unpaid' && !tenant.current_month_paid);
-    
+
     return searchMatch && paymentMatch;
   });
 
@@ -1405,7 +1405,7 @@ const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNot
             </thead>
             <tbody>
               {filteredTenants.length > 0 ? (
-                filteredTenants.map(function(tenant) {
+                filteredTenants.map(function (tenant) {
                   return (
                     <tr key={tenant.id} style={styles.tableRow}>
                       <td style={styles.td}>
@@ -1500,9 +1500,9 @@ const PaymentsPage = ({ pendingPayments, allPayments, loading, onMarkPayment }) 
   }
 
   const paymentsToShow = activeTab === 'pending' ? pendingPayments : allPayments;
-  
-  const filteredPayments = paymentsToShow.filter(payment => 
-    !searchTerm || 
+
+  const filteredPayments = paymentsToShow.filter(payment =>
+    !searchTerm ||
     payment.tenant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     payment.room_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -1592,7 +1592,7 @@ const PaymentsPage = ({ pendingPayments, allPayments, loading, onMarkPayment }) 
             </thead>
             <tbody>
               {filteredPayments.length > 0 ? (
-                filteredPayments.map(function(payment) {
+                filteredPayments.map(function (payment) {
                   return (
                     <tr key={payment.tenant_id || payment.id} style={styles.tableRow}>
                       <td style={styles.td}>{payment.tenant_name}</td>
@@ -1607,17 +1607,17 @@ const PaymentsPage = ({ pendingPayments, allPayments, loading, onMarkPayment }) 
                       <td style={styles.td}>
                         <span style={{
                           ...styles.statusBadge,
-                          backgroundColor: payment.current_month_paid ? '#dcfce7' : 
-                                        payment.pending_payments > 0 ? '#fee2e2' : '#fef3c7',
-                          color: payment.current_month_paid ? '#166534' : 
-                                payment.pending_payments > 0 ? '#991b1b' : '#92400e'
+                          backgroundColor: payment.current_month_paid ? '#dcfce7' :
+                            payment.pending_payments > 0 ? '#fee2e2' : '#fef3c7',
+                          color: payment.current_month_paid ? '#166534' :
+                            payment.pending_payments > 0 ? '#991b1b' : '#92400e'
                         }}>
-                          {payment.current_month_paid ? 'Paid' : 
-                           payment.pending_payments > 0 ? `Pending (${payment.pending_payments})` : 'Unpaid'}
+                          {payment.current_month_paid ? 'Paid' :
+                            payment.pending_payments > 0 ? `Pending (${payment.pending_payments})` : 'Unpaid'}
                         </span>
                       </td>
                       <td style={styles.td}>
-                        {payment.last_payment_date ? 
+                        {payment.last_payment_date ?
                           new Date(payment.last_payment_date).toLocaleDateString() : 'Never'}
                       </td>
                       <td style={styles.td}>
@@ -1663,7 +1663,7 @@ const VacatePage = ({ notices, loading, onViewDetails, onUpdateStatus, onDelete,
 
   const filtered = notices.filter(notice => {
     const statusMatch = filterStatus === 'all' || notice.status === filterStatus;
-    const searchMatch = !searchTerm || 
+    const searchMatch = !searchTerm ||
       notice.tenant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       notice.property_name.toLowerCase().includes(searchTerm.toLowerCase());
     return statusMatch && searchMatch;
@@ -1752,7 +1752,7 @@ const VacatePage = ({ notices, loading, onViewDetails, onUpdateStatus, onDelete,
             </thead>
             <tbody>
               {filtered.length > 0 ? (
-                filtered.map(function(notice) {
+                filtered.map(function (notice) {
                   return (
                     <tr key={notice.id} style={styles.tableRow}>
                       <td style={styles.td}>
@@ -1771,14 +1771,14 @@ const VacatePage = ({ notices, loading, onViewDetails, onUpdateStatus, onDelete,
                       <td style={styles.td}>
                         <span style={{
                           ...styles.statusBadge,
-                          backgroundColor: 
+                          backgroundColor:
                             notice.status === 'approved' ? '#dcfce7' :
-                            notice.status === 'rejected' ? '#fee2e2' :
-                            notice.status === 'completed' ? '#dbeafe' : '#fef3c7',
-                          color: 
+                              notice.status === 'rejected' ? '#fee2e2' :
+                                notice.status === 'completed' ? '#dbeafe' : '#fef3c7',
+                          color:
                             notice.status === 'approved' ? '#166534' :
-                            notice.status === 'rejected' ? '#991b1b' :
-                            notice.status === 'completed' ? '#1e40af' : '#92400e'
+                              notice.status === 'rejected' ? '#991b1b' :
+                                notice.status === 'completed' ? '#1e40af' : '#92400e'
                         }}>
                           {notice.status}
                         </span>
@@ -2015,7 +2015,7 @@ const CreateMaintenanceModal = ({ rooms, onClose, onSubmit, loading }) => {
           <button style={styles.modalClose} onClick={onClose}>×</button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
           <div style={styles.modalBody}>
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Select Room *</label>
@@ -2133,7 +2133,7 @@ const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
           <button style={styles.modalClose} onClick={onClose}>×</button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
           <div style={styles.modalBody}>
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Select Tenant *</label>
@@ -2219,7 +2219,7 @@ const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === 'amount') {
       // Ensure amount is a number
       const numValue = value === '' ? '' : parseFloat(value);
@@ -2233,7 +2233,7 @@ const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
         [name]: value
       });
     }
-    
+
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -2242,7 +2242,7 @@ const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const newErrors = {};
-    
+
     // Validation
     if (!formData.tenant_id) {
       newErrors.tenant_id = 'Tenant ID is required';
@@ -2278,21 +2278,21 @@ const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
           <button style={styles.modalClose} onClick={onClose}>×</button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
           <div style={styles.modalBody}>
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Tenant Information</label>
-              <div style={{ 
-                backgroundColor: '#f9fafb', 
-                padding: '12px', 
+              <div style={{
+                backgroundColor: '#f9fafb',
+                padding: '12px',
                 borderRadius: '6px',
                 margin: '8px 0'
               }}>
                 <p style={{ margin: '0 0 4px 0', fontWeight: '600' }}>
                   {tenant.tenant_name || tenant.name || 'N/A'}
                 </p>
-                <div style={{ 
-                  display: 'flex', 
+                <div style={{
+                  display: 'flex',
                   justifyContent: 'space-between',
                   fontSize: '14px',
                   color: '#6b7280'
@@ -2333,7 +2333,7 @@ const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
               </select>
               {errors.status && <span style={styles.errorText}>{errors.status}</span>}
               <small style={styles.helpText}>
-                • Paid: Mark payment as completed<br/>
+                • Paid: Mark payment as completed<br />
                 • Unpaid: Mark payment as not received
               </small>
             </div>
@@ -2431,14 +2431,14 @@ const VacateNoticeDetailsModal = ({ notice, onClose, onUpdateStatus, onDelete })
               <label style={styles.detailLabel}>Status</label>
               <span style={{
                 ...styles.statusBadge,
-                backgroundColor: 
+                backgroundColor:
                   notice.status === 'approved' ? '#dcfce7' :
-                  notice.status === 'rejected' ? '#fee2e2' :
-                  notice.status === 'completed' ? '#dbeafe' : '#fef3c7',
-                color: 
+                    notice.status === 'rejected' ? '#fee2e2' :
+                      notice.status === 'completed' ? '#dbeafe' : '#fef3c7',
+                color:
                   notice.status === 'approved' ? '#166534' :
-                  notice.status === 'rejected' ? '#991b1b' :
-                  notice.status === 'completed' ? '#1e40af' : '#92400e'
+                    notice.status === 'rejected' ? '#991b1b' :
+                      notice.status === 'completed' ? '#1e40af' : '#92400e'
               }}>
                 {notice.status}
               </span>
@@ -2579,7 +2579,7 @@ const CreateVacateNoticeModal = ({ leases, initialData, onClose, onSubmit, loadi
           <button style={styles.modalClose} onClick={onClose}>×</button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
           <div style={styles.modalBody}>
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Select Tenant/Lease *</label>
