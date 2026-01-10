@@ -808,12 +808,12 @@ def get_payment_report():
     try:
         # Get payment statistics
         total_payments = Payment.query.count()
-        successful_payments = Payment.query.filter_by(status='paid').count()
+        successful_payments = Payment.query.filter(Payment.status.in_(['paid', 'completed'])).count()
         pending_payments = Payment.query.filter(Payment.status.in_(['pending', 'unpaid'])).count()
         failed_payments = Payment.query.filter_by(status='failed').count()
         
         total_amount = db.session.query(func.sum(Payment.amount))\
-            .filter_by(status='paid').scalar() or 0
+            .filter(Payment.status.in_(['paid', 'completed'])).scalar() or 0
         
         # Get recent payments
         recent = Payment.query\
@@ -847,7 +847,7 @@ def get_payment_report():
                 .filter(
                     Payment.created_at >= month_start,
                     Payment.created_at <= month_end,
-                    Payment.status == 'paid'
+                    Payment.status.in_(['paid', 'completed'])
                 ).scalar() or 0
             
             monthly_data.append({
@@ -883,10 +883,9 @@ def get_occupancy_report():
     """Generate occupancy report."""
     try:
         total_properties = Property.query.count()
-        occupied_properties = Property.query.filter_by(status='occupied').count()
-        vacant_properties = Property.query.filter_by(status='vacant').count()
-        
         active_leases = Lease.query.filter_by(status='active').count()
+        occupied_properties = active_leases
+        vacant_properties = total_properties - occupied_properties
         
         occupancy_rate = (occupied_properties / total_properties * 100) if total_properties > 0 else 0
         
