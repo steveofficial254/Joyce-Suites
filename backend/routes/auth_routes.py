@@ -536,7 +536,7 @@ def delete_user(user_id: int):
 def send_inquiry():
     """
     Public endpoint for sending inquiries/messages.
-    Creates a notification for all admins.
+    Creates a notification for all admins and caretakers.
     """
     try:
         data = request.get_json()
@@ -556,14 +556,16 @@ def send_inquiry():
         if not validate_email(email):
             return jsonify({"success": False, "error": "Invalid email format"}), 400
             
-        # Get all admins
-        admins = User.query.filter_by(role=UserRole.ADMIN.value).all()
+        # Get all admins and caretakers
+        recipients = User.query.filter(
+            User.role.in_([UserRole.ADMIN.value, UserRole.CARETAKER.value])
+        ).all()
         
         # Create notifications
         notifications = []
-        for admin in admins:
+        for recipient in recipients:
             note = Notification(
-                user_id=admin.id,
+                user_id=recipient.id,
                 title=f"New Inquiry from {name}",
                 message=f"Message: {message}\nContact: {email} {phone}",
                 notification_type="inquiry"
@@ -586,3 +588,39 @@ def send_inquiry():
             "success": False, 
             "error": "Failed to send inquiry"
         }), 500
+
+
+@auth_bp.route("/notifications", methods=["GET"])
+@token_required
+def get_notifications():
+    """Get all notifications for the authenticated user."""
+    try:
+        notifications = Notification.query.filter_by(user_id=request.user_id)\
+            .order_by(Notification.created_at.desc())\
+            .all()
+        
+        return jsonify({
+            "success": True,
+            "notifications": [n.to_dict() for n in notifications]
+        }), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to fetch notifications: {str(e)}"}), 500
+
+
+@auth_bp.route("/notifications/<int:notification_id>/read", methods=["PUT"])
+@token_required
+def mark_notification_read(notification_id):
+    """Mark a notification as read."""
+    try:
+        notification = Notification.query.filter_by(
+            id=notification_id, 
+            user_id=request.user_id
+        ).first()
+        
+        if not notification:
+            return jsonify({"success": False, "error": "Notification not found"}), 404
+            
+        notification.mark_as_read()
+        return jsonify({"success": True, "message": "Notification marked as read"}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500

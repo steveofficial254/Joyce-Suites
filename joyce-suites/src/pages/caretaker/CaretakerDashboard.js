@@ -251,6 +251,28 @@ const CaretakerDashboard = () => {
     }
   };
 
+  const fetchNotifications = async () => {
+    try {
+      const data = await apiCall('/api/auth/notifications');
+      if (data && data.success) {
+        setNotifications(data.notifications || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    }
+  };
+
+  const handleMarkNotificationRead = async (id) => {
+    try {
+      await apiCall(`/api/auth/notifications/${id}/read`, { method: 'PUT' });
+      setNotifications(prev =>
+        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+      );
+    } catch (err) {
+      console.error('Failed to mark notification read:', err);
+    }
+  };
+
   const handleMarkPayment = async (paymentData) => {
     try {
       setLoading(true);
@@ -421,8 +443,11 @@ const CaretakerDashboard = () => {
           case 'vacate':
             await fetchVacateNotices();
             break;
+          case 'vacate':
+            await fetchVacateNotices();
+            break;
           case 'notifications':
-            await fetchTenants();
+            await fetchNotifications();
             break;
           default:
             break;
@@ -436,6 +461,11 @@ const CaretakerDashboard = () => {
 
     fetchPageData();
   }, [activePage]);
+
+  // Initial load
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
 
   const renderContent = () => {
     switch (activePage) {
@@ -543,10 +573,60 @@ const CaretakerDashboard = () => {
         );
       case 'notifications':
         return (
-          <NotificationsPage
-            tenants={tenants}
-            onSendNotification={() => setShowSendNotificationModal(true)}
-          />
+          <div className="p-6">
+            <h2 className="text-2xl font-bold mb-6">Inquiries & Notifications</h2>
+            {loading && !notifications.length ? (
+              <div style={{ textAlign: 'center', padding: '2rem' }}>Loading notifications...</div>
+            ) : notifications.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280', backgroundColor: 'white', borderRadius: '0.5rem' }}>
+                <MessageSquare size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                <p>No new notifications.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                {notifications.map(note => (
+                  <div
+                    key={note.id}
+                    style={{
+                      backgroundColor: note.is_read ? 'white' : '#f0f9ff',
+                      borderLeft: `4px solid ${note.is_read ? '#e5e7eb' : '#3b82f6'}`,
+                      padding: '1.5rem',
+                      borderRadius: '0.5rem',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <div>
+                        <h3 style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{note.title}</h3>
+                        <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                          {new Date(note.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      {!note.is_read && (
+                        <button
+                          onClick={() => handleMarkNotificationRead(note.id)}
+                          style={{
+                            fontSize: '0.75rem',
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '9999px',
+                            backgroundColor: '#dbeafe',
+                            color: '#1e40af',
+                            border: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Mark as Read
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ whiteSpace: 'pre-wrap', color: '#374151' }}>
+                      {note.message}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         );
       default:
         return null;
