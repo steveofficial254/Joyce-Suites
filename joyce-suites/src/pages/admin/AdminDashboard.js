@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Menu, LogOut, X, Bell, Eye, Edit, Trash2, Filter, Search, 
-  Download, Mail, Phone, FileText, ArrowLeft, User, Send, 
+import {
+  Menu, LogOut, X, Bell, Eye, Edit, Trash2, Filter, Search,
+  Download, Mail, Phone, FileText, ArrowLeft, User, Send,
   Check, AlertCircle, Home, Plus, Calendar, DollarSign,
   Building, Users, CreditCard, Key, CheckCircle, Clock, UserPlus,
   RefreshCw, XCircle, Wrench, AlertTriangle, UserX, MessageSquare,
@@ -27,7 +27,7 @@ const AdminDashboard = () => {
   const [maintenanceRequests, setMaintenanceRequests] = useState([]);
   const [vacateNotices, setVacateNotices] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  
+
   // Modal states
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [showTenantModal, setShowTenantModal] = useState(false);
@@ -51,7 +51,7 @@ const AdminDashboard = () => {
   const apiCall = async (endpoint, options = {}) => {
     try {
       console.log('Making API call to:', `${API_BASE_URL}${endpoint}`);
-      
+
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers: {
@@ -82,6 +82,29 @@ const AdminDashboard = () => {
       console.error('API call error:', err);
       setError(err.message);
       throw err;
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const data = await apiCall('/api/auth/notifications');
+      if (data && data.success) {
+        setNotifications(data.notifications || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    }
+  };
+
+  // Helper to mark notification as read
+  const markAsRead = async (id) => {
+    try {
+      await apiCall(`/api/auth/notifications/${id}/read`, { method: 'PUT' });
+      setNotifications(prev =>
+        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+      );
+    } catch (err) {
+      console.error('Failed to mark notification:', err);
     }
   };
 
@@ -226,14 +249,14 @@ const AdminDashboard = () => {
           room_number: tenantData.room_number
         })
       });
-      
+
       if (data && data.success) {
         setSuccessMessage('Tenant created successfully');
         await fetchTenants();
         await fetchOverview();
         setShowCreateTenantModal(false);
         setTimeout(() => setSuccessMessage(''), 3000);
-        
+
         const createLease = window.confirm('Create lease for this new tenant now?');
         if (createLease) {
           setTenantForLease(data.tenant);
@@ -255,7 +278,7 @@ const AdminDashboard = () => {
         method: 'POST',
         body: JSON.stringify(leaseData)
       });
-      
+
       if (data && data.success) {
         setSuccessMessage(`Lease created successfully! Tenant can now sign the lease.`);
         await fetchContracts();
@@ -279,7 +302,7 @@ const AdminDashboard = () => {
         method: 'PUT',
         body: JSON.stringify({ status: newStatus })
       });
-      
+
       if (data && data.success) {
         setSuccessMessage('Maintenance request updated');
         await fetchMaintenanceRequests();
@@ -298,7 +321,7 @@ const AdminDashboard = () => {
         method: 'POST',
         body: JSON.stringify(notificationData)
       });
-      
+
       if (data && data.success) {
         setSuccessMessage('Notification sent successfully');
         setShowNotificationModal(false);
@@ -317,7 +340,7 @@ const AdminDashboard = () => {
         method: 'PUT',
         body: JSON.stringify({ status: newStatus, admin_notes: notes })
       });
-      
+
       if (data && data.success) {
         setSuccessMessage(`Vacate notice ${newStatus} successfully`);
         await fetchVacateNotices();
@@ -364,9 +387,9 @@ const AdminDashboard = () => {
         switch (activePage) {
           case 'dashboard':
             await Promise.all([
-              fetchOverview(), 
-              fetchTenants(), 
-              fetchPaymentReport(), 
+              fetchOverview(),
+              fetchTenants(),
+              fetchPaymentReport(),
               fetchOccupancyReport(),
               fetchVacateNotices(),
               fetchMaintenanceRequests()
@@ -392,6 +415,9 @@ const AdminDashboard = () => {
             await fetchVacateNotices();
             await fetchTenants();
             break;
+          case 'messages':
+            await fetchNotifications(); // Fetch notifications for messages page
+            break;
           default:
             break;
         }
@@ -403,11 +429,16 @@ const AdminDashboard = () => {
     fetchPageData();
   }, [activePage, token]);
 
+  useEffect(() => {
+    fetchOverview();
+    fetchNotifications();
+  }, []);
+
   const renderContent = () => {
     switch (activePage) {
       case 'dashboard':
         return (
-          <DashboardPage 
+          <DashboardPage
             overview={overview}
             paymentReport={paymentReport}
             occupancyReport={occupancyReport}
@@ -429,7 +460,7 @@ const AdminDashboard = () => {
         return <ContractsPage contracts={contracts} tenants={tenants} loading={loading} />;
       case 'reports':
         return (
-          <ReportsPage 
+          <ReportsPage
             paymentReport={paymentReport}
             occupancyReport={occupancyReport}
             loading={loading}
@@ -440,7 +471,7 @@ const AdminDashboard = () => {
         return <PropertiesPage availableRooms={availableRooms} loading={loading} />;
       case 'maintenance':
         return (
-          <MaintenancePage 
+          <MaintenancePage
             requests={maintenanceRequests}
             loading={loading}
             onUpdateStatus={handleUpdateMaintenanceStatus}
@@ -470,14 +501,62 @@ const AdminDashboard = () => {
             }}
           />
         );
+      case 'messages':
+        return renderMessages();
       default:
         return null;
     }
   };
 
+  const renderMessages = () => {
+    const inquiries = notifications.filter(n => n.notification_type === 'inquiry');
+
+    return (
+      <div className="p-6">
+        <h2 className="text-2xl font-bold mb-6">Inquiries & Messages</h2>
+
+        {inquiries.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+            <MessageSquare size={48} className="mx-auto mb-4 opacity-50" />
+            <p>No inquiries found.</p>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {inquiries.map(msg => (
+              <div
+                key={msg.id}
+                className={`bg-white rounded-lg shadow p-6 border-l-4 ${msg.is_read ? 'border-gray-300' : 'border-blue-500'}`}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="font-bold text-lg">{msg.title}</h3>
+                    <span className="text-sm text-gray-500">
+                      {new Date(msg.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                  {!msg.is_read && (
+                    <button
+                      onClick={() => markAsRead(msg.id)}
+                      className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200"
+                    >
+                      Mark as Read
+                    </button>
+                  )}
+                </div>
+                <div className="bg-gray-50 p-4 rounded mt-2 whitespace-pre-wrap text-gray-700">
+                  {msg.message}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div style={styles.container}>
-      <aside style={{...styles.sidebar, ...(sidebarOpen ? {} : styles.sidebarHidden)}}>
+      <aside style={{ ...styles.sidebar, ...(sidebarOpen ? {} : styles.sidebarHidden) }}>
         <div style={styles.sidebarHeader}>
           <h2 style={styles.sidebarTitle}>Joyce Suites</h2>
           <button style={styles.closeBtn} onClick={() => setSidebarOpen(false)}>
@@ -493,7 +572,9 @@ const AdminDashboard = () => {
             { id: 'vacate', label: 'Vacate Notices', icon: DoorOpen },
             { id: 'notifications', label: 'Notifications', icon: Bell },
             { id: 'reports', label: 'Reports', icon: FileSpreadsheet },
-            { id: 'properties', label: 'Properties', icon: Building }
+            { id: 'properties', label: 'Properties', icon: Building },
+            { id: 'financial-summary', label: 'Financial Summary', icon: TrendingUp },
+            { id: 'messages', label: 'Inquiries', icon: MessageSquare }
           ].map(item => (
             <button
               key={item.id}
@@ -575,8 +656,8 @@ const AdminDashboard = () => {
       </main>
 
       {showTenantModal && selectedTenant && (
-        <TenantDetailsModal 
-          tenant={selectedTenant} 
+        <TenantDetailsModal
+          tenant={selectedTenant}
           onClose={() => {
             setShowTenantModal(false);
             setSelectedTenant(null);
@@ -644,13 +725,13 @@ const AdminDashboard = () => {
 };
 
 // ==================== DASHBOARD PAGE ====================
-const DashboardPage = ({ 
-  overview, 
-  paymentReport, 
-  occupancyReport, 
-  tenants, 
-  loading, 
-  onDeleteTenant, 
+const DashboardPage = ({
+  overview,
+  paymentReport,
+  occupancyReport,
+  tenants,
+  loading,
+  onDeleteTenant,
   onViewTenant,
   onCreateLease,
   onCreateTenant,
@@ -669,16 +750,16 @@ const DashboardPage = ({
             <p>Loading dashboard...</p>
           </>
         ) : (
-          <div style={{textAlign: 'center'}}>
+          <div style={{ textAlign: 'center' }}>
             <AlertCircle size={48} color="#ef4444" />
-            <p style={{marginTop: '16px', color: '#ef4444', fontWeight: '500'}}>
+            <p style={{ marginTop: '16px', color: '#ef4444', fontWeight: '500' }}>
               Failed to load dashboard data
             </p>
-            <p style={{color: '#6b7280', fontSize: '14px'}}>
+            <p style={{ color: '#6b7280', fontSize: '14px' }}>
               Check console for errors
             </p>
-            <button 
-              style={{...styles.btnPrimary, marginTop: '16px'}}
+            <button
+              style={{ ...styles.btnPrimary, marginTop: '16px' }}
               onClick={() => window.location.reload()}
             >
               <RefreshCw size={16} /> Retry
@@ -689,19 +770,19 @@ const DashboardPage = ({
     );
   }
 
-  const filteredTenants = tenants.filter(function(t) {
-    const statusMatch = filterStatus === 'all' || 
+  const filteredTenants = tenants.filter(function (t) {
+    const statusMatch = filterStatus === 'all' ||
       (filterStatus === 'active' ? t.is_active : !t.is_active);
-    const searchMatch = 
+    const searchMatch =
       (t.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (t.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (t.room_number || '').toString().includes(searchTerm);
-    
+
     return statusMatch && searchMatch;
   });
 
   // Calculate active tenants count
-  const activeTenantsCount = tenants.filter(function(t) {
+  const activeTenantsCount = tenants.filter(function (t) {
     return t.is_active;
   }).length || 0;
 
@@ -711,7 +792,7 @@ const DashboardPage = ({
     : 0;
 
   // Get pending vacate notices
-  const pendingVacate = vacateNotices ? vacateNotices.filter(function(n) {
+  const pendingVacate = vacateNotices ? vacateNotices.filter(function (n) {
     return n.status === 'pending';
   }) : [];
 
@@ -731,43 +812,43 @@ const DashboardPage = ({
           </button>
         </div>
       </div>
-      
+
       <div style={styles.gridContainer}>
-        <OverviewCard 
-          title="Total Tenants" 
-          value={overview.total_tenants || 0} 
+        <OverviewCard
+          title="Total Tenants"
+          value={overview.total_tenants || 0}
           icon={Users}
           color="#3b82f6"
           subtitle={"Active: " + (activeTenantsCount)}
         />
-        <OverviewCard 
-          title="Active Leases" 
-          value={overview.active_leases || 0} 
+        <OverviewCard
+          title="Active Leases"
+          value={overview.active_leases || 0}
           icon={FileText}
           color="#10b981"
         />
-        <OverviewCard 
-          title="Pending Maintenance" 
-          value={overview.pending_maintenance || 0} 
+        <OverviewCard
+          title="Pending Maintenance"
+          value={overview.pending_maintenance || 0}
           icon={Wrench}
           color="#f59e0b"
         />
-        <OverviewCard 
-          title="Total Revenue" 
-          value={"KSh " + ((overview.total_revenue || 0).toLocaleString())} 
+        <OverviewCard
+          title="Total Revenue"
+          value={"KSh " + ((overview.total_revenue || 0).toLocaleString())}
           icon={DollarSign}
           color="#8b5cf6"
         />
-        <OverviewCard 
-          title="Occupancy Rate" 
-          value={(occupancyReport ? occupancyReport.occupancy_rate : 0) + "%"} 
+        <OverviewCard
+          title="Occupancy Rate"
+          value={(occupancyReport ? occupancyReport.occupancy_rate : 0) + "%"}
           icon={Building}
           color="#06b6d4"
           subtitle={(occupancyReport ? occupancyReport.occupied : 0) + " of " + (occupancyReport ? occupancyReport.total_properties : 0) + " rooms"}
         />
-        <OverviewCard 
-          title="Payment Success Rate" 
-          value={successRate + "%"} 
+        <OverviewCard
+          title="Payment Success Rate"
+          value={successRate + "%"}
           icon={CheckCircle}
           color="#ec4899"
         />
@@ -786,13 +867,13 @@ const DashboardPage = ({
                 <SummaryCard label="Successful" value={paymentReport.successful || 0} color="#10b981" />
                 <SummaryCard label="Pending" value={paymentReport.pending || 0} color="#f59e0b" />
                 <SummaryCard label="Failed" value={paymentReport.failed || 0} color="#ef4444" />
-                <SummaryCard 
-                  label="Total Collected" 
+                <SummaryCard
+                  label="Total Collected"
                   value={"KSh " + ((paymentReport.total_amount || 0).toLocaleString())}
                   color="#3b82f6"
                 />
-                <SummaryCard 
-                  label="Success Rate" 
+                <SummaryCard
+                  label="Success Rate"
                   value={successRate + "%"}
                   color="#8b5cf6"
                 />
@@ -839,7 +920,7 @@ const DashboardPage = ({
                     style={styles.searchInput}
                   />
                 </div>
-                <select 
+                <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                   style={styles.filterSelect}
@@ -863,7 +944,7 @@ const DashboardPage = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTenants.slice(0, 5).map(function(tenant) {
+                  {filteredTenants.slice(0, 5).map(function (tenant) {
                     return (
                       <tr key={tenant.id} style={styles.tableRow}>
                         <td style={styles.td}>{tenant.name || 'N/A'}</td>
@@ -880,14 +961,14 @@ const DashboardPage = ({
                         </td>
                         <td style={styles.td}>
                           <div style={styles.actionButtons}>
-                            <button 
+                            <button
                               style={styles.btnSmallPrimary}
                               onClick={() => onViewTenant(tenant.id)}
                               title="View Details"
                             >
                               <Eye size={14} />
                             </button>
-                            <button 
+                            <button
                               style={styles.btnSmallSuccess}
                               onClick={() => onCreateLease(tenant)}
                               title="Create Lease"
@@ -901,7 +982,7 @@ const DashboardPage = ({
                   })}
                   {filteredTenants.length > 5 && (
                     <tr>
-                      <td colSpan="5" style={{...styles.td, textAlign: 'center'}}>
+                      <td colSpan="5" style={{ ...styles.td, textAlign: 'center' }}>
                         <button style={styles.btnText} onClick={() => window.location.hash = '#tenants'}>
                           {"View all " + filteredTenants.length + " tenants →"}
                         </button>
@@ -922,7 +1003,7 @@ const DashboardPage = ({
           {recentMaintenance.length > 0 && (
             <div style={styles.activityCard}>
               <h4 style={styles.activityTitle}>Recent Maintenance</h4>
-              {recentMaintenance.map(function(req) {
+              {recentMaintenance.map(function (req) {
                 return (
                   <div key={req.id} style={styles.activityItem}>
                     <span>{req.title}</span>
@@ -938,11 +1019,11 @@ const DashboardPage = ({
               })}
             </div>
           )}
-          
+
           {pendingVacate.length > 0 && (
             <div style={styles.activityCard}>
               <h4 style={styles.activityTitle}>Pending Vacate Notices</h4>
-              {pendingVacate.slice(0, 3).map(function(notice) {
+              {pendingVacate.slice(0, 3).map(function (notice) {
                 return (
                   <div key={notice.id} style={styles.activityItem}>
                     <span>Room {notice.lease ? notice.lease.room_number : 'N/A'}</span>
@@ -973,14 +1054,14 @@ const ContractsPage = ({ contracts, tenants, loading }) => {
     );
   }
 
-  const filtered = filterStatus === 'all' 
-    ? contracts 
-    : contracts.filter(function(c) {
-        return c.status === filterStatus;
-      });
+  const filtered = filterStatus === 'all'
+    ? contracts
+    : contracts.filter(function (c) {
+      return c.status === filterStatus;
+    });
 
-  const enhancedContracts = filtered.map(function(contract) {
-    const tenant = tenants.find(function(t) {
+  const enhancedContracts = filtered.map(function (contract) {
+    const tenant = tenants.find(function (t) {
       return t.id === contract.tenant_id;
     });
     return {
@@ -995,9 +1076,9 @@ const ContractsPage = ({ contracts, tenants, loading }) => {
         <h2 style={styles.pageTitle}>Lease Contracts ({enhancedContracts.length})</h2>
         <div style={styles.filterSection}>
           <label style={styles.filterLabel}><Filter size={16} /> Filter:</label>
-          <select 
-            value={filterStatus} 
-            onChange={(e) => setFilterStatus(e.target.value)} 
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
             style={styles.filterSelect}
           >
             <option value="all">All</option>
@@ -1025,7 +1106,7 @@ const ContractsPage = ({ contracts, tenants, loading }) => {
             </thead>
             <tbody>
               {enhancedContracts.length > 0 ? (
-                enhancedContracts.map(function(c) {
+                enhancedContracts.map(function (c) {
                   return (
                     <tr key={c.id} style={styles.tableRow}>
                       <td style={styles.td}>#{c.id}</td>
@@ -1057,7 +1138,7 @@ const ContractsPage = ({ contracts, tenants, loading }) => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="8" style={{...styles.td, textAlign: 'center', padding: '40px'}}>
+                  <td colSpan="8" style={{ ...styles.td, textAlign: 'center', padding: '40px' }}>
                     No contracts found
                   </td>
                 </tr>
@@ -1074,7 +1155,7 @@ const ContractsPage = ({ contracts, tenants, loading }) => {
 const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
-  
+
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -1084,14 +1165,14 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
     );
   }
 
-  const filtered = requests.filter(function(r) {
+  const filtered = requests.filter(function (r) {
     const statusMatch = filterStatus === 'all' || r.status === filterStatus;
     const priorityMatch = filterPriority === 'all' || r.priority === filterPriority;
     return statusMatch && priorityMatch;
   });
 
-  const priorityColor = function(priority) {
-    switch(priority) {
+  const priorityColor = function (priority) {
+    switch (priority) {
       case 'urgent': return '#ef4444';
       case 'high': return '#f59e0b';
       case 'normal': return '#3b82f6';
@@ -1100,8 +1181,8 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
     }
   };
 
-  const statusColor = function(status) {
-    switch(status) {
+  const statusColor = function (status) {
+    switch (status) {
       case 'completed': return { bg: '#dcfce7', color: '#166534' };
       case 'in_progress': return { bg: '#dbeafe', color: '#1e40af' };
       case 'pending': return { bg: '#fef3c7', color: '#92400e' };
@@ -1114,7 +1195,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
     <>
       <div style={styles.pageHeaderControls}>
         <h2 style={styles.pageTitle}>Maintenance Requests ({filtered.length})</h2>
-        <div style={{display: 'flex', gap: '12px'}}>
+        <div style={{ display: 'flex', gap: '12px' }}>
           <div style={styles.filterSection}>
             <label style={styles.filterLabel}>Status:</label>
             <select
@@ -1162,7 +1243,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
             </thead>
             <tbody>
               {filtered.length > 0 ? (
-                filtered.map(function(req) {
+                filtered.map(function (req) {
                   const colors = statusColor(req.status);
                   return (
                     <tr key={req.id} style={styles.tableRow}>
@@ -1192,7 +1273,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
                       </td>
                       <td style={styles.td}>
                         <div style={styles.actionButtons}>
-                          <button 
+                          <button
                             style={styles.btnSmallPrimary}
                             onClick={() => onViewDetails(req)}
                             title="View Details"
@@ -1200,7 +1281,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
                             <Eye size={14} />
                           </button>
                           {req.status === 'pending' && (
-                            <button 
+                            <button
                               style={styles.btnSmallSuccess}
                               onClick={() => onUpdateStatus(req.id, 'in_progress')}
                               title="Start Work"
@@ -1209,7 +1290,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
                             </button>
                           )}
                           {req.status === 'in_progress' && (
-                            <button 
+                            <button
                               style={styles.btnSmallSuccess}
                               onClick={() => onUpdateStatus(req.id, 'completed')}
                               title="Mark Complete"
@@ -1224,7 +1305,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
                 })
               ) : (
                 <tr>
-                  <td colSpan="7" style={{...styles.td, textAlign: 'center', padding: '40px'}}>
+                  <td colSpan="7" style={{ ...styles.td, textAlign: 'center', padding: '40px' }}>
                     No maintenance requests found
                   </td>
                 </tr>
@@ -1240,7 +1321,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
 // ==================== VACATE NOTICES PAGE ====================
 const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDetails }) => {
   const [filterStatus, setFilterStatus] = useState('all');
-  
+
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -1253,14 +1334,14 @@ const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDe
   // Handle case where notices is null or undefined
   const noticesList = notices || [];
 
-  const filtered = filterStatus === 'all' 
-    ? noticesList 
-    : noticesList.filter(function(n) {
-        return n.status === filterStatus;
-      });
+  const filtered = filterStatus === 'all'
+    ? noticesList
+    : noticesList.filter(function (n) {
+      return n.status === filterStatus;
+    });
 
-  const statusColor = function(status) {
-    switch(status) {
+  const statusColor = function (status) {
+    switch (status) {
       case 'pending': return { bg: '#fef3c7', color: '#92400e' };
       case 'approved': return { bg: '#dbeafe', color: '#1e40af' };
       case 'rejected': return { bg: '#fee2e2', color: '#991b1b' };
@@ -1305,12 +1386,12 @@ const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDe
             </thead>
             <tbody>
               {filtered.length > 0 ? (
-                filtered.map(function(notice) {
+                filtered.map(function (notice) {
                   const colors = statusColor(notice.status);
-                  const daysLeft = notice.vacate_date 
+                  const daysLeft = notice.vacate_date
                     ? Math.ceil((new Date(notice.vacate_date) - new Date()) / (1000 * 60 * 60 * 24))
                     : 0;
-                  
+
                   return (
                     <tr key={notice.id} style={styles.tableRow}>
                       <td style={styles.td}>#{notice.id}</td>
@@ -1339,7 +1420,7 @@ const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDe
                       </td>
                       <td style={styles.td}>
                         <div style={styles.actionButtons}>
-                          <button 
+                          <button
                             style={styles.btnSmallPrimary}
                             onClick={() => onViewDetails(notice)}
                             title="View Details"
@@ -1348,14 +1429,14 @@ const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDe
                           </button>
                           {notice.status === 'pending' && (
                             <>
-                              <button 
+                              <button
                                 style={styles.btnSmallSuccess}
                                 onClick={() => onUpdateStatus(notice.id, 'approved')}
                                 title="Approve"
                               >
                                 <Check size={14} />
                               </button>
-                              <button 
+                              <button
                                 style={styles.btnSmallDanger}
                                 onClick={() => onUpdateStatus(notice.id, 'rejected')}
                                 title="Reject"
@@ -1371,13 +1452,13 @@ const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDe
                 })
               ) : (
                 <tr>
-                  <td colSpan="7" style={{...styles.td, textAlign: 'center', padding: '40px'}}>
-                    <div style={{padding: '40px 20px', textAlign: 'center'}}>
+                  <td colSpan="7" style={{ ...styles.td, textAlign: 'center', padding: '40px' }}>
+                    <div style={{ padding: '40px 20px', textAlign: 'center' }}>
                       <DoorOpen size={48} color="#9ca3af" />
-                      <p style={{marginTop: '16px', color: '#6b7280'}}>
+                      <p style={{ marginTop: '16px', color: '#6b7280' }}>
                         No vacate notices found
                       </p>
-                      <p style={{color: '#9ca3af', fontSize: '14px', marginTop: '8px'}}>
+                      <p style={{ color: '#9ca3af', fontSize: '14px', marginTop: '8px' }}>
                         The vacate notices API endpoint may not be implemented yet
                       </p>
                     </div>
@@ -1394,7 +1475,7 @@ const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDe
 
 // ==================== NOTIFICATIONS PAGE ====================
 const NotificationsPage = ({ tenants, onSendNotification }) => {
-  const activeTenantsCount = tenants.filter(function(t) {
+  const activeTenantsCount = tenants.filter(function (t) {
     return t.is_active;
   }).length;
 
@@ -1409,19 +1490,19 @@ const NotificationsPage = ({ tenants, onSendNotification }) => {
 
       <div style={styles.section}>
         <h3 style={styles.sectionTitle}>Send notifications to tenants</h3>
-        <p style={{color: '#6b7280', marginBottom: '20px'}}>
+        <p style={{ color: '#6b7280', marginBottom: '20px' }}>
           You can send notifications to all tenants, specific tenants, or the caretaker.
         </p>
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px'}}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
           <div style={styles.infoCard}>
             <Users size={32} color="#3b82f6" />
             <h4>Total Tenants</h4>
-            <p style={{fontSize: '24px', fontWeight: '600', margin: '8px 0'}}>{tenants.length}</p>
+            <p style={{ fontSize: '24px', fontWeight: '600', margin: '8px 0' }}>{tenants.length}</p>
           </div>
           <div style={styles.infoCard}>
             <Bell size={32} color="#10b981" />
             <h4>Active Recipients</h4>
-            <p style={{fontSize: '24px', fontWeight: '600', margin: '8px 0'}}>
+            <p style={{ fontSize: '24px', fontWeight: '600', margin: '8px 0' }}>
               {activeTenantsCount}
             </p>
           </div>
@@ -1449,7 +1530,7 @@ const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
     vacant: occupancyReport.vacant || 0,
     occupancyRate: occupancyReport.occupancy_rate || 0,
     activeLeases: occupancyReport.active_leases || 0,
-    vacantRate: occupancyReport.total_properties > 0 
+    vacantRate: occupancyReport.total_properties > 0
       ? Math.round((occupancyReport.vacant / occupancyReport.total_properties) * 100)
       : 0
   } : null;
@@ -1483,23 +1564,23 @@ const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
             <SummaryCard label="Successful" value={paymentStats.successful} color="#10b981" />
             <SummaryCard label="Pending" value={paymentStats.pending} color="#f59e0b" />
             <SummaryCard label="Failed" value={paymentStats.failed} color="#ef4444" />
-            <SummaryCard 
-              label="Total Amount" 
+            <SummaryCard
+              label="Total Amount"
               value={"KSh " + paymentStats.totalAmount.toLocaleString()}
               color="#3b82f6"
             />
-            <SummaryCard 
-              label="Success Rate" 
+            <SummaryCard
+              label="Success Rate"
               value={paymentStats.successRate + "%"}
               color="#8b5cf6"
             />
-            <SummaryCard 
-              label="Average Payment" 
+            <SummaryCard
+              label="Average Payment"
               value={"KSh " + paymentStats.avgPayment.toLocaleString()}
               color="#06b6d4"
             />
-            <SummaryCard 
-              label="Collection Efficiency" 
+            <SummaryCard
+              label="Collection Efficiency"
               value={(paymentStats.total > 0 ? Math.round((paymentStats.successful / tenants.length * 100)) : 0) + "%"}
               color="#ec4899"
             />
@@ -1517,23 +1598,23 @@ const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
             <SummaryCard label="Occupied" value={occupancyStats.occupied} color="#10b981" />
             <SummaryCard label="Vacant" value={occupancyStats.vacant} color="#f59e0b" />
             <SummaryCard label="Active Leases" value={occupancyStats.activeLeases} color="#3b82f6" />
-            <SummaryCard 
-              label="Occupancy Rate" 
+            <SummaryCard
+              label="Occupancy Rate"
               value={occupancyStats.occupancyRate + "%"}
               color="#8b5cf6"
             />
-            <SummaryCard 
-              label="Vacant Rate" 
+            <SummaryCard
+              label="Vacant Rate"
               value={occupancyStats.vacantRate + "%"}
               color="#ef4444"
             />
-            <SummaryCard 
-              label="Room Utilization" 
+            <SummaryCard
+              label="Room Utilization"
               value={(occupancyStats.total > 0 ? Math.round((occupancyStats.occupied / occupancyStats.total) * 100) : 0) + "%"}
               color="#06b6d4"
             />
-            <SummaryCard 
-              label="Lease Coverage" 
+            <SummaryCard
+              label="Lease Coverage"
               value={(occupancyStats.total > 0 ? Math.round((occupancyStats.activeLeases / occupancyStats.occupied) * 100) : 0) + "%"}
               color="#ec4899"
             />
@@ -1554,7 +1635,7 @@ const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
           </div>
           <div style={styles.financialCard}>
             <h4>Collection Rate</h4>
-            <p style={{...styles.financialValue, color: paymentStats?.successRate > 80 ? '#10b981' : '#f59e0b'}}>
+            <p style={{ ...styles.financialValue, color: paymentStats?.successRate > 80 ? '#10b981' : '#f59e0b' }}>
               {(paymentStats ? paymentStats.successRate : 0) + "%"}
             </p>
             <small style={styles.financialNote}>Payment success rate</small>
@@ -1562,7 +1643,7 @@ const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
           <div style={styles.financialCard}>
             <h4>Revenue per Room</h4>
             <p style={styles.financialValue}>
-              {"KSh " + (paymentStats && occupancyStats?.occupied > 0 
+              {"KSh " + (paymentStats && occupancyStats?.occupied > 0
                 ? Math.round(paymentStats.totalAmount / occupancyStats.occupied).toLocaleString()
                 : '0')}
             </p>
@@ -1598,7 +1679,7 @@ const PropertiesPage = ({ availableRooms, loading }) => {
           </div>
         ) : (
           <div style={styles.roomsGrid}>
-            {availableRooms.map(function(room) {
+            {availableRooms.map(function (room) {
               return (
                 <div key={room.id} style={styles.roomCard}>
                   <div style={styles.roomHeader}>
@@ -1621,7 +1702,7 @@ const PropertiesPage = ({ availableRooms, loading }) => {
                     </div>
                     <div style={styles.roomDetail}>
                       <span style={styles.detailLabel}>Status:</span>
-                      <span style={{...styles.statusBadge, backgroundColor: '#dcfce7', color: '#166534'}}>
+                      <span style={{ ...styles.statusBadge, backgroundColor: '#dcfce7', color: '#166534' }}>
                         Vacant
                       </span>
                     </div>
@@ -1662,7 +1743,7 @@ const TenantDetailsModal = ({ tenant, onClose }) => {
       'Lease Signed': tenant.lease.signed_by_tenant ? 'Yes' : 'No',
       'Signed Date': tenant.lease.signed_at ? new Date(tenant.lease.signed_at).toLocaleDateString() : 'N/A'
     } : null,
-    payments: tenant && tenant.recent_payments ? tenant.recent_payments.map(function(p) {
+    payments: tenant && tenant.recent_payments ? tenant.recent_payments.map(function (p) {
       return {
         'Date': p.created_at ? new Date(p.created_at).toLocaleDateString() : 'N/A',
         'Amount': "KSh " + (p.amount ? p.amount.toLocaleString() : '0'),
@@ -1670,7 +1751,7 @@ const TenantDetailsModal = ({ tenant, onClose }) => {
         'Transaction ID': p.transaction_id || 'N/A'
       };
     }) : [],
-    maintenance: tenant && tenant.recent_maintenance ? tenant.recent_maintenance.map(function(m) {
+    maintenance: tenant && tenant.recent_maintenance ? tenant.recent_maintenance.map(function (m) {
       return {
         'Title': m.title || 'N/A',
         'Description': m.description || 'N/A',
@@ -1683,35 +1764,35 @@ const TenantDetailsModal = ({ tenant, onClose }) => {
 
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={{...styles.modalContent, maxWidth: '800px'}} onClick={(e) => e.stopPropagation()}>
+      <div style={{ ...styles.modalContent, maxWidth: '800px' }} onClick={(e) => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <h3>Tenant Details</h3>
           <button style={styles.modalClose} onClick={onClose}>×</button>
         </div>
 
         <div style={styles.modalTabs}>
-          <button 
-            style={{...styles.modalTab, ...(activeTab === 'personal' ? styles.modalTabActive : {})}}
+          <button
+            style={{ ...styles.modalTab, ...(activeTab === 'personal' ? styles.modalTabActive : {}) }}
             onClick={() => setActiveTab('personal')}
           >
             Personal Info
           </button>
-          <button 
-            style={{...styles.modalTab, ...(activeTab === 'lease' ? styles.modalTabActive : {})}}
+          <button
+            style={{ ...styles.modalTab, ...(activeTab === 'lease' ? styles.modalTabActive : {}) }}
             onClick={() => setActiveTab('lease')}
             disabled={!tenantData.lease}
           >
             Lease Info
           </button>
-          <button 
-            style={{...styles.modalTab, ...(activeTab === 'payments' ? styles.modalTabActive : {})}}
+          <button
+            style={{ ...styles.modalTab, ...(activeTab === 'payments' ? styles.modalTabActive : {}) }}
             onClick={() => setActiveTab('payments')}
             disabled={!tenantData.payments || tenantData.payments.length === 0}
           >
             Payments
           </button>
-          <button 
-            style={{...styles.modalTab, ...(activeTab === 'maintenance' ? styles.modalTabActive : {})}}
+          <button
+            style={{ ...styles.modalTab, ...(activeTab === 'maintenance' ? styles.modalTabActive : {}) }}
             onClick={() => setActiveTab('maintenance')}
             disabled={!tenantData.maintenance || tenantData.maintenance.length === 0}
           >
@@ -1722,7 +1803,7 @@ const TenantDetailsModal = ({ tenant, onClose }) => {
         <div style={styles.modalBody}>
           {activeTab === 'personal' && (
             <div style={styles.detailsGrid}>
-              {Object.entries(tenantData.personal).map(function([key, value]) {
+              {Object.entries(tenantData.personal).map(function ([key, value]) {
                 return (
                   <div key={key} style={styles.detailItem}>
                     <label style={styles.detailLabel}>{key}</label>
@@ -1736,7 +1817,7 @@ const TenantDetailsModal = ({ tenant, onClose }) => {
           {activeTab === 'lease' && tenantData.lease && (
             <div>
               <div style={styles.detailsGrid}>
-                {Object.entries(tenantData.lease).map(function([key, value]) {
+                {Object.entries(tenantData.lease).map(function ([key, value]) {
                   return (
                     <div key={key} style={styles.detailItem}>
                       <label style={styles.detailLabel}>{key}</label>
@@ -1760,7 +1841,7 @@ const TenantDetailsModal = ({ tenant, onClose }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {tenantData.payments.map(function(payment, idx) {
+                  {tenantData.payments.map(function (payment, idx) {
                     return (
                       <tr key={idx} style={styles.tableRow}>
                         <td style={styles.td}>{payment.Date}</td>
@@ -1800,7 +1881,7 @@ const TenantDetailsModal = ({ tenant, onClose }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {tenantData.maintenance.map(function(req, idx) {
+                  {tenantData.maintenance.map(function (req, idx) {
                     return (
                       <tr key={idx} style={styles.tableRow}>
                         <td style={styles.td}>{req.Title}</td>
@@ -1855,7 +1936,7 @@ const CreateTenantModal = ({ onClose, onSubmit, loading }) => {
       [e.target.name]: e.target.value
     });
     if (errors[e.target.name]) {
-      setErrors({...errors, [e.target.name]: ''});
+      setErrors({ ...errors, [e.target.name]: '' });
     }
   };
 
@@ -1893,11 +1974,11 @@ const CreateTenantModal = ({ onClose, onSubmit, loading }) => {
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="John Doe"
-                style={{...styles.formInput, ...(errors.name ? styles.inputError : {})}}
+                style={{ ...styles.formInput, ...(errors.name ? styles.inputError : {}) }}
               />
               {errors.name && <span style={styles.errorText}>{errors.name}</span>}
             </div>
-            
+
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Email Address *</label>
               <input
@@ -1906,11 +1987,11 @@ const CreateTenantModal = ({ onClose, onSubmit, loading }) => {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="john@example.com"
-                style={{...styles.formInput, ...(errors.email ? styles.inputError : {})}}
+                style={{ ...styles.formInput, ...(errors.email ? styles.inputError : {}) }}
               />
               {errors.email && <span style={styles.errorText}>{errors.email}</span>}
             </div>
-            
+
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Phone Number *</label>
               <input
@@ -1919,11 +2000,11 @@ const CreateTenantModal = ({ onClose, onSubmit, loading }) => {
                 value={formData.phone}
                 onChange={handleChange}
                 placeholder="0712345678"
-                style={{...styles.formInput, ...(errors.phone ? styles.inputError : {})}}
+                style={{ ...styles.formInput, ...(errors.phone ? styles.inputError : {}) }}
               />
               {errors.phone && <span style={styles.errorText}>{errors.phone}</span>}
             </div>
-            
+
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>National ID *</label>
               <input
@@ -1932,11 +2013,11 @@ const CreateTenantModal = ({ onClose, onSubmit, loading }) => {
                 value={formData.national_id}
                 onChange={handleChange}
                 placeholder="12345678"
-                style={{...styles.formInput, ...(errors.national_id ? styles.inputError : {})}}
+                style={{ ...styles.formInput, ...(errors.national_id ? styles.inputError : {}) }}
               />
               {errors.national_id && <span style={styles.errorText}>{errors.national_id}</span>}
             </div>
-            
+
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Room Number (Optional)</label>
               <input
@@ -1949,7 +2030,7 @@ const CreateTenantModal = ({ onClose, onSubmit, loading }) => {
               />
               <small style={styles.formHelp}>Will be assigned when creating lease</small>
             </div>
-            
+
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Default Password</label>
               <input
@@ -1962,7 +2043,7 @@ const CreateTenantModal = ({ onClose, onSubmit, loading }) => {
               <small style={styles.formHelp}>Tenant can change this after login</small>
             </div>
           </div>
-          
+
           <div style={styles.modalFooter}>
             <button type="button" style={styles.btnSecondary} onClick={onClose}>
               Cancel
@@ -2002,7 +2083,7 @@ const CreateLeaseModal = ({ tenant, rooms, onClose, onSubmit, loading }) => {
 
   const handleRoomChange = (e) => {
     const roomId = parseInt(e.target.value);
-    const room = rooms.find(function(r) {
+    const room = rooms.find(function (r) {
       return r.id === roomId;
     });
     setFormData({
@@ -2046,7 +2127,7 @@ const CreateLeaseModal = ({ tenant, rooms, onClose, onSubmit, loading }) => {
               <p><strong>Email:</strong> {tenant.email}</p>
               <p><strong>Phone:</strong> {tenant.phone || 'N/A'}</p>
             </div>
-            
+
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Select Room *</label>
               {rooms.length === 0 ? (
@@ -2055,13 +2136,13 @@ const CreateLeaseModal = ({ tenant, rooms, onClose, onSubmit, loading }) => {
                   <span>No available rooms found</span>
                 </div>
               ) : (
-                <select 
+                <select
                   value={formData.property_id}
                   onChange={handleRoomChange}
-                  style={{...styles.formSelect, ...(errors.property_id ? styles.inputError : {})}}
+                  style={{ ...styles.formSelect, ...(errors.property_id ? styles.inputError : {}) }}
                 >
                   <option value="">Choose a room...</option>
-                  {rooms.map(function(room) {
+                  {rooms.map(function (room) {
                     return (
                       <option key={room.id} value={room.id}>
                         {room.name} - {room.property_type} - KSh {room.rent_amount ? room.rent_amount.toLocaleString() : '0'}/month
@@ -2072,15 +2153,15 @@ const CreateLeaseModal = ({ tenant, rooms, onClose, onSubmit, loading }) => {
               )}
               {errors.property_id && <span style={styles.errorText}>{errors.property_id}</span>}
             </div>
-            
+
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Monthly Rent (KSh) *</label>
               <input
                 type="number"
                 value={formData.rent_amount}
-                onChange={(e) => setFormData({...formData, rent_amount: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, rent_amount: e.target.value })}
                 placeholder="Enter rent amount"
-                style={{...styles.formInput, ...(errors.rent_amount ? styles.inputError : {})}}
+                style={{ ...styles.formInput, ...(errors.rent_amount ? styles.inputError : {}) }}
                 min="0"
                 step="100"
               />
@@ -2089,7 +2170,7 @@ const CreateLeaseModal = ({ tenant, rooms, onClose, onSubmit, loading }) => {
 
             {formData.rent_amount > 0 && (
               <div style={styles.leaseCalculations}>
-                <h4 style={{margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600'}}>Lease Calculations</h4>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>Lease Calculations</h4>
                 <div style={styles.calculationRow}>
                   <span>Monthly Rent:</span>
                   <strong>{"KSh " + parseFloat(formData.rent_amount).toLocaleString()}</strong>
@@ -2098,33 +2179,33 @@ const CreateLeaseModal = ({ tenant, rooms, onClose, onSubmit, loading }) => {
                   <span>Security Deposit (7%):</span>
                   <strong>{"KSh " + calculateDeposit(parseFloat(formData.rent_amount)).toLocaleString()}</strong>
                 </div>
-                <div style={{...styles.calculationRow, borderTop: '1px solid #e5e7eb', paddingTop: '8px', marginTop: '8px'}}>
+                <div style={{ ...styles.calculationRow, borderTop: '1px solid #e5e7eb', paddingTop: '8px', marginTop: '8px' }}>
                   <span>Initial Payment Required:</span>
-                  <strong style={{color: '#3b82f6'}}>
+                  <strong style={{ color: '#3b82f6' }}>
                     {"KSh " + (parseFloat(formData.rent_amount) + calculateDeposit(parseFloat(formData.rent_amount))).toLocaleString()}
                   </strong>
                 </div>
               </div>
             )}
-            
+
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Lease Start Date *</label>
               <input
                 type="date"
                 value={formData.start_date}
-                onChange={(e) => setFormData({...formData, start_date: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                 style={styles.formInput}
               />
             </div>
-            
+
             <div style={styles.leaseTermsNote}>
-              <h4 style={{margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600'}}>Lease Terms</h4>
-              <p style={{margin: '4px 0'}}>1-year lease term (auto-calculated)</p>
-              <p style={{margin: '4px 0'}}>Tenant must sign lease agreement before making payments</p>
-              <p style={{margin: '4px 0'}}>Rent payment due on 5th of each month</p>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600' }}>Lease Terms</h4>
+              <p style={{ margin: '4px 0' }}>1-year lease term (auto-calculated)</p>
+              <p style={{ margin: '4px 0' }}>Tenant must sign lease agreement before making payments</p>
+              <p style={{ margin: '4px 0' }}>Rent payment due on 5th of each month</p>
             </div>
           </div>
-          
+
           <div style={styles.modalFooter}>
             <button type="button" style={styles.btnSecondary} onClick={onClose}>
               Cancel
@@ -2155,7 +2236,7 @@ const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
       [e.target.name]: e.target.value
     });
     if (errors[e.target.name]) {
-      setErrors({...errors, [e.target.name]: ''});
+      setErrors({ ...errors, [e.target.name]: '' });
     }
   };
 
@@ -2186,16 +2267,16 @@ const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
           <div style={styles.modalBody}>
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Select Tenant *</label>
-              <select 
+              <select
                 name="tenant_id"
                 value={formData.tenant_id}
                 onChange={handleChange}
-                style={{...styles.formSelect, ...(errors.tenant_id ? styles.inputError : {})}}
+                style={{ ...styles.formSelect, ...(errors.tenant_id ? styles.inputError : {}) }}
               >
                 <option value="">Choose a tenant...</option>
-                {tenants.filter(function(t) {
+                {tenants.filter(function (t) {
                   return t.is_active;
-                }).map(function(tenant) {
+                }).map(function (tenant) {
                   return (
                     <option key={tenant.id} value={tenant.id}>
                       {tenant.name} - Room {tenant.room_number || 'N/A'}
@@ -2208,7 +2289,7 @@ const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
 
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Notification Type *</label>
-              <select 
+              <select
                 name="type"
                 value={formData.type}
                 onChange={handleChange}
@@ -2220,7 +2301,7 @@ const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
                 <option value="maintenance">Maintenance</option>
               </select>
             </div>
-            
+
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Title *</label>
               <input
@@ -2229,11 +2310,11 @@ const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
                 value={formData.title}
                 onChange={handleChange}
                 placeholder="e.g., Rent Payment Reminder"
-                style={{...styles.formInput, ...(errors.title ? styles.inputError : {})}}
+                style={{ ...styles.formInput, ...(errors.title ? styles.inputError : {}) }}
               />
               {errors.title && <span style={styles.errorText}>{errors.title}</span>}
             </div>
-            
+
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Message *</label>
               <textarea
@@ -2242,12 +2323,12 @@ const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
                 onChange={handleChange}
                 placeholder="Enter your notification message..."
                 rows="5"
-                style={{...styles.formInput, ...(errors.message ? styles.inputError : {}), resize: 'vertical'}}
+                style={{ ...styles.formInput, ...(errors.message ? styles.inputError : {}), resize: 'vertical' }}
               />
               {errors.message && <span style={styles.errorText}>{errors.message}</span>}
             </div>
           </div>
-          
+
           <div style={styles.modalFooter}>
             <button type="button" style={styles.btnSecondary} onClick={onClose}>
               Cancel
@@ -2310,16 +2391,16 @@ const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
             </div>
           </div>
 
-          <div style={{marginTop: '20px'}}>
+          <div style={{ marginTop: '20px' }}>
             <label style={styles.detailLabel}>Title</label>
-            <p style={{...styles.detailValue, fontSize: '16px', fontWeight: '600', margin: '8px 0'}}>
+            <p style={{ ...styles.detailValue, fontSize: '16px', fontWeight: '600', margin: '8px 0' }}>
               {request.title}
             </p>
           </div>
 
-          <div style={{marginTop: '16px'}}>
+          <div style={{ marginTop: '16px' }}>
             <label style={styles.detailLabel}>Description</label>
-            <p style={{...styles.detailValue, lineHeight: '1.6', margin: '8px 0'}}>
+            <p style={{ ...styles.detailValue, lineHeight: '1.6', margin: '8px 0' }}>
               {request.description}
             </p>
           </div>
@@ -2327,7 +2408,7 @@ const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
 
         <div style={styles.modalFooter}>
           {request.status === 'pending' && (
-            <button 
+            <button
               style={styles.btnPrimary}
               onClick={() => {
                 onUpdateStatus(request.id, 'in_progress');
@@ -2338,7 +2419,7 @@ const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
             </button>
           )}
           {request.status === 'in_progress' && (
-            <button 
+            <button
               style={styles.btnPrimary}
               onClick={() => {
                 onUpdateStatus(request.id, 'completed');
@@ -2383,8 +2464,8 @@ const VacateNoticeDetailsModal = ({ notice, onClose, onUpdateStatus }) => {
     }
   };
 
-  const statusColor = function(status) {
-    switch(status) {
+  const statusColor = function (status) {
+    switch (status) {
       case 'pending': return { bg: '#fef3c7', color: '#92400e' };
       case 'approved': return { bg: '#dbeafe', color: '#1e40af' };
       case 'rejected': return { bg: '#fee2e2', color: '#991b1b' };
@@ -2394,7 +2475,7 @@ const VacateNoticeDetailsModal = ({ notice, onClose, onUpdateStatus }) => {
   };
 
   const colors = statusColor(notice.status);
-  const daysLeft = notice.vacate_date 
+  const daysLeft = notice.vacate_date
     ? Math.ceil((new Date(notice.vacate_date) - new Date()) / (1000 * 60 * 60 * 24))
     : 0;
 
@@ -2450,14 +2531,14 @@ const VacateNoticeDetailsModal = ({ notice, onClose, onUpdateStatus }) => {
             </div>
           </div>
 
-          <div style={{marginTop: '16px'}}>
+          <div style={{ marginTop: '16px' }}>
             <label style={styles.detailLabel}>Reason for Vacating</label>
-            <p style={{...styles.detailValue, lineHeight: '1.6', margin: '8px 0'}}>
+            <p style={{ ...styles.detailValue, lineHeight: '1.6', margin: '8px 0' }}>
               {notice.reason || 'No reason provided'}
             </p>
           </div>
 
-          <div style={{marginTop: '16px'}}>
+          <div style={{ marginTop: '16px' }}>
             <label style={styles.detailLabel}>Admin Notes</label>
             <textarea
               value={notes}
@@ -2469,9 +2550,9 @@ const VacateNoticeDetailsModal = ({ notice, onClose, onUpdateStatus }) => {
           </div>
 
           {notice.admin_notes && (
-            <div style={{marginTop: '16px'}}>
+            <div style={{ marginTop: '16px' }}>
               <label style={styles.detailLabel}>Previous Notes</label>
-              <p style={{...styles.detailValue, lineHeight: '1.6', margin: '8px 0'}}>
+              <p style={{ ...styles.detailValue, lineHeight: '1.6', margin: '8px 0' }}>
                 {notice.admin_notes}
               </p>
             </div>
@@ -2504,7 +2585,7 @@ const VacateNoticeDetailsModal = ({ notice, onClose, onUpdateStatus }) => {
 // ==================== HELPER COMPONENTS ====================
 const OverviewCard = ({ title, value, icon: Icon, color, subtitle }) => (
   <div style={styles.overviewCard}>
-    <div style={{...styles.cardIcon, backgroundColor: color + '20', color: color}}>
+    <div style={{ ...styles.cardIcon, backgroundColor: color + '20', color: color }}>
       <Icon size={24} />
     </div>
     <div style={styles.cardContent}>
@@ -2518,7 +2599,7 @@ const OverviewCard = ({ title, value, icon: Icon, color, subtitle }) => (
 const SummaryCard = ({ label, value, color = '#6b7280' }) => (
   <div style={styles.summaryCard}>
     <span style={styles.summaryLabel}>{label}</span>
-    <span style={{...styles.summaryValue, color: color}}>{value}</span>
+    <span style={{ ...styles.summaryValue, color: color }}>{value}</span>
   </div>
 );
 
@@ -3222,7 +3303,7 @@ const styles = {
     textAlign: 'center',
     transition: 'all 0.2s'
   },
-   modalOverlay: {
+  modalOverlay: {
     position: 'fixed',
     top: 0,
     left: 0,

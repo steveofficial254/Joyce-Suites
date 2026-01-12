@@ -41,21 +41,32 @@ const MenuPage = () => {
     });
     const [sendingInquiry, setSendingInquiry] = useState(false);
     const [inquiryStatus, setInquiryStatus] = useState(null);
+    const [fetchError, setFetchError] = useState(null);
 
     // Fetch live availability
     useEffect(() => {
         const fetchRooms = async () => {
             try {
+                console.log('Fetching rooms from:', `${API_BASE_URL}/api/caretaker/rooms/public`);
                 const response = await fetch(`${API_BASE_URL}/api/caretaker/rooms/public`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const data = await response.json();
                 if (data.success) {
                     setAvailableRooms(data.rooms || []);
                     if (data.next_available_date) {
                         setNextAvailableDate(data.next_available_date);
                     }
+                } else {
+                    console.error('Room fetch returned unsuccessful:', data);
+                    setFetchError('Failed to load available rooms.');
                 }
             } catch (error) {
                 console.error('Error fetching rooms:', error);
+                setFetchError('Connection error. Please check your internet or try again.');
             } finally {
                 setLoading(false);
             }
@@ -575,12 +586,22 @@ const MenuPage = () => {
 
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: '2rem' }}>Loading available rooms...</div>
+                ) : fetchError ? (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: '#ef4444' }}>
+                        <p style={{ fontWeight: 'bold' }}>{fetchError}</p>
+                        <p style={{ fontSize: '0.875rem' }}>If the problem persists, please contact us directly.</p>
+                    </div>
                 ) : availableRooms.length > 0 ? (
                     <div ref={scrollRef} style={styles.sliderContainer} className="hide-scrollbar">
                         {availableRooms.map(room => (
                             <div key={room.id} style={styles.sliderCard} className="slider-card" onClick={() => navigate('/register-tenant')}>
                                 <div style={{ height: '200px', overflow: 'hidden' }}>
-                                    <img src={gallery2} alt={room.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img
+                                        src={gallery2}
+                                        alt={room.name}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        loading="lazy"
+                                    />
                                     <span style={{ position: 'absolute', top: '10px', right: '10px', backgroundColor: '#dcfce7', color: '#166534', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
                                         Vacant
                                     </span>
