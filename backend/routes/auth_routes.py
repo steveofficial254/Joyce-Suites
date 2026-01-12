@@ -19,6 +19,7 @@ from typing import Tuple, Dict, Any, Optional
 
 from models.base import db
 from models.user import User
+from models.notification import Notification
 
 # Blueprint initialization
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
@@ -529,3 +530,59 @@ def delete_user(user_id: int):
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "error": f"Failed to delete user: {str(e)}"}), 500
+
+
+@auth_bp.route("/inquiry", methods=["POST"])
+def send_inquiry():
+    """
+    Public endpoint for sending inquiries/messages.
+    Creates a notification for all admins.
+    """
+    try:
+        data = request.get_json()
+        
+        name = data.get("name")
+        email = data.get("email")
+        message = data.get("message")
+        phone = data.get("phone", "")
+        
+        if not name or not email or not message:
+            return jsonify({
+                "success": False, 
+                "error": "Name, email, and message are required"
+            }), 400
+            
+        # Validate email
+        if not validate_email(email):
+            return jsonify({"success": False, "error": "Invalid email format"}), 400
+            
+        # Get all admins
+        admins = User.query.filter_by(role=UserRole.ADMIN.value).all()
+        
+        # Create notifications
+        notifications = []
+        for admin in admins:
+            note = Notification(
+                user_id=admin.id,
+                title=f"New Inquiry from {name}",
+                message=f"Message: {message}\nContact: {email} {phone}",
+                notification_type="inquiry"
+            )
+            notifications.append(note)
+            
+        if notifications:
+            db.session.add_all(notifications)
+            db.session.commit()
+            
+        return jsonify({
+            "success": True, 
+            "message": "Inquiry sent successfully. We will contact you soon."
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Inquiry failed: {str(e)}")
+        return jsonify({
+            "success": False, 
+            "error": "Failed to send inquiry"
+        }), 500

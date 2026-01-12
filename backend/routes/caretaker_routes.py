@@ -444,10 +444,19 @@ def get_public_rooms():
                 "description": prop.description
             })
 
+        # Logic for Next Available Date
+        next_available_date = None
+        if len(rooms) == 0:
+            # Find the active lease that ends soonest
+            nearest_lease = Lease.query.filter_by(status="active").order_by(Lease.end_date.asc()).first()
+            if nearest_lease and nearest_lease.end_date:
+                 next_available_date = nearest_lease.end_date.strftime("%B %d, %Y")
+
         return jsonify({
             "success": True,
             "rooms": rooms,
-            "total": len(rooms)
+            "total": len(rooms),
+            "next_available_date": next_available_date
         }), 200
 
     except Exception as e:
