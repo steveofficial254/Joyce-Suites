@@ -29,6 +29,7 @@ const MenuPage = () => {
     const [isVisible, setIsVisible] = useState(false); // For sticky CTA
     const [activeTab, setActiveTab] = useState('all');
     const [nextAvailableDate, setNextAvailableDate] = useState(null);
+    const [adClipIndex, setAdClipIndex] = useState(0);
     const scrollRef = useRef(null);
 
     // Inquiry Form State
@@ -83,6 +84,14 @@ const MenuPage = () => {
         }
     };
 
+    const handleJoinWaitlist = () => {
+        setInquiryForm(prev => ({
+            ...prev,
+            message: "I am interested in joining the waiting list for the next available unit. Please notify me when a vacancy arises."
+        }));
+        document.getElementById('contact').scrollIntoView({ behavior: 'smooth' });
+    };
+
     const handleInquirySubmit = async (e) => {
         e.preventDefault();
         setSendingInquiry(true);
@@ -121,9 +130,13 @@ const MenuPage = () => {
         { src: gallery9, tag: 'exteriors', alt: 'Building Front' },
     ];
 
-    const filteredGallery = activeTab === 'all'
-        ? galleryImages
-        : galleryImages.filter(img => img.tag === activeTab);
+    // Auto-play Ad Clip
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setAdClipIndex((prev) => (prev + 1) % galleryImages.length);
+        }, 4000); // Change image every 4 seconds
+        return () => clearInterval(interval);
+    }, [galleryImages.length]);
 
     const styles = {
         container: {
@@ -140,6 +153,7 @@ const MenuPage = () => {
             backgroundColor: 'rgba(255, 255, 255, 0.95)',
             backdropFilter: 'blur(10px)',
             zIndex: 50,
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
             padding: '1rem 2rem',
             display: 'flex',
@@ -301,36 +315,58 @@ const MenuPage = () => {
             justifyContent: 'center',
             margin: '0 auto 1.5rem',
         },
-        // Gallery
-        galleryTabs: {
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '1rem',
-            marginBottom: '2rem',
-            flexWrap: 'wrap'
+        // Ad Clip Section
+        adClipContainer: {
+            position: 'relative',
+            height: '500px',
+            overflow: 'hidden',
+            borderRadius: '2rem',
+            margin: '4rem 0',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
         },
-        tabBtn: (isActive) => ({
-            padding: '0.5rem 1.5rem',
-            borderRadius: '9999px',
-            border: isActive ? 'none' : '1px solid #d1d5db',
-            backgroundColor: isActive ? '#111827' : 'transparent',
-            color: isActive ? 'white' : '#4b5563',
-            cursor: 'pointer',
-            fontWeight: '500',
-            transition: 'all 0.2s'
-        }),
-        galleryGrid: {
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: '1.5rem',
-        },
-        galleryImg: {
+        adClipSlide: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
             width: '100%',
-            height: '300px',
-            objectFit: 'cover',
-            borderRadius: '0.75rem',
-            transition: 'transform 0.3s',
-            cursor: 'pointer'
+            height: '100%',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            transition: 'opacity 1s ease-in-out, transform 8s ease-out', // Ken Burns effect
+        },
+        adOverlay: {
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
+            padding: '4rem 2rem 2rem',
+            color: 'white',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center'
+        },
+        adTitle: {
+            fontSize: '2.5rem',
+            fontWeight: '800',
+            marginBottom: '0.5rem',
+            textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+            animation: 'slideUp 0.8s ease-out'
+        },
+        adSubtitle: {
+            fontSize: '1.25rem',
+            marginBottom: '1.5rem',
+            opacity: 0.9,
+            animation: 'slideUp 0.8s ease-out 0.2s backwards'
+        },
+        progressBar: {
+            position: 'absolute',
+            bottom: '0',
+            left: '0',
+            height: '4px',
+            backgroundColor: '#f59e0b',
+            transition: 'width 4s linear'
         },
         // Inquiry Form
         contactSection: {
@@ -418,11 +454,22 @@ const MenuPage = () => {
           .hide-scrollbar::-webkit-scrollbar { display: none; }
           .gallery-img:hover { transform: scale(1.03); }
           .slider-card:hover { transform: translateY(-5px); }
+          
+          /* Mobile Responsiveness */
+          @media (max-width: 768px) {
+            .hero-title { font-size: 2.5rem !important; }
+            .hero-subtitle { font-size: 1rem !important; }
+            .section-padding { padding: 3rem 1rem !important; }
+            .contact-grid { grid-template-columns: 1fr !important; gap: 2rem !important; }
+            .ad-clip-container { height: 300px !important; margin: 2rem 0 !important; }
+            .footer-content { grid-template-columns: 1fr !important; gap: 2rem !important; }
+            .nav-padding { padding: 1rem !important; }
+          }
         `}
             </style>
 
             {/* Navigation */}
-            <nav style={styles.nav}>
+            <nav style={styles.nav} className="nav-padding">
                 <a href="#" style={styles.logoContainer}>
                     <img src={logo} alt="Joyce Suites" style={styles.logoImg} />
                     <span>JOYCE SUITES</span>
@@ -492,13 +539,12 @@ const MenuPage = () => {
             <header style={styles.hero}>
                 <div style={styles.adBanner}>Now Leasing!</div>
                 <div style={styles.heroContent}>
-                    <h1 style={styles.heroTitle}>
+                    <h1 style={styles.heroTitle} className="hero-title">
                         Premium Living at <br />
                         <span style={{ color: '#f59e0b' }}>Joyce Suites</span>
                     </h1>
-                    <p style={styles.heroSubtitle}>
-                        Experience comfort, security, and community in our modern residential suites.
-                        The perfect place to call home.
+                    <p style={styles.heroSubtitle} className="hero-subtitle">
+                        Experience comfort, security, and modern community living.
                     </p>
                     <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                         <button style={styles.primaryBtn} onClick={() => navigate('/register-tenant')}>
@@ -515,7 +561,7 @@ const MenuPage = () => {
             </header>
 
             {/* Live Availability Slider */}
-            <section id="rooms" style={styles.section}>
+            <section id="rooms" style={styles.section} className="section-padding">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: '2rem' }}>
                     <div>
                         <h2 style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem' }}>Available Rooms</h2>
@@ -565,7 +611,7 @@ const MenuPage = () => {
                                 Next estimated availability: {nextAvailableDate}
                             </p>
                         )}
-                        <button style={{ ...styles.primaryBtn, backgroundColor: 'white', color: '#f59e0b', border: '1px solid #f59e0b' }} onClick={() => document.getElementById('contact').scrollIntoView()}>
+                        <button style={{ ...styles.primaryBtn, backgroundColor: 'white', color: '#f59e0b', border: '1px solid #f59e0b' }} onClick={handleJoinWaitlist}>
                             Join Waiting List
                         </button>
                     </div>
@@ -573,7 +619,7 @@ const MenuPage = () => {
             </section>
 
             {/* Amenities Section */}
-            <section id="amenities" style={{ backgroundColor: '#f9fafb', padding: '5rem 2rem' }}>
+            <section id="amenities" style={{ backgroundColor: '#f9fafb', padding: '5rem 2rem' }} className="section-padding">
                 <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                     <h2 style={styles.sectionTitle}>Why Choose Joyce Suites</h2>
                     <p style={styles.sectionSubtitle}>
@@ -599,34 +645,50 @@ const MenuPage = () => {
                 </div>
             </section>
 
-            {/* Enhanced Gallery */}
-            <section id="gallery" style={styles.section}>
-                <h2 style={styles.sectionTitle}>Photo Gallery</h2>
+            {/* Ad Clip Video Presentation */}
+            <section id="gallery" style={styles.section} className="section-padding">
+                <h2 style={styles.sectionTitle}>Experience Joyce Suites</h2>
+                <p style={styles.sectionSubtitle}>Take a virtual tour of our premium amenities and living spaces.</p>
 
-                <div style={styles.galleryTabs}>
-                    {['all', 'interiors', 'exteriors', 'others'].map(tab => (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            style={styles.tabBtn(activeTab === tab)}
-                        >
-                            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                <div style={styles.adClipContainer} className="ad-clip-container">
+                    {galleryImages.map((img, index) => (
+                        <div
+                            key={index}
+                            style={{
+                                ...styles.adClipSlide,
+                                backgroundImage: `url(${img.src})`,
+                                opacity: index === adClipIndex ? 1 : 0,
+                                transform: index === adClipIndex ? 'scale(1.1)' : 'scale(1)',
+                                zIndex: index === adClipIndex ? 2 : 1
+                            }}
+                        />
+                    ))}
+
+                    <div style={{ ...styles.adOverlay, zIndex: 10 }}>
+                        <h3 style={styles.adTitle}>
+                            {adClipIndex % 3 === 0 ? "Luxury Interiors" :
+                                adClipIndex % 3 === 1 ? "Secure Environment" : "Modern Amenities"}
+                        </h3>
+                        <p style={styles.adSubtitle}>
+                            {adClipIndex % 3 === 0 ? "Designed for your ultimate comfort" :
+                                adClipIndex % 3 === 1 ? "24/7 Surveillance and Gated Access" : "Everything you need, right at home"}
+                        </p>
+                        <button style={styles.primaryBtn} onClick={() => navigate('/register-tenant')}>
+                            Book Your Stay Now
                         </button>
-                    ))}
-                </div>
+                    </div>
 
-                <div style={styles.galleryGrid}>
-                    {filteredGallery.map((img, idx) => (
-                        <div key={idx} style={{ overflow: 'hidden', borderRadius: '0.75rem' }}>
-                            <img src={img.src} alt={img.alt} style={styles.galleryImg} className="gallery-img" />
-                        </div>
-                    ))}
+                    <div style={{
+                        ...styles.progressBar,
+                        width: `${((adClipIndex + 1) / galleryImages.length) * 100}%`,
+                        zIndex: 20
+                    }} />
                 </div>
             </section>
 
             {/* Inquiry / Contact Section */}
-            <section id="contact" style={styles.section}>
-                <div style={styles.contactSection}>
+            <section id="contact" style={styles.section} className="section-padding">
+                <div style={styles.contactSection} className="contact-grid">
                     <div>
                         <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '1rem' }}>Get in Touch</h2>
                         <p style={{ color: '#6b7280', marginBottom: '2rem' }}>
@@ -727,8 +789,8 @@ const MenuPage = () => {
             </section>
 
             {/* Footer */}
-            <footer style={styles.footer}>
-                <div style={styles.footerContent}>
+            <footer style={styles.footer} className="section-padding">
+                <div style={styles.footerContent} className="footer-content">
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
                             <img src={logo} alt="JS" style={{ height: '32px' }} />

@@ -189,25 +189,39 @@ const TenantRegister = () => {
   };
 
   // Camera Functions
-  const startCamera = async (type) => {
-    try {
-      setShowCamera({ type, active: true });
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+  useEffect(() => {
+    let stream = null;
+    const initCamera = async () => {
+      if (showCamera.active && videoRef.current) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        } catch (err) {
+          console.error("Camera access error:", err);
+          setError("Could not access camera. Please check permissions.");
+        }
       }
-    } catch (err) {
-      console.error("Error accessing camera:", err);
-      setError("Could not access camera. Please check permissions.");
-      setShowCamera({ type: null, active: false });
+    };
+
+    if (showCamera.active) {
+      initCamera();
     }
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [showCamera.active]);
+
+  const startCamera = (type) => {
+    setShowCamera({ type, active: true });
   };
 
   const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = videoRef.current.srcObject.getTracks();
-      tracks.forEach(track => track.stop());
-    }
+    // Media stream cleanup is handled by useEffect cleanup
     setShowCamera({ type: null, active: false });
   };
 
