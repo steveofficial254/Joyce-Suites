@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TermsAndConditionsModal from './TermsAndConditionsModal';
 import './TenantRegister.css';
@@ -14,6 +14,9 @@ const TenantRegister = () => {
   const [success, setSuccess] = useState('');
   const [photoPreview, setPhotoPreview] = useState(null);
   const [idPreview, setIdPreview] = useState(null);
+  const [showCamera, setShowCamera] = useState({ type: null, active: false }); // 'photo' or 'id'
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const [rooms, setRooms] = useState([]);
   const [roomData, setRoomData] = useState(null);
   const [loadingRooms, setLoadingRooms] = useState(false);
@@ -49,21 +52,21 @@ const TenantRegister = () => {
     setError('');
     try {
       console.log('Fetching available rooms from public endpoint...');
-      
+
       const response = await fetch(`${API_BASE_URL}/api/caretaker/rooms/public`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('Full API response:', data);
-      
+
       // Check the actual response structure
       if (data.success && Array.isArray(data.rooms)) {
         console.log(`Found ${data.rooms.length} rooms`);
         console.log('Sample room:', data.rooms[0]);
-        
+
         // Process rooms to ensure consistent structure
         const processedRooms = data.rooms.map(room => ({
           id: room.id,
@@ -75,7 +78,7 @@ const TenantRegister = () => {
           description: room.description,
           status: 'vacant' // Since we're only getting vacant rooms
         }));
-        
+
         console.log('Processed rooms:', processedRooms);
         setRooms(processedRooms);
       } else {
@@ -94,23 +97,23 @@ const TenantRegister = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     if (name === 'roomNumber' && value) {
       console.log('Room selected:', value);
-      
+
       // Find the selected room
       const selectedRoom = rooms.find(room => {
         const roomNumber = room.room_number || room.name.replace('Room ', '').trim();
         return roomNumber === value.trim();
       });
-      
+
       console.log('Selected room object:', selectedRoom);
-      
+
       if (selectedRoom) {
         // Calculate deposit (7% of rent)
         const rentAmount = selectedRoom.rent_amount || selectedRoom.rent || 0;
         const depositAmount = rentAmount * 0.07;
-        
+
         // Format room type for display
         let roomType = 'Room';
         const propType = selectedRoom.property_type;
@@ -123,7 +126,7 @@ const TenantRegister = () => {
         } else if (propType) {
           roomType = propType.replace('_', ' ').toUpperCase();
         }
-        
+
         setRoomData({
           id: selectedRoom.id,
           name: selectedRoom.name,
@@ -138,7 +141,7 @@ const TenantRegister = () => {
           account: selectedRoom.account_number || 'JOYCE001', // Default fallback
           landlord: selectedRoom.landlord_name || 'Joyce Muthoni' // Default fallback
         });
-        
+
         console.log('Updated room data:', {
           name: selectedRoom.name,
           type: roomType,
@@ -150,7 +153,7 @@ const TenantRegister = () => {
         setRoomData(null);
       }
     }
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -185,22 +188,72 @@ const TenantRegister = () => {
     }
   };
 
+  // Camera Functions
+  const startCamera = async (type) => {
+    try {
+      setShowCamera({ type, active: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+      setError("Could not access camera. Please check permissions.");
+      setShowCamera({ type: null, active: false });
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach(track => track.stop());
+    }
+    setShowCamera({ type: null, active: false });
+  };
+
+  const captureImage = () => {
+    if (videoRef.current && canvasRef.current) {
+      const context = canvasRef.current.getContext('2d');
+      // Set canvas dimensions to match video
+      canvasRef.current.width = videoRef.current.videoWidth;
+      canvasRef.current.height = videoRef.current.videoHeight;
+
+      context.drawImage(videoRef.current, 0, 0);
+
+      const type = showCamera.type;
+
+      canvasRef.current.toBlob((blob) => {
+        const file = new File([blob], `${type}_capture.jpg`, { type: 'image/jpeg' });
+
+        if (type === 'photo') {
+          setFormData(prev => ({ ...prev, photo: file }));
+          setPhotoPreview(URL.createObjectURL(blob));
+        } else {
+          setFormData(prev => ({ ...prev, idDocument: file }));
+          setIdPreview(URL.createObjectURL(blob));
+        }
+
+        stopCamera();
+      }, 'image/jpeg');
+    }
+  };
+
   const validateForm = () => {
     setError('');
-    
+
     // Validate full name
     if (!formData.fullName.trim()) {
       setError('Full name is required');
       return false;
     }
-    
+
     // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setError('Valid email address is required');
       return false;
     }
-    
+
     // Validate phone (Kenyan format)
     const phoneRegex = /^(\+254|0)[1-9]\d{8}$/;
     const cleanPhone = formData.phone.replace(/\s/g, '');
@@ -208,19 +261,19 @@ const TenantRegister = () => {
       setError('Phone number must be in format +254XXXXXXXXX or 07XXXXXXXX');
       return false;
     }
-    
+
     // Validate ID number
     if (!formData.idNumber.trim()) {
       setError('National ID number is required');
       return false;
     }
-    
+
     // Validate room selection
     if (!formData.roomNumber.trim()) {
       setError('Please select a room');
       return false;
     }
-    
+
     // Validate password
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters');
@@ -238,7 +291,7 @@ const TenantRegister = () => {
       setError('Passwords do not match');
       return false;
     }
-    
+
     // Validate file uploads
     if (!formData.photo) {
       setError('Profile photo is required');
@@ -248,13 +301,13 @@ const TenantRegister = () => {
       setError('ID document is required');
       return false;
     }
-    
+
     // Validate terms acceptance
     if (!formData.terms) {
       setError('You must agree to the terms and conditions');
       return false;
     }
-    
+
     return true;
   };
 
@@ -286,7 +339,7 @@ const TenantRegister = () => {
       uploadData.append('role', 'tenant');
 
       console.log('Submitting registration with room data:', roomData);
-      
+
       // If roomData exists, append additional details
       if (roomData) {
         uploadData.append('room_id', roomData.id);
@@ -302,7 +355,7 @@ const TenantRegister = () => {
 
       let data = {};
       const contentType = response.headers.get('content-type');
-      
+
       if (contentType && contentType.includes('application/json')) {
         try {
           data = await response.json();
@@ -332,10 +385,10 @@ const TenantRegister = () => {
           loginTime: new Date().toISOString()
         }));
         localStorage.setItem('userRole', data.user.role);
-        
+
         if (data.lease_created && data.lease_signing_required) {
           setSuccess('Registration successful! Creating your lease...');
-          
+
           setTimeout(() => {
             window.location.href = '/tenant/lease-gate';
           }, 2000);
@@ -383,50 +436,80 @@ const TenantRegister = () => {
               <div className="upload-field">
                 <label htmlFor="photoUpload" className="upload-label">Profile Photo *</label>
                 <div className="photo-upload-box">
-                  {photoPreview ? (
+                  {showCamera.active && showCamera.type === 'photo' ? (
+                    <div className="camera-container">
+                      <video ref={videoRef} autoPlay playsInline style={{ width: '100%', borderRadius: '8px' }}></video>
+                      <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
+                      <div className="camera-controls">
+                        <button type="button" onClick={captureImage} className="btn-capture">Capture</button>
+                        <button type="button" onClick={stopCamera} className="btn-cancel">Cancel</button>
+                      </div>
+                    </div>
+                  ) : photoPreview ? (
                     <div className="photo-preview-container">
                       <img src={photoPreview} alt="Preview" className="photo-preview" />
+                      <button type="button" onClick={() => setPhotoPreview(null)} className="btn-remove">Change</button>
                     </div>
                   ) : (
                     <div className="upload-placeholder">
                       <span className="upload-icon">📷</span>
-                      <p>Click to upload photo</p>
-                      <small>Max 5MB (JPG, PNG)</small>
+                      <p>Click to upload or take photo</p>
+                      <button type="button" onClick={() => startCamera('photo')} className="btn-camera">
+                        Use Camera
+                      </button>
                     </div>
                   )}
-                  <input
-                    id="photoUpload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="file-input"
-                    required
-                  />
+                  {!showCamera.active && (
+                    <input
+                      id="photoUpload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="file-input"
+                      style={{ display: photoPreview ? 'none' : 'block' }}
+                      required={!formData.photo}
+                    />
+                  )}
                 </div>
               </div>
 
               <div className="upload-field">
                 <label htmlFor="idUpload" className="upload-label">ID Document *</label>
                 <div className="id-upload-box">
-                  {idPreview ? (
+                  {showCamera.active && showCamera.type === 'id' ? (
+                    <div className="camera-container">
+                      <video ref={videoRef} autoPlay playsInline style={{ width: '100%', borderRadius: '8px' }}></video>
+                      <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
+                      <div className="camera-controls">
+                        <button type="button" onClick={captureImage} className="btn-capture">Capture</button>
+                        <button type="button" onClick={stopCamera} className="btn-cancel">Cancel</button>
+                      </div>
+                    </div>
+                  ) : idPreview ? (
                     <div className="id-preview-container">
                       <img src={idPreview} alt="ID Preview" className="id-preview" />
+                      <button type="button" onClick={() => setIdPreview(null)} className="btn-remove">Change</button>
                     </div>
                   ) : (
                     <div className="upload-placeholder">
                       <span className="upload-icon">📄</span>
-                      <p>Click to upload ID</p>
-                      <small>Max 5MB (JPG, PNG, PDF)</small>
+                      <p>Click to upload or take photo of ID</p>
+                      <button type="button" onClick={() => startCamera('id')} className="btn-camera">
+                        Use Camera
+                      </button>
                     </div>
                   )}
-                  <input
-                    id="idUpload"
-                    type="file"
-                    accept="image/*,.pdf"
-                    onChange={handleIdUpload}
-                    className="file-input"
-                    required
-                  />
+                  {!showCamera.active && (
+                    <input
+                      id="idUpload"
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={handleIdUpload}
+                      className="file-input"
+                      style={{ display: idPreview ? 'none' : 'block' }}
+                      required={!formData.idDocument}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -435,40 +518,40 @@ const TenantRegister = () => {
               <h3>Personal Information</h3>
               <div className="form-group">
                 <label htmlFor="fullName">Full Name *</label>
-                <input 
-                  type="text" 
-                  id="fullName" 
-                  name="fullName" 
-                  value={formData.fullName} 
-                  onChange={handleInputChange} 
+                <input
+                  type="text"
+                  id="fullName"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleInputChange}
                   placeholder="Enter your full name"
-                  required 
+                  required
                 />
               </div>
 
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="email">Email Address *</label>
-                  <input 
-                    type="email" 
-                    id="email" 
-                    name="email" 
-                    value={formData.email} 
-                    onChange={handleInputChange} 
-                    placeholder="example@email.com" 
-                    required 
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="example@email.com"
+                    required
                   />
                 </div>
                 <div className="form-group">
                   <label htmlFor="phone">Phone Number *</label>
-                  <input 
-                    type="tel" 
-                    id="phone" 
-                    name="phone" 
-                    value={formData.phone} 
-                    onChange={handleInputChange} 
-                    placeholder="+254712345678 or 0712345678" 
-                    required 
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    placeholder="+254712345678 or 0712345678"
+                    required
                   />
                   <small className="input-hint">Format: +254XXXXXXXXX or 07XXXXXXXX</small>
                 </div>
@@ -477,22 +560,22 @@ const TenantRegister = () => {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="idNumber">ID Number *</label>
-                  <input 
-                    type="text" 
-                    id="idNumber" 
-                    name="idNumber" 
-                    value={formData.idNumber} 
-                    onChange={handleInputChange} 
+                  <input
+                    type="text"
+                    id="idNumber"
+                    name="idNumber"
+                    value={formData.idNumber}
+                    onChange={handleInputChange}
                     placeholder="Enter your national ID"
-                    required 
+                    required
                   />
                 </div>
                 <div className="form-group">
                   <label htmlFor="roomNumber">Room Number *</label>
-                  <select 
-                    id="roomNumber" 
-                    name="roomNumber" 
-                    value={formData.roomNumber} 
+                  <select
+                    id="roomNumber"
+                    name="roomNumber"
+                    value={formData.roomNumber}
                     onChange={handleInputChange}
                     required
                     disabled={loadingRooms}
@@ -505,7 +588,7 @@ const TenantRegister = () => {
                         // Use room_number if available, otherwise extract from name
                         const roomNumber = room.room_number || room.name.replace('Room ', '').trim();
                         const roomName = room.name;
-                        
+
                         // Get room type
                         let roomType = 'Room';
                         const propType = room.property_type;
@@ -518,10 +601,10 @@ const TenantRegister = () => {
                         } else if (propType) {
                           roomType = propType.replace('_', ' ').toUpperCase();
                         }
-                        
+
                         // Get rent amount
                         const rentAmount = room.rent_amount || room.rent || 0;
-                        
+
                         return (
                           <option key={room.id} value={roomNumber}>
                             {roomName} - {roomType} - KSh {rentAmount.toLocaleString()}/month
@@ -541,11 +624,11 @@ const TenantRegister = () => {
                     <small className="loading-text">Loading available rooms...</small>
                   )}
                   <div style={{ marginTop: '10px' }}>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={fetchRooms}
-                      style={{ 
-                        padding: '5px 10px', 
+                      style={{
+                        padding: '5px 10px',
                         backgroundColor: '#f0f0f0',
                         border: '1px solid #ccc',
                         borderRadius: '4px',
@@ -615,14 +698,14 @@ const TenantRegister = () => {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="password">Password *</label>
-                  <input 
-                    type="password" 
-                    id="password" 
-                    name="password" 
-                    value={formData.password} 
-                    onChange={handleInputChange} 
-                    placeholder="Minimum 8 characters" 
-                    required 
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    placeholder="Minimum 8 characters"
+                    required
                   />
                   <small className="input-hint">
                     Must contain at least 8 characters, 1 uppercase letter, and 1 digit
@@ -630,32 +713,32 @@ const TenantRegister = () => {
                 </div>
                 <div className="form-group">
                   <label htmlFor="confirmPassword">Confirm Password *</label>
-                  <input 
-                    type="password" 
-                    id="confirmPassword" 
-                    name="confirmPassword" 
-                    value={formData.confirmPassword} 
-                    onChange={handleInputChange} 
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
                     placeholder="Confirm your password"
-                    required 
+                    required
                   />
                 </div>
               </div>
             </div>
 
             <div className="form-group terms-group">
-              <input 
-                type="checkbox" 
-                id="terms" 
-                name="terms" 
-                checked={formData.terms} 
+              <input
+                type="checkbox"
+                id="terms"
+                name="terms"
+                checked={formData.terms}
                 onChange={(e) => {
                   handleTermsCheck(e);
                   if (!e.target.checked) {
                     setFormData(prev => ({ ...prev, terms: false }));
                   }
                 }}
-                required 
+                required
               />
               <label htmlFor="terms">
                 I agree to the <button type="button" onClick={() => setShowTermsModal(true)} className="terms-link">Terms and Conditions</button> and Privacy Policy
@@ -687,7 +770,7 @@ const TenantRegister = () => {
       </div>
 
       {showTermsModal && (
-        <TermsAndConditionsModal 
+        <TermsAndConditionsModal
           roomData={roomData}
           onClose={() => setShowTermsModal(false)}
           onAccept={() => {
