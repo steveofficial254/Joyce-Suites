@@ -4,7 +4,7 @@ from sqlalchemy_serializer import SerializerMixin
 
 from .base import BaseModel, db
 
-NOTIFICATION_TYPES = ("general", "urgent", "maintenance", "payment", "lease", "system")
+NOTIFICATION_TYPES = ("general", "urgent", "maintenance", "payment", "lease", "system", "inquiry")
 
 
 class Notification(BaseModel, SerializerMixin):
