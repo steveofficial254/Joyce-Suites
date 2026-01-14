@@ -52,12 +52,15 @@ def create_app():
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
+
+        # Vercel production
+        "https://joyce-suites.vercel.app",
+
+        # Preview deployments (optional)
+        "https://joyce-suites-jcfw.vercel.app",
         "https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app",
         "https://joyce-suites-git-feature-backend-steves-projects-d95e3bef.vercel.app",
         "https://joyce-suites-ptgu4rwra-steves-projects-d95e3bef.vercel.app",
-        "https://joyce-suites-xdkp.onrender.com",
-        "https://joyce-suites-jcfw.vercel.app",
-        "https://*.vercel.app",
     ]
     
     CORS(app, 
