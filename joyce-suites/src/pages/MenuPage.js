@@ -17,7 +17,9 @@ import gallery5 from '../assets/image17.jpg';
 import gallery6 from '../assets/image20.jpg';
 import gallery7 from '../assets/image21.jpg';
 import gallery8 from '../assets/image22.jpg';
-import gallery9 from '../assets/image3.jpg';
+import gallery9 from '../assets/image10.jpg';
+import gallery10 from '../assets/image9.jpg';
+import gallery11 from '../assets/image18.jpg';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
 
@@ -850,7 +852,7 @@ const MenuPage = () => {
                 onClick={() => navigate('/register-tenant')}
             >
                 <Calendar size={20} />
-                <span>Book Viewing</span>
+                <span>Book now</span>
             </button>
         </div>
     );
