@@ -143,6 +143,40 @@ def dashboard():
             else:
                 property_name = "Unknown Property"
 
+        # Default values
+        outstanding_balance = 0.0
+        
+        # Calculate outstanding balance if active lease exists
+        if active_lease and active_lease.status == 'active':
+            try:
+                # Calculate total months since start date
+                start_date = active_lease.start_date
+                now = datetime.utcnow().date()
+                
+                # Calculate month difference
+                months_stayed = (now.year - start_date.year) * 12 + (now.month - start_date.month)
+                
+                # If start day is passed in current month, count current month as due
+                months_due = max(1, months_stayed + 1)
+                
+                total_rent_due = months_due * float(active_lease.rent_amount)
+                
+                # Calculate total paid
+                total_paid = 0
+                payments = Payment.query.filter_by(
+                    lease_id=active_lease.id, 
+                    status='completed'
+                ).all()
+                
+                for p in payments:
+                    total_paid += float(p.amount)
+                
+                outstanding_balance = max(0.0, total_rent_due - total_paid)
+                
+            except Exception as e:
+                current_app.logger.error(f"Balance calculation error: {str(e)}")
+                # Keep default 0.0 on error
+
         current_app.logger.info(f"✅ Dashboard data loaded for {user.email}")
         
         return jsonify({
@@ -154,7 +188,7 @@ def dashboard():
                 "unit_number": unit_number,
                 "lease_status": active_lease.status if active_lease else "None",
                 "rent_amount": float(rent_amount),
-                "outstanding_balance": 0,
+                "outstanding_balance": float(outstanding_balance),
                 "active_maintenance_requests": active_maintenance,
                 "unread_notifications": unread_notifications,
                 "recent_payments": recent_payments,
