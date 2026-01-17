@@ -573,17 +573,39 @@ def delete_tenant(tenant_id):
         # Check for active leases
         active_lease = Lease.query.filter_by(tenant_id=tenant_id, status='active').first()
         if active_lease:
-            return jsonify({
-                "success": False,
-                "error": "Cannot delete tenant with active lease"
-            }), 400
+            # Auto-terminate lease and vacate room
+            try:
+                # 1. Terminate Lease
+                active_lease.status = 'terminated'
+                active_lease.end_date = datetime.utcnow().date()
+                
+                # 2. Vacate Property
+                if active_lease.property_id:
+                    prop = Property.query.get(active_lease.property_id)
+                    if prop:
+                        prop.status = 'vacant'
+                        prop.current_tenant_id = None
+                
+                # 3. Handle outstanding payments (optional: could mark as written off or keep them)
+                # For now, we just leave them linked to the lease.
+                
+                db.session.add(active_lease)
+                if active_lease.property_id and prop:
+                    db.session.add(prop)
+                    
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({
+                    "success": False,
+                    "error": f"Failed to terminate lease: {str(e)}"
+                }), 500
         
         db.session.delete(tenant)
         db.session.commit()
         
         return jsonify({
             "success": True,
-            "message": "Tenant deleted successfully"
+            "message": "Tenant deleted successfully (Lease terminated, Room vacated)"
         }), 200
 
     except Exception as e:
