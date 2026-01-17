@@ -561,12 +561,15 @@ def send_inquiry():
             User.role.in_([UserRole.ADMIN.value, UserRole.CARETAKER.value])
         ).all()
         
+        # Get subject or use default
+        subject = data.get("subject") or f"New Inquiry from {name}"
+        
         # Create notifications
         notifications = []
         for recipient in recipients:
             note = Notification(
                 user_id=recipient.id,
-                title=f"New Inquiry from {name}",
+                title=subject,
                 message=f"Message: {message}\nContact: {email} {phone}",
                 notification_type="inquiry"
             )
