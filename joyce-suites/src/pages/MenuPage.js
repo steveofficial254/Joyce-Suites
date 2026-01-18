@@ -302,7 +302,7 @@ const MenuPage = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundImage: `linear - gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)), url(${heroBg})`,
+            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)), url(${heroBg})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             color: 'white',
@@ -850,17 +850,19 @@ const MenuPage = () => {
                     <div>
                         <h2 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '1rem' }}>Get in Touch</h2>
                         <p style={{ color: '#6b7280', marginBottom: '2rem' }}>
-                            Have questions? Send us a message and our caretaker will get back to you shortly.
+                            Have questions? Send us a message and our team will get back to you shortly.
                         </p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                <div style={{ backgroundColor: '#e0f2fe', padding: '0.75rem', borderRadius: '50%', color: '#0284c7' }}>
-                                    <Phone size={20} />
-                                </div>
-                                <div>
-                                    <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Phone</div>
-                                    <div style={{ fontWeight: '600' }}>+254 700 000 000</div>
+                                <div style={styles.contactBox}>
+                                    <div style={{ ...styles.iconCircle, backgroundColor: '#e0f2fe' }}>
+                                        <Phone size={24} style={{ color: '#0369a1' }} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Phone</div>
+                                        <div style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827' }}>0722870077</div>
+                                    </div>
                                 </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -1007,8 +1009,6 @@ const MenuPage = () => {
                                     >
                                         <option value="bedsitter">Bedsitter</option>
                                         <option value="one_bedroom">One Bedroom</option>
-                                        <option value="two_bedroom">Two Bedroom</option>
-                                        <option value="shop">Commercial Shop</option>
                                     </select>
                                 </div>
                                 <div style={styles.formGroup}>
@@ -1021,7 +1021,6 @@ const MenuPage = () => {
                                         <option value="single">Single</option>
                                         <option value="couple">Couple</option>
                                         <option value="family">Family</option>
-                                        <option value="business">Business</option>
                                     </select>
                                 </div>
                             </div>
@@ -1093,8 +1092,8 @@ const MenuPage = () => {
                     <div>
                         <h4 style={styles.footerTitle}>Contact Info</h4>
                         <p style={{ color: '#9ca3af', marginBottom: '0.5rem' }}>Nyandarua County, Olkalou</p>
-                        <p style={{ color: '#9ca3af', marginBottom: '0.5rem' }}>+254 700 000 000</p>
-                        <p style={{ color: '#9ca3af' }}>info@joycesuites.com</p>
+                        <p style={{ color: '#9ca3af', marginBottom: '0.5rem' }}>0722870077</p>
+                        <p style={{ color: '#9ca3af' }}>joycesuites@gmail.com</p>
                     </div>
                     <div>
                         <h4 style={styles.footerTitle}>Follow Us</h4>
