@@ -45,6 +45,88 @@ const MenuPage = () => {
     const [inquiryStatus, setInquiryStatus] = useState(null);
     const [fetchError, setFetchError] = useState(null);
 
+    // Booking Modal State
+    const [showBookingModal, setShowBookingModal] = useState(false);
+    const [bookingForm, setBookingForm] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        houseType: 'one_bedroom',
+        occupancy: 'Single',
+        moveInDate: '',
+        message: ''
+    });
+
+    // ===== AUTHENTICATION HELPERS =====
+    // Check if user is already authenticated
+    const isAuthenticated = () => {
+        const token = localStorage.getItem('joyce-suites-token');
+        return !!token;
+    };
+
+    // Handle authenticated navigation for Sign In button
+    const handleAuthNavigation = () => {
+        if (isAuthenticated()) {
+            navigate('/tenant-dashboard');
+        } else {
+            navigate('/register-tenant');
+        }
+    };
+
+    // Handle booking action - redirect to dashboard if logged in
+    const handleBookingAction = () => {
+        if (isAuthenticated()) {
+            navigate('/tenant-dashboard');
+        } else {
+            setShowBookingModal(true);
+        }
+    };
+
+    const handleBookingSubmit = async (e) => {
+        e.preventDefault();
+        setSendingInquiry(true);
+        setInquiryStatus(null);
+
+        const messageBody = `BOOKING QUESTIONNAIRE:
+        Type: ${bookingForm.houseType}
+        Occupancy: ${bookingForm.occupancy || 'Single'}
+        Date: ${bookingForm.moveInDate}
+        Name: ${bookingForm.name}
+        Phone: ${bookingForm.phone}
+        Email: ${bookingForm.email}
+        
+        Additional Notes: ${bookingForm.message}`;
+
+        try {
+            // Use the inquiry endpoint but formatted as a booking
+            const response = await fetch(`${API_BASE_URL}/api/auth/inquiry`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: bookingForm.name,
+                    email: bookingForm.email,
+                    phone: bookingForm.phone,
+                    message: messageBody,
+                    subject: 'BOOKING REQUEST' // If backend supports it, otherwise it's in body
+                }),
+            });
+            const data = await response.json();
+            if (data.success) {
+                setInquiryStatus({ type: 'success', message: 'Booking request sent! We will contact you regarding availability.' });
+                setBookingForm({ name: '', email: '', phone: '', houseType: 'one_bedroom', occupancy: 'Single', moveInDate: '', message: '' });
+                setTimeout(() => setShowBookingModal(false), 3000);
+            } else {
+                throw new Error(data.error || 'Failed to send booking request');
+            }
+        } catch (error) {
+            setInquiryStatus({ type: 'error', message: error.message });
+        } finally {
+            setSendingInquiry(false);
+        }
+    };
+
     // Fetch live availability
     useEffect(() => {
         const fetchRooms = async () => {
@@ -53,7 +135,7 @@ const MenuPage = () => {
                 const response = await fetch(`${API_BASE_URL}/api/caretaker/rooms/public`);
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! status: ${response.status} `);
                 }
 
                 const data = await response.json();
@@ -110,7 +192,7 @@ const MenuPage = () => {
         setSendingInquiry(true);
         setInquiryStatus(null);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/inquiry`, {
+            const response = await fetch(`${API_BASE_URL} /api/auth / inquiry`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -220,7 +302,7 @@ const MenuPage = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.5)), url(${heroBg})`,
+            backgroundImage: `linear - gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)), url(${heroBg})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             color: 'white',
@@ -454,6 +536,38 @@ const MenuPage = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
+        },
+        // Modal Styles
+        modalOverlay: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            backdropFilter: 'blur(5px)'
+        },
+        modalContent: {
+            backgroundColor: 'white',
+            padding: '2rem',
+            borderRadius: '1.5rem',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            position: 'relative',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+        },
+        formLabel: {
+            display: 'block',
+            marginBottom: '0.5rem',
+            fontWeight: '600',
+            color: '#374151',
+            fontSize: '0.9rem'
         }
     };
 
@@ -461,24 +575,27 @@ const MenuPage = () => {
         <div style={styles.container}>
             <style>
                 {`
-          @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-          @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-          @keyframes float { 0% { transform: rotate(3deg) translateY(0px); } 50% { transform: rotate(3deg) translateY(-10px); } 100% { transform: rotate(3deg) translateY(0px); } }
-          .hide-scrollbar::-webkit-scrollbar { display: none; }
-          .gallery-img:hover { transform: scale(1.03); }
-          .slider-card:hover { transform: translateY(-5px); }
-          
-          /* Mobile Responsiveness */
-          @media (max-width: 768px) {
-            .hero-title { font-size: 2.5rem !important; }
-            .hero-subtitle { font-size: 1rem !important; }
-            .section-padding { padding: 3rem 1rem !important; }
-            .contact-grid { grid-template-columns: 1fr !important; gap: 2rem !important; }
-            .ad-clip-container { height: 300px !important; margin: 2rem 0 !important; }
-            .footer-content { grid-template-columns: 1fr !important; gap: 2rem !important; }
-            .nav-padding { padding: 1rem !important; }
-          }
-        `}
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes float { 0 % { transform: rotate(3deg) translateY(0px); } 50 % { transform: rotate(3deg) translateY(- 10px); } 100 % { transform: rotate(3deg) translateY(0px); }
+    }
+          .hide - scrollbar:: -webkit - scrollbar { display: none; }
+          .gallery - img:hover { transform: scale(1.03); }
+          .slider - card { transition: all 0.3s ease; }
+          .slider - card:hover { transform: translateY(-10px) scale(1.02); box - shadow: 0 20px 25px - 5px rgba(0, 0, 0, 0.1), 0 10px 10px - 5px rgba(0, 0, 0, 0.04); }
+          .nav - link:hover { color: #f59e0b!important; text - decoration: underline; }
+
+/* Mobile Responsiveness */
+@media(max - width: 768px) {
+            .hero - title { font - size: 2.5rem!important; }
+            .hero - subtitle { font - size: 1rem!important; }
+            .section - padding { padding: 3rem 1rem!important; }
+            .contact - grid { grid - template - columns: 1fr!important; gap: 2rem!important; }
+            .ad - clip - container { height: 300px!important; margin: 2rem 0!important; }
+            .footer - content { grid - template - columns: 1fr!important; gap: 2rem!important; }
+            .nav - padding { padding: 1rem!important; }
+}
+`}
             </style>
 
             {/* Navigation */}
@@ -494,12 +611,12 @@ const MenuPage = () => {
                     gap: '2rem',
                     alignItems: 'center'
                 }}>
-                    <a href="#rooms" style={styles.link}>Rooms</a>
-                    <a href="#amenities" style={styles.link}>Amenities</a>
-                    <a href="#gallery" style={styles.link}>Gallery</a>
-                    <a href="#contact" style={styles.link}>Contact</a>
-                    <button style={styles.primaryBtn} onClick={() => navigate('/login')}>
-                        Tenant Login
+                    <a href="#rooms" style={styles.link} className="nav-link">Rooms</a>
+                    <a href="#amenities" style={styles.link} className="nav-link">Amenities</a>
+                    <a href="#gallery" style={styles.link} className="nav-link">Gallery</a>
+                    <a href="#contact" style={styles.link} className="nav-link">Contact</a>
+                    <button style={styles.primaryBtn} onClick={handleAuthNavigation}>
+                        Sign In
                     </button>
                 </div>
 
@@ -539,10 +656,10 @@ const MenuPage = () => {
                     <a href="#gallery" onClick={() => setMobileMenuOpen(false)} style={styles.link}>Gallery</a>
                     <a href="#contact" onClick={() => setMobileMenuOpen(false)} style={styles.link}>Contact</a>
                     <button style={styles.primaryBtn} onClick={() => {
-                        navigate('/login');
+                        handleAuthNavigation();
                         setMobileMenuOpen(false);
                     }}>
-                        Tenant Login
+                        Sign In
                     </button>
                 </div>
             )}
@@ -560,8 +677,8 @@ const MenuPage = () => {
                         Experience comfort, security, and modern community living.
                     </p>
                     <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                        <button style={styles.primaryBtn} onClick={() => navigate('/register-tenant')}>
-                            Check Availability
+                        <button style={styles.primaryBtn} onClick={handleBookingAction}>
+                            Check Availability / Book Now
                         </button>
                         <button
                             style={{ ...styles.primaryBtn, backgroundColor: 'transparent', border: '2px solid white' }}
@@ -596,7 +713,14 @@ const MenuPage = () => {
                 ) : availableRooms.length > 0 ? (
                     <div ref={scrollRef} style={styles.sliderContainer} className="hide-scrollbar">
                         {availableRooms.map(room => (
-                            <div key={room.id} style={styles.sliderCard} className="slider-card" onClick={() => navigate('/register-tenant')}>
+                            <div key={room.id} style={styles.sliderCard} className="slider-card" onClick={() => {
+                                if (isAuthenticated()) {
+                                    navigate('/tenant-dashboard');
+                                } else {
+                                    setBookingForm(prev => ({ ...prev, houseType: room.type || 'one_bedroom' }));
+                                    setShowBookingModal(true);
+                                }
+                            }}>
                                 <div style={{ height: '200px', overflow: 'hidden' }}>
                                     <img
                                         src={gallery2}
@@ -617,7 +741,18 @@ const MenuPage = () => {
                                         <div style={{ color: '#f59e0b', fontWeight: '700', fontSize: '1.25rem' }}>
                                             KSh {room.rent_amount.toLocaleString()}
                                         </div>
-                                        <button style={{ ...styles.primaryBtn, fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
+                                        <button
+                                            style={{ ...styles.primaryBtn, fontSize: '0.875rem', padding: '0.5rem 1rem' }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (isAuthenticated()) {
+                                                    navigate('/tenant-dashboard');
+                                                } else {
+                                                    setBookingForm(prev => ({ ...prev, houseType: room.type || 'one_bedroom' }));
+                                                    setShowBookingModal(true);
+                                                }
+                                            }}
+                                        >
                                             Book
                                         </button>
                                     </div>
@@ -696,14 +831,14 @@ const MenuPage = () => {
                             {adClipIndex % 3 === 0 ? "Designed for your ultimate comfort" :
                                 adClipIndex % 3 === 1 ? "24/7 Surveillance and Gated Access" : "Everything you need, right at home"}
                         </p>
-                        <button style={styles.primaryBtn} onClick={() => navigate('/register-tenant')}>
+                        <button style={styles.primaryBtn} onClick={handleAuthNavigation}>
                             Book Your Stay Now
                         </button>
                     </div>
 
                     <div style={{
                         ...styles.progressBar,
-                        width: `${((adClipIndex + 1) / galleryImages.length) * 100}%`,
+                        width: `${((adClipIndex + 1) / galleryImages.length) * 100}% `,
                         zIndex: 20
                     }} />
                 </div>
@@ -743,7 +878,7 @@ const MenuPage = () => {
                                 </div>
                                 <div>
                                     <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Location</div>
-                                    <div style={{ fontWeight: '600' }}>Kimbo, Ruiru - Nairobi</div>
+                                    <div style={{ fontWeight: '600' }}>Nyandarua County, Olkalou</div>
                                 </div>
                             </div>
                         </div>
@@ -811,37 +946,166 @@ const MenuPage = () => {
                 </div>
             </section>
 
+            {/* Booking Questionnaire Modal */}
+            {showBookingModal && (
+                <div style={styles.modalOverlay} onClick={() => setShowBookingModal(false)}>
+                    <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyItems: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', flex: 1 }}>Booking Questionnaire</h2>
+                            <button onClick={() => setShowBookingModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <p style={{ marginBottom: '1.5rem', color: '#6b7280', fontSize: '0.9rem' }}>
+                            Please complete this brief questionnaire to help us find the perfect unit for you.
+                        </p>
+
+                        <form onSubmit={handleBookingSubmit}>
+                            <h4 style={{ fontSize: '1rem', fontWeight: '600', color: '#f59e0b', margin: '1rem 0 0.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.5rem' }}>Personal Information</h4>
+                            <div style={styles.formGroup}>
+                                <label style={styles.formLabel}>Full Name</label>
+                                <input
+                                    type="text"
+                                    style={styles.input}
+                                    required
+                                    value={bookingForm.name}
+                                    onChange={e => setBookingForm({ ...bookingForm, name: e.target.value })}
+                                />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div style={styles.formGroup}>
+                                    <label style={styles.formLabel}>Phone</label>
+                                    <input
+                                        type="tel"
+                                        style={styles.input}
+                                        required
+                                        value={bookingForm.phone}
+                                        onChange={e => setBookingForm({ ...bookingForm, phone: e.target.value })}
+                                    />
+                                </div>
+                                <div style={styles.formGroup}>
+                                    <label style={styles.formLabel}>Email</label>
+                                    <input
+                                        type="email"
+                                        style={styles.input}
+                                        required
+                                        value={bookingForm.email}
+                                        onChange={e => setBookingForm({ ...bookingForm, email: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <h4 style={{ fontSize: '1rem', fontWeight: '600', color: '#f59e0b', margin: '1rem 0 0.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.5rem' }}>Accommodation Preferences</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div style={styles.formGroup}>
+                                    <label style={styles.formLabel}>Unit Type</label>
+                                    <select
+                                        style={styles.input}
+                                        value={bookingForm.houseType}
+                                        onChange={e => setBookingForm({ ...bookingForm, houseType: e.target.value })}
+                                    >
+                                        <option value="bedsitter">Bedsitter</option>
+                                        <option value="one_bedroom">One Bedroom</option>
+                                        <option value="two_bedroom">Two Bedroom</option>
+                                        <option value="shop">Commercial Shop</option>
+                                    </select>
+                                </div>
+                                <div style={styles.formGroup}>
+                                    <label style={styles.formLabel}>Occupancy</label>
+                                    <select
+                                        style={styles.input}
+                                        value={bookingForm.occupancy || 'single'}
+                                        onChange={e => setBookingForm({ ...bookingForm, occupancy: e.target.value })}
+                                    >
+                                        <option value="single">Single</option>
+                                        <option value="couple">Couple</option>
+                                        <option value="family">Family</option>
+                                        <option value="business">Business</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style={styles.formGroup}>
+                                <label style={styles.formLabel}>Desired Move-in Date</label>
+                                <input
+                                    type="date"
+                                    style={styles.input}
+                                    required
+                                    value={bookingForm.moveInDate}
+                                    onChange={e => setBookingForm({ ...bookingForm, moveInDate: e.target.value })}
+                                />
+                            </div>
+
+                            <div style={styles.formGroup}>
+                                <label style={styles.formLabel}>Additional Requests / Notes</label>
+                                <textarea
+                                    style={styles.textarea}
+                                    value={bookingForm.message}
+                                    onChange={e => setBookingForm({ ...bookingForm, message: e.target.value })}
+                                    placeholder="Ground floor preferred? Quiet side? Any other details?"
+                                ></textarea>
+                            </div>
+
+                            {inquiryStatus && (
+                                <div style={{
+                                    padding: '1rem',
+                                    marginBottom: '1rem',
+                                    borderRadius: '0.5rem',
+                                    backgroundColor: inquiryStatus.type === 'success' ? '#dcfce7' : '#fee2e2',
+                                    color: inquiryStatus.type === 'success' ? '#166534' : '#991b1b'
+                                }}>
+                                    {inquiryStatus.message}
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                style={{ ...styles.primaryBtn, width: '100%' }}
+                                disabled={sendingInquiry}
+                            >
+                                {sendingInquiry ? 'Submitting Questionnaire...' : 'Submit Booking Request'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* Footer */}
-            <footer style={styles.footer} className="section-padding">
+            <footer style={styles.footer}>
                 <div style={styles.footerContent} className="footer-content">
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                            <img src={logo} alt="JS" style={{ height: '32px' }} />
-                            <span style={{ fontSize: '1.25rem', fontWeight: '700' }}>Joyce Suites</span>
-                        </div>
+                        <h4 style={styles.footerTitle}>Joyce Suites</h4>
                         <p style={{ color: '#9ca3af', lineHeight: '1.6' }}>
-                            Premium residential suites offering comfort, security, and modern amenities in a serene environment.
+                            Providing comfortable, secure, and modern living spaces in Olkalou.
+                            Your home away from home.
                         </p>
                     </div>
-
                     <div>
                         <h4 style={styles.footerTitle}>Quick Links</h4>
                         <a href="#rooms" style={styles.footerLink}>Available Rooms</a>
                         <a href="#amenities" style={styles.footerLink}>Amenities</a>
+                        <a href="#contact" style={styles.footerLink}>Contact Us</a>
                         <a href="/login" style={styles.footerLink}>Tenant Portal</a>
-                        <a href="/caretaker-login" style={styles.footerLink}>Staff Admin</a>
+                        <a href="/caretaker-login" style={styles.footerLink}>Caretaker Portal</a>
+                        <a href="/admin-login" style={styles.footerLink}>Admin Portal</a>
                     </div>
-
                     <div>
-                        <h4 style={styles.footerTitle}>Socials</h4>
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                            <a href="#" style={{ color: 'white' }}><Instagram size={24} /></a>
-                            <a href="#" style={{ color: 'white' }}><Facebook size={24} /></a>
-                            <a href="#" style={{ color: 'white' }}><Twitter size={24} /></a>
+                        <h4 style={styles.footerTitle}>Contact Info</h4>
+                        <p style={{ color: '#9ca3af', marginBottom: '0.5rem' }}>Nyandarua County, Olkalou</p>
+                        <p style={{ color: '#9ca3af', marginBottom: '0.5rem' }}>+254 700 000 000</p>
+                        <p style={{ color: '#9ca3af' }}>info@joycesuites.com</p>
+                    </div>
+                    <div>
+                        <h4 style={styles.footerTitle}>Follow Us</h4>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <a href="#" style={{ color: 'white', opacity: 0.8, transition: 'opacity 0.2s' }}><Facebook size={20} /></a>
+                            <a href="#" style={{ color: 'white', opacity: 0.8, transition: 'opacity 0.2s' }}><Instagram size={20} /></a>
+                            <a href="#" style={{ color: 'white', opacity: 0.8, transition: 'opacity 0.2s' }}><Twitter size={20} /></a>
                         </div>
                     </div>
                 </div>
-                <div style={{ borderTop: '1px solid #374151', marginTop: '4rem', paddingTop: '2rem', textAlign: 'center', color: '#6b7280' }}>
+                <div style={{ textAlign: 'center', marginTop: '4rem', paddingTop: '2rem', borderTop: '1px solid #374151', color: '#6b7280', fontSize: '0.875rem' }}>
                     &copy; {new Date().getFullYear()} Joyce Suites. All rights reserved.
                 </div>
             </footer>
@@ -849,11 +1113,12 @@ const MenuPage = () => {
             {/* Sticky CTA */}
             <button
                 style={styles.stickyCta}
-                onClick={() => navigate('/register-tenant')}
+                onClick={handleBookingAction}
             >
                 <Calendar size={20} />
                 <span>Book now</span>
             </button>
+
         </div>
     );
 };

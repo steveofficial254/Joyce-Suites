@@ -14,9 +14,7 @@ const TenantRegister = () => {
   const [success, setSuccess] = useState('');
   const [photoPreview, setPhotoPreview] = useState(null);
   const [idPreview, setIdPreview] = useState(null);
-  const [showCamera, setShowCamera] = useState({ type: null, active: false }); // 'photo' or 'id'
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
+  // Camera removed as requested
   const [rooms, setRooms] = useState([]);
   const [roomData, setRoomData] = useState(null);
   const [loadingRooms, setLoadingRooms] = useState(false);
@@ -188,69 +186,7 @@ const TenantRegister = () => {
     }
   };
 
-  // Camera Functions
-  useEffect(() => {
-    let stream = null;
-    const initCamera = async () => {
-      if (showCamera.active && videoRef.current) {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-        } catch (err) {
-          console.error("Camera access error:", err);
-          setError("Could not access camera. Please check permissions.");
-        }
-      }
-    };
-
-    if (showCamera.active) {
-      initCamera();
-    }
-
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [showCamera.active]);
-
-  const startCamera = (type) => {
-    setShowCamera({ type, active: true });
-  };
-
-  const stopCamera = () => {
-    // Media stream cleanup is handled by useEffect cleanup
-    setShowCamera({ type: null, active: false });
-  };
-
-  const captureImage = () => {
-    if (videoRef.current && canvasRef.current) {
-      const context = canvasRef.current.getContext('2d');
-      // Set canvas dimensions to match video
-      canvasRef.current.width = videoRef.current.videoWidth;
-      canvasRef.current.height = videoRef.current.videoHeight;
-
-      context.drawImage(videoRef.current, 0, 0);
-
-      const type = showCamera.type;
-
-      canvasRef.current.toBlob((blob) => {
-        const file = new File([blob], `${type}_capture.jpg`, { type: 'image/jpeg' });
-
-        if (type === 'photo') {
-          setFormData(prev => ({ ...prev, photo: file }));
-          setPhotoPreview(URL.createObjectURL(blob));
-        } else {
-          setFormData(prev => ({ ...prev, idDocument: file }));
-          setIdPreview(URL.createObjectURL(blob));
-        }
-
-        stopCamera();
-      }, 'image/jpeg');
-    }
-  };
+  // Camera functions removed as requested
 
   const validateForm = () => {
     setError('');
@@ -450,80 +386,52 @@ const TenantRegister = () => {
               <div className="upload-field">
                 <label htmlFor="photoUpload" className="upload-label">Profile Photo *</label>
                 <div className="photo-upload-box">
-                  {showCamera.active && showCamera.type === 'photo' ? (
-                    <div className="camera-container">
-                      <video ref={videoRef} autoPlay playsInline style={{ width: '100%', borderRadius: '8px' }}></video>
-                      <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
-                      <div className="camera-controls">
-                        <button type="button" onClick={captureImage} className="btn-capture">Capture</button>
-                        <button type="button" onClick={stopCamera} className="btn-cancel">Cancel</button>
-                      </div>
-                    </div>
-                  ) : photoPreview ? (
+                  {photoPreview ? (
                     <div className="photo-preview-container">
                       <img src={photoPreview} alt="Preview" className="photo-preview" />
-                      <button type="button" onClick={() => setPhotoPreview(null)} className="btn-remove">Change</button>
+                      <button type="button" onClick={() => { setPhotoPreview(null); setFormData(prev => ({ ...prev, photo: null })) }} className="btn-remove">Change</button>
                     </div>
                   ) : (
                     <div className="upload-placeholder">
                       <span className="upload-icon">📷</span>
-                      <p>Click to upload or take photo</p>
-                      <button type="button" onClick={() => startCamera('photo')} className="btn-camera">
-                        Use Camera
-                      </button>
+                      <p>Click to upload photo</p>
                     </div>
                   )}
-                  {!showCamera.active && (
-                    <input
-                      id="photoUpload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      className="file-input"
-                      style={{ display: photoPreview ? 'none' : 'block' }}
-                      required={!formData.photo}
-                    />
-                  )}
+                  <input
+                    id="photoUpload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="file-input"
+                    style={{ display: photoPreview ? 'none' : 'block' }}
+                    required={!formData.photo}
+                  />
                 </div>
               </div>
 
               <div className="upload-field">
                 <label htmlFor="idUpload" className="upload-label">ID Document *</label>
                 <div className="id-upload-box">
-                  {showCamera.active && showCamera.type === 'id' ? (
-                    <div className="camera-container">
-                      <video ref={videoRef} autoPlay playsInline style={{ width: '100%', borderRadius: '8px' }}></video>
-                      <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
-                      <div className="camera-controls">
-                        <button type="button" onClick={captureImage} className="btn-capture">Capture</button>
-                        <button type="button" onClick={stopCamera} className="btn-cancel">Cancel</button>
-                      </div>
-                    </div>
-                  ) : idPreview ? (
+                  {idPreview ? (
                     <div className="id-preview-container">
                       <img src={idPreview} alt="ID Preview" className="id-preview" />
-                      <button type="button" onClick={() => setIdPreview(null)} className="btn-remove">Change</button>
+                      <button type="button" onClick={() => { setIdPreview(null); setFormData(prev => ({ ...prev, idDocument: null })) }} className="btn-remove">Change</button>
                     </div>
                   ) : (
                     <div className="upload-placeholder">
                       <span className="upload-icon">📄</span>
-                      <p>Click to upload or take photo of ID</p>
-                      <button type="button" onClick={() => startCamera('id')} className="btn-camera">
-                        Use Camera
-                      </button>
+                      <p>Click to upload ID</p>
                     </div>
                   )}
-                  {!showCamera.active && (
-                    <input
-                      id="idUpload"
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={handleIdUpload}
-                      className="file-input"
-                      style={{ display: idPreview ? 'none' : 'block' }}
-                      required={!formData.idDocument}
-                    />
-                  )}
+                  <input
+                    id="idUpload"
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleIdUpload}
+                    className="file-input"
+                    style={{ display: idPreview ? 'none' : 'block' }}
+                    required={!formData.idDocument}
+                  />
                 </div>
               </div>
             </div>
