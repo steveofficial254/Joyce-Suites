@@ -15,8 +15,20 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites
 
 const CaretakerDashboard = () => {
   const [activePage, setActivePage] = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(true);
+      else setSidebarOpen(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -46,6 +58,8 @@ const CaretakerDashboard = () => {
 
   const [showPropertyDetailsModal, setShowPropertyDetailsModal] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
+  const [showTenantDetailsModal, setShowTenantDetailsModal] = useState(false);
+  const [selectedTenant, setSelectedTenant] = useState(null);
 
   const getToken = () => {
     return localStorage.getItem('token') || localStorage.getItem('joyce-suites-token');
@@ -447,6 +461,7 @@ const CaretakerDashboard = () => {
             await fetchVacateNotices();
             break;
           case 'notifications':
+          case 'inquiries':
             await fetchNotifications();
             break;
           default:
@@ -532,6 +547,10 @@ const CaretakerDashboard = () => {
               setShowMarkPaymentModal(true);
             }}
             onSendNotification={() => setShowSendNotificationModal(true)}
+            onViewDetails={(tenant) => {
+              setSelectedTenant(tenant);
+              setShowTenantDetailsModal(true);
+            }}
             onCreateVacateNotice={(leaseId) => {
               const tenant = tenants.find(t => t.id === leaseId);
               if (tenant) {
@@ -628,6 +647,70 @@ const CaretakerDashboard = () => {
             )}
           </div>
         );
+      case 'inquiries':
+        return (
+          <div className="p-6">
+            <h2 className="text-2xl font-bold mb-6">Inquiries & Booking Requests</h2>
+            {loading && !notifications.length ? (
+              <div style={styles.loadingContainer}>
+                <div style={styles.spinner}></div>
+                <p>Loading messages...</p>
+              </div>
+            ) : notifications.length === 0 ? (
+              <div style={styles.emptyState}>
+                <MessageSquare size={48} />
+                <p>No new messages or booking requests.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: '16px' }}>
+                {notifications.map(note => {
+                  const isBooking = note.subject?.includes('BOOKING') || note.title?.includes('BOOKING') || note.message?.includes('BOOKING REQUEST');
+                  return (
+                    <div
+                      key={note.id}
+                      style={{
+                        ...styles.inquiryCard,
+                        borderLeft: note.is_read ? '1px solid #e5e7eb' : (isBooking ? '4px solid #16a34a' : '4px solid #3b82f6')
+                      }}
+                    >
+                      <div style={styles.inquiryHeader}>
+                        <div style={styles.senderInfo}>
+                          <div style={styles.avatar}>
+                            <User size={20} />
+                          </div>
+                          <div style={styles.msgMeta}>
+                            <span style={styles.senderName}>{note.title || 'New Inquiry'}</span>
+                            <span style={styles.msgTime}>
+                              {new Date(note.created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                            </span>
+                            {isBooking && (
+                              <span style={{
+                                ...styles.subjectBadge,
+                                backgroundColor: '#dcfce7',
+                                color: '#166534'
+                              }}>BOOKING REQUEST</span>
+                            )}
+                          </div>
+                        </div>
+                        {!note.is_read && (
+                          <button
+                            onClick={() => handleMarkNotificationRead(note.id)}
+                            style={styles.btnSmallPrimary}
+                          >
+                            Mark as Read
+                          </button>
+                        )}
+                      </div>
+                      <div style={styles.msgPreview}>
+                        {note.message}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
       default:
         return null;
     }
@@ -635,12 +718,17 @@ const CaretakerDashboard = () => {
 
   return (
     <div style={styles.container}>
-      <aside style={{ ...styles.sidebar, ...(sidebarOpen ? {} : styles.sidebarHidden) }}>
+      <aside style={{
+        ...styles.sidebar,
+        ...(isMobile ? { display: 'none' } : (sidebarOpen ? {} : styles.sidebarHidden))
+      }}>
         <div style={styles.sidebarHeader}>
           <h2 style={styles.sidebarTitle}>Joyce Suites</h2>
-          <button style={styles.closeBtn} onClick={() => setSidebarOpen(false)}>
-            <X size={24} />
-          </button>
+          {isMobile && (
+            <button style={styles.closeBtn} onClick={() => setSidebarOpen(false)}>
+              <X size={24} />
+            </button>
+          )}
         </div>
 
         <nav style={styles.nav}>
@@ -651,6 +739,7 @@ const CaretakerDashboard = () => {
             { id: 'tenants', label: 'Tenants', icon: Users },
             { id: 'payments', label: 'Payments', icon: PaymentIcon },
             { id: 'vacate', label: 'Vacate Notices', icon: DoorOpen },
+            { id: 'inquiries', label: 'Inquiries', icon: MessageSquare },
             { id: 'notifications', label: 'Notifications', icon: Bell }
           ].map(item => (
             <button
@@ -677,29 +766,34 @@ const CaretakerDashboard = () => {
           </div>
         </div>
 
-        <button style={styles.logoutBtn} onClick={handleLogout}>
-          <LogOut size={18} /> Logout
-        </button>
+        <div style={{ ...styles.logoutBtnWrapper, ...(sidebarOpen && styles.logoutBtnWrapperVisible), flexDirection: 'column', gap: '8px' }}>
+          <button
+            style={{ ...styles.logoutBtn, backgroundColor: 'transparent', color: '#64748b', border: '1px solid #e2e8f0' }}
+            onClick={() => window.location.href = '/'}
+          >
+            <Home size={18} /> <span style={{ display: sidebarOpen ? 'inline' : 'none' }}>Main Menu</span>
+          </button>
+          <button style={styles.logoutBtn} onClick={handleLogout}>
+            <LogOut size={18} /> <span style={{ display: sidebarOpen ? 'inline' : 'none' }}>Logout</span>
+          </button>
+        </div>
       </aside>
 
-      <main style={styles.main}>
+      <main style={{
+        ...styles.main,
+        marginLeft: isMobile ? 0 : (sidebarOpen ? '260px' : 0),
+        width: isMobile ? '100%' : (sidebarOpen ? 'calc(100% - 260px)' : '100%')
+      }}>
         <header style={styles.header}>
           <div style={styles.headerLeft}>
-            <button style={styles.menuBtn} onClick={() => setSidebarOpen(true)}>
-              <Menu size={24} />
-            </button>
+            {!isMobile && (
+              <button style={styles.menuBtn} onClick={() => setSidebarOpen(true)}>
+                <Menu size={24} />
+              </button>
+            )}
             <button style={styles.homeBtn} onClick={() => handlePageChange('dashboard')}>
               <Home size={20} />
             </button>
-            {activePage !== 'dashboard' && (
-              <button
-                style={{ ...styles.homeBtn, marginLeft: '8px' }}
-                onClick={() => handlePageChange('dashboard')}
-                title="Back to Dashboard"
-              >
-                <ArrowLeft size={20} />
-              </button>
-            )}
             <h1 style={styles.headerTitle}>Caretaker Dashboard</h1>
           </div>
           <div style={styles.headerRight}>
@@ -719,6 +813,39 @@ const CaretakerDashboard = () => {
             </div>
           </div>
         </header>
+
+        {isMobile && (
+          <div style={styles.mobileTopNav}>
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: Home },
+              { id: 'maintenance', label: 'Requests', icon: Wrench },
+              { id: 'properties', label: 'Rooms', icon: Building },
+              { id: 'tenants', label: 'Tenants', icon: Users },
+              { id: 'payments', label: 'Payments', icon: PaymentIcon },
+              { id: 'vacate', label: 'Vacate', icon: DoorOpen },
+              { id: 'inquiries', label: 'Messages', icon: MessageSquare },
+            ].map(item => (
+              <button
+                key={item.id}
+                style={{
+                  ...styles.mobileNavItem,
+                  ...(activePage === item.id ? styles.mobileNavActive : {})
+                }}
+                onClick={() => handlePageChange(item.id)}
+              >
+                <item.icon size={16} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+            <button
+              style={{ ...styles.mobileNavItem, backgroundColor: '#ef4444', color: 'white' }}
+              onClick={handleLogout}
+            >
+              <LogOut size={16} />
+              <span>Logout</span>
+            </button>
+          </div>
+        )}
 
         {error && (
           <div style={styles.errorBanner}>
@@ -821,6 +948,16 @@ const CaretakerDashboard = () => {
           onClose={() => {
             setShowPropertyDetailsModal(false);
             setSelectedProperty(null);
+          }}
+        />
+      )}
+
+      {showTenantDetailsModal && selectedTenant && (
+        <TenantDetailsModal
+          tenant={selectedTenant}
+          onClose={() => {
+            setShowTenantDetailsModal(false);
+            setSelectedTenant(null);
           }}
         />
       )}
@@ -1435,7 +1572,7 @@ const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading, onVi
 };
 
 // ==================== TENANTS PAGE ====================
-const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNotification, onCreateVacateNotice }) => {
+const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNotification, onCreateVacateNotice, onViewDetails }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('all');
 
@@ -1567,6 +1704,13 @@ const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNot
                             title="Mark Payment"
                           >
                             <CreditCard size={14} />
+                          </button>
+                          <button
+                            style={styles.btnSmallPrimary}
+                            onClick={() => onViewDetails(tenant)}
+                            title="View Details"
+                          >
+                            <Eye size={14} />
                           </button>
                           <button
                             style={styles.btnSmallSecondary}
@@ -2002,6 +2146,96 @@ const NotificationsPage = ({ tenants, onSendNotification }) => {
 };
 
 // ==================== MODALS ====================
+const TenantDetailsModal = ({ tenant, onClose }) => {
+  const [activeTab, setActiveTab] = useState('personal');
+
+  // Extract tenant data
+  const tenantData = {
+    personal: {
+      'Full Name': tenant ? tenant.name : 'N/A',
+      'Email': tenant ? tenant.email : 'N/A',
+      'Phone Number': tenant ? (tenant.phone_number || tenant.phone) : 'N/A',
+      'National ID': tenant ? tenant.national_id : 'N/A',
+      'Room Number': tenant && tenant.room_number ? "Room " + tenant.room_number : 'N/A',
+      'Status': tenant && tenant.is_active ? 'Active' : 'Inactive',
+      'Date Joined': tenant && tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : 'N/A'
+    },
+    images: {
+      photo: tenant ? tenant.photo_path : null,
+      id_doc: tenant ? tenant.id_document_path : null
+    }
+  };
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={{ ...styles.modalContent, maxWidth: '800px' }} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h3>Tenant Details</h3>
+          <button style={styles.modalClose} onClick={onClose}>×</button>
+        </div>
+
+        <div style={styles.modalTabs}>
+          <button
+            style={{ ...styles.modalTab, ...(activeTab === 'personal' ? styles.modalTabActive : {}) }}
+            onClick={() => setActiveTab('personal')}
+          >
+            Personal Info
+          </button>
+        </div>
+
+        <div style={styles.modalBody}>
+          {activeTab === 'personal' && (
+            <>
+              <div style={styles.detailsGrid}>
+                {Object.entries(tenantData.personal).map(([key, value]) => (
+                  <div key={key} style={styles.detailItem}>
+                    <label style={styles.detailLabel}>{key}</label>
+                    <p style={styles.detailValue}>{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: '24px', borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
+                <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>Documents & Photos</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                  {tenantData.images.photo && (
+                    <div>
+                      <p style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Profile Photo</p>
+                      <img
+                        src={`${API_BASE_URL}/${tenantData.images.photo}`}
+                        alt="Tenant Profile"
+                        style={styles.imagePreview}
+                        onError={(e) => { e.target.src = 'https://via.placeholder.com/200?text=No+Image'; }}
+                      />
+                    </div>
+                  )}
+                  {/* Placeholder for ID Doc if we had a path, defaulting to National ID text/icon for now if no path */}
+                  {tenantData.images.id_doc && (
+                    <div>
+                      <p style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>National ID Document</p>
+                      <div style={{ ...styles.imagePreview, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}>
+                        <FileText size={48} color="#9ca3af" />
+                        <span style={{ fontSize: '14px', color: '#6b7280', marginLeft: '8px' }}>{tenantData.images.id_doc}</span>
+                      </div>
+                    </div>
+                  )}
+                  {(!tenantData.images.photo && !tenantData.images.id_doc) && (
+                    <p style={{ color: '#9ca3af', fontStyle: 'italic' }}>No documents uploaded.</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div style={styles.modalFooter}>
+          <button style={styles.btnSecondary} onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
@@ -2939,9 +3173,18 @@ const styles = {
     flexDirection: 'column',
     gap: '2px'
   },
+  logoutBtnWrapper: {
+    padding: '1rem',
+    borderTop: '1px solid #374151',
+    backgroundColor: '#111827',
+    display: 'none' // Default hidden
+  },
+  logoutBtnWrapperVisible: {
+    display: 'block'
+  },
   logoutBtn: {
-    margin: '20px',
-    padding: '12px',
+    width: '100%',
+    padding: '10px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2953,7 +3196,10 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500',
-    transition: 'all 0.2s'
+    transition: 'all 0.2s',
+    '&:hover': {
+      backgroundColor: '#dc2626'
+    }
   },
   main: {
     flex: 1,
@@ -2980,11 +3226,12 @@ const styles = {
     gap: '12px'
   },
   menuBtn: {
-    display: 'none',
+    display: 'flex', // Always available but we hide on desktop via logic
     background: 'transparent',
     border: 'none',
     cursor: 'pointer',
-    padding: '8px'
+    padding: '8px',
+    marginRight: '8px'
   },
   homeBtn: {
     background: 'transparent',
@@ -3590,6 +3837,131 @@ const styles = {
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     zIndex: 99
+  },
+  // Mobile Top Nav Styles
+  mobileTopNav: {
+    display: 'flex',
+    overflowX: 'auto',
+    backgroundColor: '#1f2937',
+    padding: '12px',
+    gap: '12px',
+    position: 'sticky',
+    top: '64px',
+    zIndex: 10,
+    scrollbarWidth: 'none',
+    msOverflowStyle: 'none'
+  },
+  mobileNavItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: '70px',
+    padding: '8px',
+    color: '#9ca3af',
+    background: 'none',
+    border: 'none',
+    fontSize: '11px',
+    gap: '4px',
+    borderRadius: '8px',
+    cursor: 'pointer'
+  },
+  mobileNavActive: {
+    color: 'white',
+    backgroundColor: '#374151'
+  },
+  // New Styles for Inquiries and Modal
+  inquiryCard: {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    padding: '20px',
+    marginBottom: '16px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+    border: '1px solid #e5e7eb',
+    transition: 'transform 0.2s, box-shadow 0.2s'
+  },
+  inquiryHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '12px',
+    gap: '12px'
+  },
+  senderInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  avatar: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '18px',
+    fontWeight: '600'
+  },
+  msgMeta: {
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  senderName: {
+    fontWeight: '600',
+    color: '#111827',
+    fontSize: '15px'
+  },
+  msgTime: {
+    fontSize: '12px',
+    color: '#6b7280'
+  },
+  subjectBadge: {
+    display: 'inline-block',
+    padding: '2px 8px',
+    borderRadius: '12px',
+    fontSize: '11px',
+    fontWeight: '500',
+    marginTop: '4px',
+    alignSelf: 'flex-start'
+  },
+  msgPreview: {
+    color: '#4b5563',
+    lineHeight: '1.5',
+    fontSize: '14px',
+    backgroundColor: '#f9fafb',
+    padding: '12px',
+    borderRadius: '8px'
+  },
+  // Modal Enhancements
+  modalTabs: {
+    display: 'flex',
+    borderBottom: '1px solid #e5e7eb',
+    marginBottom: '20px',
+    padding: '0 20px'
+  },
+  modalTab: {
+    padding: '12px 20px',
+    background: 'none',
+    border: 'none',
+    borderBottom: '2px solid transparent',
+    color: '#6b7280',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    marginBottom: '-1px'
+  },
+  modalTabActive: {
+    color: '#2563eb',
+    borderBottomColor: '#2563eb'
+  },
+  imagePreview: {
+    width: '100%',
+    height: '200px',
+    objectFit: 'cover',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb'
   }
 };
 

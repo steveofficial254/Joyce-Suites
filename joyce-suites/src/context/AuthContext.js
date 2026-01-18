@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
+import { jwtDecode } from "jwt-decode";
 import apiService from '../services/api';
 
 const AuthContext = createContext();
@@ -15,7 +16,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   // Use refs to track state without causing re-renders
   const userRef = useRef(null);
   const initializedRef = useRef(false);
@@ -35,7 +36,7 @@ export function AuthProvider({ children }) {
     try {
       console.log('🔐 Attempting login for:', email);
       const response = await apiService.auth.login(email, password);
-      
+
       if (response.success) {
         const userData = {
           ...response.user,
@@ -45,7 +46,7 @@ export function AuthProvider({ children }) {
         console.log('✅ Login successful:', userData.email);
         setUser(userData);
         userRef.current = userData;
-        
+
         // Store user data, token, and role
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
         if (response.token) {
@@ -55,7 +56,7 @@ export function AuthProvider({ children }) {
         if (userData.role) {
           localStorage.setItem(STORAGE_KEYS.ROLE, userData.role);
         }
-        
+
         return { success: true, user: userData };
       } else {
         throw new Error(response.message || 'Login failed');
@@ -78,7 +79,7 @@ export function AuthProvider({ children }) {
     try {
       console.log('📝 Attempting signup for:', userData.email);
       const response = await apiService.auth.signup(userData);
-      
+
       if (response.success) {
         const newUser = {
           ...response.user,
@@ -88,7 +89,7 @@ export function AuthProvider({ children }) {
         console.log('✅ Signup successful:', newUser.email);
         setUser(newUser);
         userRef.current = newUser;
-        
+
         // Store user data and token
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
         if (response.token) {
@@ -97,7 +98,7 @@ export function AuthProvider({ children }) {
         if (newUser.role) {
           localStorage.setItem(STORAGE_KEYS.ROLE, newUser.role);
         }
-        
+
         return { success: true, user: newUser };
       } else {
         throw new Error(response.message || 'Signup failed');
@@ -115,19 +116,19 @@ export function AuthProvider({ children }) {
   // Stable callback for logout
   const logout = useCallback(async () => {
     console.log('🚪 Logging out...');
-    
+
     // Clear local state immediately
     setUser(null);
     userRef.current = null;
     setError('');
-    
+
     // Clear local storage
     localStorage.removeItem(STORAGE_KEYS.USER);
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
     localStorage.removeItem(STORAGE_KEYS.ROLE);
-    
+
     console.log('🗑️ Local auth data cleared');
-    
+
     // Try to call logout endpoint (don't block on this)
     try {
       await apiService.auth.logout();
@@ -146,7 +147,7 @@ export function AuthProvider({ children }) {
     try {
       console.log('🔄 Updating profile...');
       const response = await apiService.auth.updateProfile(updatedData);
-      
+
       if (response.success) {
         const updatedUser = { ...userRef.current, ...response.user };
         setUser(updatedUser);
@@ -195,33 +196,42 @@ export function AuthProvider({ children }) {
 
     const initializeAuth = () => {
       try {
-        const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
         const savedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
-        const savedRole = localStorage.getItem(STORAGE_KEYS.ROLE);
 
-        if (savedUser && savedToken) {
+        if (savedToken) {
           try {
-            const userData = JSON.parse(savedUser);
-            
-            // Ensure role is set
-            if (!userData.role && savedRole) {
-              userData.role = savedRole;
+            const decodedNode = jwtDecode(savedToken);
+            const currentTime = Date.now() / 1000;
+
+            if (decodedNode.exp < currentTime) {
+              console.log('⚠️ Token expired');
+              localStorage.removeItem(STORAGE_KEYS.TOKEN);
+              localStorage.removeItem(STORAGE_KEYS.USER);
+              localStorage.removeItem(STORAGE_KEYS.ROLE);
+              setUser(null);
+            } else {
+              // Use decoded token for instant user state
+              const userData = {
+                user_id: decodedNode.user_id,
+                email: decodedNode.email,
+                full_name: decodedNode.full_name,
+                role: decodedNode.role,
+                photo_path: decodedNode.photo_path,
+                room_number: decodedNode.room_number,
+                is_active: decodedNode.is_active
+              };
+
+              console.log('✅ Fast Auth Restore from Token:', userData.email);
+              setUser(userData);
+              userRef.current = userData;
             }
-            
-            console.log('✅ Restoring user from localStorage:', userData.email);
-            console.log('🔑 Role:', userData.role);
-            
-            setUser(userData);
-            userRef.current = userData;
-          } catch (parseError) {
-            console.error('❌ Error parsing saved user:', parseError);
-            // Clear corrupted data
-            localStorage.removeItem(STORAGE_KEYS.USER);
+
+          } catch (decodeError) {
+            console.error('❌ Error decoding token:', decodeError);
             localStorage.removeItem(STORAGE_KEYS.TOKEN);
-            localStorage.removeItem(STORAGE_KEYS.ROLE);
           }
         } else {
-          console.log('ℹ️ No saved auth data found');
+          console.log('ℹ️ No saved token found');
         }
       } catch (err) {
         console.error('❌ Error initializing auth:', err);

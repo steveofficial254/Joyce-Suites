@@ -1,23 +1,24 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
+// Lazy Load Pages
 // Auth Pages
-import TenantRegister from './pages/auth/TenantRegister';
-import TenantLogin from './pages/auth/TenantLogin';
-import CaretakerLogin from './pages/auth/CaretakerLogin';
-import AdminLogin from './pages/auth/AdminLogin';
+const TenantRegister = lazy(() => import('./pages/auth/TenantRegister'));
+const TenantLogin = lazy(() => import('./pages/auth/TenantLogin'));
+const CaretakerLogin = lazy(() => import('./pages/auth/CaretakerLogin'));
+const AdminLogin = lazy(() => import('./pages/auth/AdminLogin'));
 
 // Lease Agreement
-import LeaseAgreement from './pages/Lease/LeaseAgreement';
+const LeaseAgreement = lazy(() => import('./pages/Lease/LeaseAgreement'));
 
 // Dashboard Pages
-import TenantDashboard from './pages/tenant/TenantDashboard';
-import CaretakerDashboard from './pages/caretaker/CaretakerDashboard';
-import TenantPayments from './pages/tenant/TenantPayment';
-import TenantProfile from './pages/tenant/TenantProfile';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import MenuPage from './pages/MenuPage';
+const TenantDashboard = lazy(() => import('./pages/tenant/TenantDashboard'));
+const CaretakerDashboard = lazy(() => import('./pages/caretaker/CaretakerDashboard'));
+const TenantPayments = lazy(() => import('./pages/tenant/TenantPayment'));
+const TenantProfile = lazy(() => import('./pages/tenant/TenantProfile'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const MenuPage = lazy(() => import('./pages/MenuPage'));
 
 // Loading Component
 const LoadingSpinner = () => (
@@ -95,125 +96,127 @@ function AppContent() {
   }
 
   return (
-    <Routes>
-      {/* Landing/Home Route */}
-      <Route
-        path="/"
-        element={
-          <PublicRoute restricted={false}>
-            <MenuPage />
-          </PublicRoute>
-        }
-      />
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        {/* Landing/Home Route */}
+        <Route
+          path="/"
+          element={
+            <PublicRoute restricted={false}>
+              <MenuPage />
+            </PublicRoute>
+          }
+        />
 
-      {/* Public Auth Routes */}
-      <Route
-        path="/register-tenant"
-        element={
-          <PublicRoute>
-            <TenantRegister />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <TenantLogin />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/caretaker-login"
-        element={
-          <PublicRoute>
-            <CaretakerLogin />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/admin-login"
-        element={
-          <PublicRoute>
-            <AdminLogin />
-          </PublicRoute>
-        }
-      />
+        {/* Public Auth Routes */}
+        <Route
+          path="/register-tenant"
+          element={
+            <PublicRoute>
+              <TenantRegister />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <TenantLogin />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/caretaker-login"
+          element={
+            <PublicRoute>
+              <CaretakerLogin />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/admin-login"
+          element={
+            <PublicRoute>
+              <AdminLogin />
+            </PublicRoute>
+          }
+        />
 
-      {/* Lease Agreement - Protected for tenants */}
-      <Route
-        path="/lease-agreement"
-        element={
-          <ProtectedRoute allowedRoles={['tenant']}>
-            <LeaseAgreement />
-          </ProtectedRoute>
-        }
-      />
+        {/* Lease Agreement - Protected for tenants */}
+        <Route
+          path="/lease-agreement"
+          element={
+            <ProtectedRoute allowedRoles={['tenant']}>
+              <LeaseAgreement />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Tenant Routes - Protected */}
-      <Route
-        path="/tenant/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={['tenant']}>
-            <TenantDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tenant/payments"
-        element={
-          <ProtectedRoute allowedRoles={['tenant']}>
-            <TenantPayments />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tenant/profile"
-        element={
-          <ProtectedRoute allowedRoles={['tenant']}>
-            <TenantProfile />
-          </ProtectedRoute>
-        }
-      />
+        {/* Tenant Routes - Protected */}
+        <Route
+          path="/tenant/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['tenant']}>
+              <TenantDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tenant/payments"
+          element={
+            <ProtectedRoute allowedRoles={['tenant']}>
+              <TenantPayments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tenant/profile"
+          element={
+            <ProtectedRoute allowedRoles={['tenant']}>
+              <TenantProfile />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Caretaker Routes - Protected */}
-      <Route
-        path="/caretaker/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={['caretaker', 'admin']}>
-            <CaretakerDashboard />
-          </ProtectedRoute>
-        }
-      />
+        {/* Caretaker Routes - Protected */}
+        <Route
+          path="/caretaker/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['caretaker', 'admin']}>
+              <CaretakerDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Admin Routes - Protected */}
-      <Route
-        path="/admin/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminDashboard />
-          </ProtectedRoute>
-        }
-      />
+        {/* Admin Routes - Protected */}
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Error Routes */}
-      <Route
-        path="/unauthorized"
-        element={<UnauthorizedPage />}
-      />
+        {/* Error Routes */}
+        <Route
+          path="/unauthorized"
+          element={<UnauthorizedPage />}
+        />
 
-      {/* Catch-all route */}
-      <Route
-        path="*"
-        element={
-          <div className="not-found-container">
-            <h1>404 - Page Not Found</h1>
-            <p>The page you're looking for doesn't exist.</p>
-            <Navigate to="/" replace />
-          </div>
-        }
-      />
-    </Routes>
+        {/* Catch-all route */}
+        <Route
+          path="*"
+          element={
+            <div className="not-found-container">
+              <h1>404 - Page Not Found</h1>
+              <p>The page you're looking for doesn't exist.</p>
+              <Navigate to="/" replace />
+            </div>
+          }
+        />
+      </Routes>
+    </Suspense>
   );
 }
 

@@ -12,8 +12,20 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites
 
 const AdminDashboard = () => {
   const [activePage, setActivePage] = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(true);
+      else setSidebarOpen(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -39,6 +51,8 @@ const AdminDashboard = () => {
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
   const [selectedVacateNotice, setSelectedVacateNotice] = useState(null);
   const [showVacateModal, setShowVacateModal] = useState(false);
+  const [selectedInquiry, setSelectedInquiry] = useState(null);
+  const [showInquiryModal, setShowInquiryModal] = useState(false);
 
   const token = localStorage.getItem('token') || localStorage.getItem('joyce-suites-token');
 
@@ -228,6 +242,9 @@ const AdminDashboard = () => {
       if (data && data.success) {
         setSuccessMessage('Tenant deleted successfully');
         setTenants(tenants.filter(t => t.id !== tenantId));
+        // Refresh available rooms to show the newly vacant room
+        await fetchAvailableRooms();
+        await fetchOverview();
         setTimeout(() => setSuccessMessage(''), 3000);
       }
     } catch (err) {
@@ -525,26 +542,57 @@ const AdminDashboard = () => {
             {inquiries.map(msg => (
               <div
                 key={msg.id}
-                className={`bg-white rounded-lg shadow p-6 border-l-4 ${msg.is_read ? 'border-gray-300' : 'border-blue-500'}`}
+                style={{
+                  ...styles.inquiryCard,
+                  borderLeft: msg.is_read ? '1px solid #e5e7eb' : '4px solid #3b82f6',
+                  backgroundColor: msg.is_read ? 'white' : '#eff6ff'
+                }}
+                onClick={() => {
+                  setSelectedInquiry(msg);
+                  setShowInquiryModal(true);
+                  if (!msg.is_read) markAsRead(msg.id);
+                }}
               >
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <h3 className="font-bold text-lg">{msg.title}</h3>
-                    <span className="text-sm text-gray-500">
-                      {new Date(msg.created_at).toLocaleString()}
-                    </span>
+                <div style={styles.inquiryHeader}>
+                  <div style={styles.senderInfo}>
+                    <div style={styles.avatar}>
+                      {msg.sender_name ? msg.sender_name[0].toUpperCase() : 'U'}
+                    </div>
+                    <div style={styles.msgMeta}>
+                      <span style={styles.senderName}>{msg.sender_name || 'Guest User'}</span>
+                      <span style={styles.msgTime}>
+                        {new Date(msg.created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                      </span>
+                      {msg.title.toLowerCase().includes('booking') && (
+                        <span style={{
+                          ...styles.subjectBadge,
+                          backgroundColor: '#dcfce7',
+                          color: '#166534'
+                        }}>Booking Request</span>
+                      )}
+                      {!msg.title.toLowerCase().includes('booking') && (
+                        <span style={{
+                          ...styles.subjectBadge,
+                          backgroundColor: '#f3f4f6',
+                          color: '#4b5563'
+                        }}>{msg.title}</span>
+                      )}
+                    </div>
                   </div>
                   {!msg.is_read && (
-                    <button
-                      onClick={() => markAsRead(msg.id)}
-                      className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200"
-                    >
-                      Mark as Read
-                    </button>
+                    <span className="flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-blue-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                    </span>
                   )}
                 </div>
-                <div className="bg-gray-50 p-4 rounded mt-2 whitespace-pre-wrap text-gray-700">
-                  {msg.message}
+                <div style={styles.msgPreview}>
+                  {msg.message.length > 180 ? `${msg.message.substring(0, 180)}...` : msg.message}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                  <span style={{ fontSize: '13px', color: '#2563eb', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    View Details <ArrowLeft size={14} style={{ transform: 'rotate(180deg)' }} />
+                  </span>
                 </div>
               </div>
             ))}
@@ -556,12 +604,17 @@ const AdminDashboard = () => {
 
   return (
     <div style={styles.container}>
-      <aside style={{ ...styles.sidebar, ...(sidebarOpen ? {} : styles.sidebarHidden) }}>
+      <aside style={{
+        ...styles.sidebar,
+        ...(isMobile ? { display: 'none' } : (sidebarOpen ? {} : styles.sidebarHidden))
+      }}>
         <div style={styles.sidebarHeader}>
           <h2 style={styles.sidebarTitle}>Joyce Suites</h2>
-          <button style={styles.closeBtn} onClick={() => setSidebarOpen(false)}>
-            <X size={24} />
-          </button>
+          {!isMobile && (
+            <button style={styles.closeBtn} onClick={() => setSidebarOpen(false)}>
+              <X size={24} />
+            </button>
+          )}
         </div>
 
         <nav style={styles.nav}>
@@ -583,6 +636,7 @@ const AdminDashboard = () => {
                 ...(activePage === item.id ? styles.navItemActive : {})
               }}
               onClick={() => handlePageChange(item.id)}
+              title={!sidebarOpen ? item.label : ''}
             >
               <item.icon size={18} />
               <span>{item.label}</span>
@@ -600,17 +654,25 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        <button style={styles.logoutBtn} onClick={handleLogout}>
-          <LogOut size={18} /> Logout
-        </button>
+        <div style={{ ...styles.logoutBtnWrapper, ...(sidebarOpen && styles.logoutBtnWrapperVisible) }}>
+          <button style={styles.logoutBtn} onClick={handleLogout}>
+            <LogOut size={18} /> <span style={{ display: sidebarOpen ? 'inline' : 'none' }}>Logout</span>
+          </button>
+        </div>
       </aside>
 
-      <main style={styles.main}>
+      <main style={{
+        ...styles.main,
+        marginLeft: isMobile ? 0 : (sidebarOpen ? '260px' : 0),
+        width: '100%'
+      }}>
         <header style={styles.header}>
           <div style={styles.headerLeft}>
-            <button style={styles.menuBtn} onClick={() => setSidebarOpen(true)}>
-              <Menu size={24} />
-            </button>
+            {!isMobile && (
+              <button style={styles.menuBtn} onClick={() => setSidebarOpen(true)}>
+                <Menu size={24} />
+              </button>
+            )}
             <button style={styles.homeBtn} onClick={() => handlePageChange('dashboard')}>
               <Home size={20} />
             </button>
@@ -633,6 +695,39 @@ const AdminDashboard = () => {
             </div>
           </div>
         </header>
+
+        {isMobile && (
+          <div style={styles.mobileTopNav}>
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: Home },
+              { id: 'contracts', label: 'Leases', icon: FileText },
+              { id: 'maintenance', label: 'Requests', icon: Wrench },
+              { id: 'vacate', label: 'Vacate', icon: DoorOpen },
+              { id: 'messages', label: 'Inquiries', icon: MessageSquare },
+              { id: 'properties', label: 'Rooms', icon: Building },
+              { id: 'reports', label: 'Reports', icon: FileSpreadsheet }
+            ].map(item => (
+              <button
+                key={item.id}
+                style={{
+                  ...styles.mobileNavItem,
+                  ...(activePage === item.id ? styles.mobileNavActive : {})
+                }}
+                onClick={() => handlePageChange(item.id)}
+              >
+                <item.icon size={16} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+            <button
+              style={{ ...styles.mobileNavItem, backgroundColor: '#ef4444' }}
+              onClick={handleLogout}
+            >
+              <LogOut size={16} />
+              <span>Logout</span>
+            </button>
+          </div>
+        )}
 
         {error && (
           <div style={styles.errorBanner}>
@@ -967,6 +1062,24 @@ const DashboardPage = ({
                               title="View Details"
                             >
                               <Eye size={14} />
+                            </button>
+                            <button
+                              style={{
+                                ...styles.btnSmallDanger,
+                                backgroundColor: '#fee2e2',
+                                color: '#dc2626',
+                                border: '1px solid #fecaca',
+                                borderRadius: '6px',
+                                padding: '6px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                              onClick={() => onDeleteTenant(tenant.id)}
+                              title="Delete Tenant"
+                            >
+                              <Trash2 size={14} />
                             </button>
                             <button
                               style={styles.btnSmallSuccess}
@@ -1732,6 +1845,10 @@ const TenantDetailsModal = ({ tenant, onClose }) => {
       'Status': tenant && tenant.is_active ? 'Active' : 'Inactive',
       'Date Joined': tenant && tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : 'N/A'
     },
+    images: {
+      photo: tenant ? tenant.photo_path : null,
+      id_doc: tenant ? tenant.id_document_path : null
+    },
     lease: tenant && tenant.lease ? {
       'Lease ID': "#" + tenant.lease.id,
       'Property': tenant.lease.property_name || 'N/A',
@@ -1802,16 +1919,47 @@ const TenantDetailsModal = ({ tenant, onClose }) => {
 
         <div style={styles.modalBody}>
           {activeTab === 'personal' && (
-            <div style={styles.detailsGrid}>
-              {Object.entries(tenantData.personal).map(function ([key, value]) {
-                return (
-                  <div key={key} style={styles.detailItem}>
-                    <label style={styles.detailLabel}>{key}</label>
-                    <p style={styles.detailValue}>{value}</p>
-                  </div>
-                );
-              })}
-            </div>
+            <>
+              <div style={styles.detailsGrid}>
+                {Object.entries(tenantData.personal).map(function ([key, value]) {
+                  return (
+                    <div key={key} style={styles.detailItem}>
+                      <label style={styles.detailLabel}>{key}</label>
+                      <p style={styles.detailValue}>{value}</p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ marginTop: '24px', borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
+                <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>Documents & Photos</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                  {tenantData.images && tenantData.images.photo && (
+                    <div>
+                      <p style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Profile Photo</p>
+                      <img
+                        src={`${API_BASE_URL}/${tenantData.images.photo}`}
+                        alt="Tenant Profile"
+                        style={styles.imagePreview}
+                        onError={(e) => { e.target.src = 'https://via.placeholder.com/200?text=No+Image'; }}
+                      />
+                    </div>
+                  )}
+                  {tenantData.images && tenantData.images.id_doc && (
+                    <div>
+                      <p style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>National ID Document</p>
+                      <div style={{ ...styles.imagePreview, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}>
+                        <FileText size={48} color="#9ca3af" />
+                        <span style={{ fontSize: '14px', color: '#6b7280', marginLeft: '8px' }}>{tenantData.images.id_doc}</span>
+                      </div>
+                    </div>
+                  )}
+                  {(!tenantData.images || (!tenantData.images.photo && !tenantData.images.id_doc)) && (
+                    <p style={{ color: '#9ca3af', fontStyle: 'italic' }}>No documents uploaded.</p>
+                  )}
+                </div>
+              </div>
+            </>
           )}
 
           {activeTab === 'lease' && tenantData.lease && (
@@ -2704,9 +2852,18 @@ const styles = {
     flexDirection: 'column',
     gap: '2px'
   },
+  logoutBtnWrapper: {
+    padding: '1rem',
+    borderTop: '1px solid #374151',
+    backgroundColor: '#111827',
+    display: 'none' // Default hidden, shown via style override or logic
+  },
+  logoutBtnWrapperVisible: {
+    display: 'block'
+  },
   logoutBtn: {
-    margin: '20px',
-    padding: '12px',
+    width: '100%',
+    padding: '10px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2718,7 +2875,10 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500',
-    transition: 'all 0.2s'
+    transition: 'all 0.2s',
+    '&:hover': {
+      backgroundColor: '#dc2626'
+    }
   },
   main: {
     flex: 1,
@@ -2746,11 +2906,119 @@ const styles = {
     gap: '12px'
   },
   menuBtn: {
-    display: 'none',
+    display: 'flex', // Always available but we can hide on desktop via logic
     background: 'transparent',
     border: 'none',
     cursor: 'pointer',
-    padding: '8px'
+    padding: '8px',
+    marginRight: '8px'
+  },
+  // Mobile Top Nav Styles
+  mobileTopNav: {
+    display: 'flex',
+    overflowX: 'auto',
+    backgroundColor: '#1f2937',
+    padding: '10px',
+    gap: '12px',
+    borderBottom: '1px solid #374151',
+    whiteSpace: 'nowrap',
+    WebkitOverflowScrolling: 'touch',
+    scrollbarWidth: 'none', // Hide scrollbar Firefox
+    msOverflowStyle: 'none' // Hide scrollbar IE/Edge
+  },
+  mobileNavItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 16px',
+    borderRadius: '20px',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    color: '#d1d5db',
+    fontSize: '14px',
+    fontWeight: '500',
+    border: 'none',
+    cursor: 'pointer',
+    flexShrink: 0
+  },
+  mobileNavActive: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    boxShadow: '0 2px 5px rgba(59, 130, 246, 0.5)'
+  },
+  // Professional Inquiry Card Styles
+  inquiryCard: {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+    border: '1px solid #e5e7eb',
+    padding: '20px',
+    marginBottom: '16px',
+    transition: 'all 0.2s ease',
+    cursor: 'pointer'
+  },
+  inquiryHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '12px'
+  },
+  senderInfo: {
+    display: 'flex',
+    gap: '12px',
+    alignItems: 'center'
+  },
+  avatar: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    backgroundColor: '#e0f2fe',
+    color: '#0369a1',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 'bold',
+    fontSize: '16px'
+  },
+  msgMeta: {
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  senderName: {
+    fontWeight: '600',
+    color: '#111827',
+    fontSize: '15px'
+  },
+  msgTime: {
+    fontSize: '12px',
+    color: '#6b7280'
+  },
+  subjectBadge: {
+    padding: '4px 10px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500',
+    marginTop: '4px',
+    display: 'inline-block'
+  },
+  msgPreview: {
+    color: '#4b5563',
+    fontSize: '14px',
+    lineHeight: '1.5',
+    marginBottom: '12px'
+  },
+  msgAction: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '8px'
+  },
+  // Tenant Modal Image Styles
+  imagePreview: {
+    width: '100%',
+    height: '200px',
+    objectFit: 'cover',
+    borderRadius: '8px',
+    backgroundColor: '#f3f4f6',
+    border: '1px solid #e5e7eb'
   },
   homeBtn: {
     background: 'transparent',
@@ -2787,6 +3055,53 @@ const styles = {
     position: 'relative',
     padding: '8px',
     cursor: 'pointer'
+  },
+  sidebarContent: {
+    padding: '24px',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    overflowY: 'auto'
+  },
+  sidebarHeader: {
+    marginBottom: '32px',
+    paddingLeft: '12px'
+  },
+  sidebarTitle: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: '4px'
+  },
+  sidebarSubtitle: {
+    fontSize: '14px',
+    color: '#64748b'
+  },
+  menuList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    flex: 1
+  },
+  menuItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '12px',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    fontSize: '15px',
+    fontWeight: '500',
+    color: '#64748b',
+    border: 'none',
+    width: '100%',
+    textAlign: 'left'
+  },
+  navLink: {
+    textDecoration: 'none',
+    color: 'inherit',
+    display: 'block'
   },
   badgeCount: {
     position: 'absolute',

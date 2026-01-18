@@ -3,13 +3,13 @@
 const getConfig = () => {
   return {
     // API Configuration
-    apiBaseUrl: process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com',
-    
+    apiBaseUrl: 'https://joyce-suites-xdkp.onrender.com',
+
     // App Configuration
     appName: 'Joyce Suites',
     appVersion: '1.0.0',
     appDescription: 'Property Management System',
-    
+
     // Endpoints Configuration
     endpoints: {
       // Authentication Endpoints
@@ -20,7 +20,7 @@ const getConfig = () => {
         register: '/api/auth/register',
         verify: '/api/auth/verify'
       },
-      
+
       // Caretaker Endpoints
       caretaker: {
         dashboard: '/api/caretaker/dashboard',
@@ -51,7 +51,7 @@ const getConfig = () => {
         systemHealth: '/api/caretaker/system/health',
         debugRooms: '/api/caretaker/debug/rooms'
       },
-      
+
       // Admin Endpoints
       admin: {
         overview: '/api/admin/overview',
@@ -59,7 +59,7 @@ const getConfig = () => {
         payments: '/api/admin/payments',
         reports: '/api/admin/reports'
       },
-      
+
       // Tenant Endpoints
       tenant: {
         dashboard: '/api/tenant/dashboard',
@@ -68,13 +68,13 @@ const getConfig = () => {
         maintenance: '/api/tenant/maintenance',
         lease: '/api/tenant/lease'
       },
-      
+
       // Public Endpoints
       public: {
         rooms: '/api/caretaker/rooms/public'
       }
     },
-    
+
     // App Settings
     settings: {
       itemsPerPage: 20,
@@ -89,7 +89,7 @@ const getConfig = () => {
       propertyTypes: ['bedsitter', 'one_bedroom'],
       vacateStatuses: ['pending', 'approved', 'completed', 'rejected']
     },
-    
+
     // UI Configuration
     ui: {
       primaryColor: '#3b82f6',
