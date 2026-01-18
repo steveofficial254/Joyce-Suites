@@ -22,6 +22,7 @@ const TenantDashboard = () => {
   const [profileData, setProfileData] = useState(null);
   const [paymentsData, setPaymentsData] = useState([]);
   const [vacateNotices, setVacateNotices] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -354,8 +355,15 @@ const TenantDashboard = () => {
 
       console.log('Fetching dashboard data...');
       // Fetch dashboard data
-      const dashRes = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/dashboard`);
+      const [dashRes, profileRes, paymentsRes, vacateRes, notificationsRes] = await Promise.all([
+        fetchWithAuth(`${config.apiBaseUrl}/api/tenant/dashboard`),
+        fetchWithAuth(`${config.apiBaseUrl}/api/auth/profile`),
+        fetchWithAuth(`${config.apiBaseUrl}/api/tenant/payments`),
+        fetchWithAuth(`${config.apiBaseUrl}/api/tenant/vacate-notices`),
+        fetchWithAuth(`${config.apiBaseUrl}/api/auth/notifications`)
+      ]);
 
+      // Process dashboard data
       if (dashRes && dashRes.ok) {
         const dashData = await dashRes.json();
         setDashboardData(dashData.dashboard);
@@ -371,9 +379,7 @@ const TenantDashboard = () => {
       }
 
       console.log('Fetching profile data...');
-      // Fetch profile data - USE AUTH ENDPOINT
-      const profileRes = await fetchWithAuth(`${config.apiBaseUrl}/api/auth/profile`);
-
+      // Process profile data
       if (profileRes && profileRes.ok) {
         const profData = await profileRes.json();
         console.log('🔍 Profile API Response:', profData);
@@ -385,9 +391,7 @@ const TenantDashboard = () => {
       }
 
       console.log('Fetching payments data...');
-      // Fetch payments
-      const paymentsRes = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/payments`);
-
+      // Process payments
       if (paymentsRes && paymentsRes.ok) {
         const paysData = await paymentsRes.json();
         setPaymentsData(paysData.payments || []);
@@ -397,13 +401,20 @@ const TenantDashboard = () => {
 
       console.log('Fetching vacate notices...');
       // Fetch vacate notices
-      const vacateRes = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/vacate-notices`);
-
       if (vacateRes && vacateRes.ok) {
-        const vacateData = await vacateRes.json();
-        setVacateNotices(vacateData.notices || []);
+        const vacData = await vacateRes.json();
+        setVacateNotices(vacData.notices || []);
       } else {
         console.error(`Vacate notices response error: ${vacateRes ? vacateRes.status : 'No response'}`);
+      }
+
+      console.log('Fetching notifications...');
+      // Fetch notifications
+      if (notificationsRes && notificationsRes.ok) {
+        const notifData = await notificationsRes.json();
+        setNotifications(notifData.notifications || []);
+      } else {
+        console.error(`Notifications response error: ${notificationsRes ? notificationsRes.status : 'No response'}`);
       }
 
       // Fetch full lease details
