@@ -427,7 +427,9 @@ def get_tenant_details(tenant_id):
                 } if lease else None,
                 "recent_payments": payments_list,
                 "recent_maintenance": maintenance_list,
-                "vacate_notices": notices_list
+                "vacate_notices": notices_list,
+                "photo_path": tenant.photo_path,
+                "id_document_path": tenant.id_document_path
             }
         }), 200
 

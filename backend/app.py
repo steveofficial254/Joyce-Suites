@@ -158,6 +158,11 @@ def register_blueprints(app: Flask) -> None:
             "timestamp": datetime.utcnow().isoformat()
         }), 200
 
+    @app.route('/uploads/<path:filename>')
+    def serve_uploaded_file(filename):
+        from flask import send_from_directory
+        return send_from_directory(os.path.join(app.root_path, 'uploads'), filename)
+
 
 def register_error_handlers(app: Flask) -> None:
     """Register common HTTP error handlers."""

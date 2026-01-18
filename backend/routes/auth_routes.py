@@ -74,9 +74,17 @@ def generate_jwt_token(user_id: int, role: str) -> str:
     # Get secret from app config
     jwt_secret = current_app.config.get('JWT_SECRET') or os.getenv("JWT_SECRET", "dev-secret-key")
     
+    # Fetch user to get details
+    user = User.query.get(user_id)
+    
     payload = {
         "user_id": user_id,
         "role": role,
+        "email": user.email if user else None,
+        "full_name": user.full_name if user else None,
+        "room_number": user.room_number if user else None,
+        "photo_path": user.photo_path if user else None,
+        "is_active": user.is_active if user else False,
         "iat": datetime.utcnow(),
         "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
     }
