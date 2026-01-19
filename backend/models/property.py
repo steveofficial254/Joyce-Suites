@@ -5,7 +5,7 @@ from sqlalchemy_serializer import SerializerMixin
 from .base import BaseModel, db
 
 PROPERTY_TYPES = ( "bedsitter", "one_bedroom")
-PROPERTY_STATUSES = ("vacant", "occupied", "under_maintenance")
+PROPERTY_STATUSES = ("vacant", "occupied", "reserved", "under_maintenance")
 
 
 class Property(BaseModel, SerializerMixin):
@@ -15,14 +15,16 @@ class Property(BaseModel, SerializerMixin):
     property_type = db.Column(Enum(*PROPERTY_TYPES, name='property_type_enum'), nullable=False)
     description = db.Column(db.Text)
     rent_amount = db.Column(db.Float, nullable=False)
-    deposit_amount = db.Column(db.Float, nullable=False, default=0)  # Add this line
+    deposit_amount = db.Column(db.Float, nullable=False, default=0)
     landlord_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     status = db.Column(Enum(*PROPERTY_STATUSES, name='property_status_enum'), default='vacant', nullable=False)
-    paybill_number = db.Column(db.String(20), nullable=True)  # Add this line
-    account_number = db.Column(db.String(50), nullable=True)  # Add this line
+    paybill_number = db.Column(db.String(20), nullable=True)
+    account_number = db.Column(db.String(50), nullable=True)
+    reserved_until = db.Column(db.DateTime, nullable=True)
+    reservation_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
-    # Relationships
     landlord = db.relationship('User', back_populates='properties', foreign_keys=[landlord_id])
+    reservation_user = db.relationship('User', foreign_keys=[reservation_user_id])
     leases = db.relationship('Lease', back_populates='property', cascade='all, delete-orphan')
     images = db.relationship('PropertyImage', back_populates='property', cascade='all, delete-orphan')
     maintenance_requests = db.relationship('MaintenanceRequest', back_populates='property', cascade='all, delete-orphan')

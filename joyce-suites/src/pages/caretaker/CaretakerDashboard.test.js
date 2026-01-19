@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
 import CaretakerDashboard from './CaretakerDashboard';
 
-// Mock the page components
+
 jest.mock('./DashboardPage', () => {
   return function MockDashboardPage({ stats, tenants }) {
     return (

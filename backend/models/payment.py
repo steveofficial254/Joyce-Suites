@@ -1,9 +1,7 @@
-# backend/models/payment.py
 from datetime import datetime
 from sqlalchemy_serializer import SerializerMixin
 from .base import BaseModel, db
 
-# Define payment status constants
 PAYMENT_STATUSES = ['pending', 'completed', 'failed', 'refunded', 'cancelled', 'paid', 'unpaid']
 
 class Payment(BaseModel, SerializerMixin):
@@ -20,7 +18,6 @@ class Payment(BaseModel, SerializerMixin):
     description = db.Column(db.Text)
     notes = db.Column(db.Text)
     
-    # Relationships
     tenant = db.relationship('User', back_populates='payments', foreign_keys=[tenant_id])
     lease = db.relationship('Lease', back_populates='payments', foreign_keys=[lease_id])
     

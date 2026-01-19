@@ -16,7 +16,6 @@ class VacateNotice(BaseModel, SerializerMixin):
     status = db.Column(Enum(*VACATE_STATUSES, name='vacate_status_enum'), default='pending', nullable=False)
     admin_notes = db.Column(db.Text)
 
-    # Relationships
     lease = db.relationship('Lease', back_populates='vacate_notices')
 
     serialize_rules = ("-lease.vacate_notices",)

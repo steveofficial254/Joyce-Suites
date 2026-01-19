@@ -3,19 +3,11 @@ import config from '../config';
 class ApiService {
   constructor() {
     this.baseURL = config.apiBaseUrl;
-    console.log('🔧 API Service initialized with baseURL:', this.baseURL);
   }
 
-  // Generic request method
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-    
-    console.log('📡 API Request:', {
-      method: options.method || 'GET',
-      url: url,
-      endpoint: endpoint
-    });
-    
+
     const defaultOptions = {
       headers: {
         'Content-Type': 'application/json',
@@ -23,13 +15,9 @@ class ApiService {
       credentials: 'include',
     };
 
-    // Add authorization header if token exists
     const token = localStorage.getItem('joyce-suites-token');
     if (token) {
       defaultOptions.headers['Authorization'] = `Bearer ${token}`;
-      console.log('✅ Token added to request:', token.substring(0, 30) + '...');
-    } else {
-      console.warn('⚠️  No token found in localStorage');
     }
 
     const requestOptions = {
@@ -41,24 +29,19 @@ class ApiService {
       },
     };
 
-    // Handle request body
     if (requestOptions.body && typeof requestOptions.body === 'object') {
       requestOptions.body = JSON.stringify(requestOptions.body);
     }
 
     try {
       const response = await fetch(url, requestOptions);
-      
-      console.log('📊 Response Status:', {
-        status: response.status,
-        statusText: response.statusText,
-        url: response.url
-      });
 
-      // Handle non-JSON responses
+      
+
+      
       const contentType = response.headers.get('content-type');
       let data;
-      
+
       if (contentType && contentType.includes('application/json')) {
         data = await response.json();
       } else {
@@ -70,7 +53,6 @@ class ApiService {
         throw new Error(data.message || data.error || `HTTP error! status: ${response.status}`);
       }
 
-      console.log('✅ API Success:', data);
       return data;
     } catch (error) {
       console.error('❌ API request failed:', error);
@@ -78,7 +60,7 @@ class ApiService {
     }
   }
 
-  // Auth endpoints
+  
   auth = {
     login: async (email, password) => {
       return this.request(config.endpoints.auth.login, {
@@ -101,7 +83,6 @@ class ApiService {
     },
 
     getProfile: async () => {
-      console.log('👤 Calling getProfile with endpoint:', config.endpoints.auth.profile);
       return this.request(config.endpoints.auth.profile);
     },
 
@@ -113,7 +94,7 @@ class ApiService {
     },
   };
 
-  // MPesa endpoints
+  
   mpesa = {
     stkPush: async (paymentData) => {
       return this.request(config.endpoints.mpesa.stkPush, {
@@ -130,7 +111,7 @@ class ApiService {
     },
   };
 
-  // Payment endpoints
+  
   payments = {
     create: async (paymentData) => {
       return this.request(config.endpoints.payments.create, {
@@ -150,7 +131,7 @@ class ApiService {
     },
   };
 
-  // Caretaker endpoints
+  
   caretaker = {
     getProfile: async () => {
       return this.request(config.endpoints.caretaker.profile);
@@ -174,10 +155,9 @@ class ApiService {
     },
   };
 
-  // Tenant endpoints
+  
   tenant = {
     getDashboard: async () => {
-      console.log('📊 Calling getDashboard with endpoint:', config.endpoints.tenant.dashboard);
       return this.request(config.endpoints.tenant.dashboard);
     },
 
@@ -209,6 +189,5 @@ class ApiService {
   };
 }
 
-// Create and export a singleton instance
 const apiService = new ApiService();
 export default apiService;

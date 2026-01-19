@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 
-// ✅ Mock BEFORE importing component
+
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => {
   const actual = jest.requireActual('react-router-dom');
@@ -23,59 +23,59 @@ const renderComponent = () => {
   );
 };
 
-// Global setup before all tests
+
 beforeAll(() => {
-  // Ensure clean localStorage from the start
+  
   if (global.localStorage) {
     try {
       global.localStorage.clear();
     } catch (e) {
-      // Ignore
+      
     }
   }
 });
 
 describe('CaretakerLogin Component', () => {
   beforeEach(() => {
-    // ABSOLUTE FIRST: Clear any existing localStorage multiple times to be sure
+    
     let clearAttempts = 0;
     while (clearAttempts < 3) {
       if (global.localStorage && typeof global.localStorage.clear === 'function') {
         try {
           global.localStorage.clear();
-          // Verify it's actually cleared
+          
           if (global.localStorage.length === 0) {
             break;
           }
         } catch (e) {
-          // Continue trying
+          
         }
       }
       clearAttempts++;
     }
 
-    // Clean up from previous test
+    
     cleanup();
 
-    // Reset mockNavigate IMMEDIATELY
+    
     mockNavigate.mockReset();
     mockNavigate.mockClear();
     mockNavigate.mockImplementation(() => {});
 
-    // Reset all Jest mocks (this includes fetch spies)
+    
     jest.restoreAllMocks();
     jest.clearAllMocks();
 
-    // Completely remove old localStorage property
+    
     const descriptor = Object.getOwnPropertyDescriptor(global, 'localStorage');
     if (descriptor && descriptor.configurable) {
       delete global.localStorage;
     }
 
-    // Create a completely isolated store for this test
+    
     const store = {};
 
-    // Create the mock with this test's store
+    
     const mockLocalStorage = {
       getItem: (key) => {
         const value = store[key];
@@ -101,7 +101,7 @@ describe('CaretakerLogin Component', () => {
       },
     };
 
-    // Replace global.localStorage with a fresh mock - use writable: false for safety
+    
     Object.defineProperty(global, 'localStorage', {
       value: mockLocalStorage,
       writable: false,
@@ -110,27 +110,27 @@ describe('CaretakerLogin Component', () => {
   });
 
   afterEach(() => {
-    // Clean up React components
+    
     cleanup();
 
-    // Restore ALL mocks including fetch
+    
     jest.restoreAllMocks();
 
-    // Clear mocks
+    
     jest.clearAllMocks();
     mockNavigate.mockClear();
     mockNavigate.mockReset();
 
-    // Clean up localStorage completely
+    
     try {
       if (global.localStorage) {
         global.localStorage.clear();
       }
     } catch (e) {
-      // Ignore
+      
     }
 
-    // Delete the property
+    
     const descriptor = Object.getOwnPropertyDescriptor(global, 'localStorage');
     if (descriptor && descriptor.configurable) {
       delete global.localStorage;
@@ -334,7 +334,7 @@ describe('CaretakerLogin Component', () => {
       { timeout: 3000 }
     );
 
-    // Verify no data was stored
+    
     expect(localStorage.getItem('token')).toBeNull();
     expect(localStorage.getItem('userRole')).toBeNull();
     expect(localStorage.getItem('userId')).toBeNull();
@@ -359,7 +359,7 @@ describe('CaretakerLogin Component', () => {
 
     renderComponent();
 
-    // First failed attempt
+    
     fireEvent.change(screen.getByLabelText(/Email Address/i), {
       target: { value: 'caretaker@joycesuites.com' },
     });
@@ -373,7 +373,7 @@ describe('CaretakerLogin Component', () => {
       expect(screen.getByText(/Login failed/i)).toBeInTheDocument();
     });
 
-    // Second successful attempt
+    
     fireEvent.change(screen.getByLabelText(/Email Address/i), {
       target: { value: 'caretaker@joycesuites.com' },
     });

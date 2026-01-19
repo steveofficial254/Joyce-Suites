@@ -12,7 +12,6 @@ class PropertyImage(BaseModel, SerializerMixin):
     caption = db.Column(db.String(200))
     is_primary = db.Column(db.Boolean, default=False, nullable=False)
 
-    # Relationships
     property = db.relationship('Property', back_populates='images')
 
     serialize_rules = ("-property.images",)

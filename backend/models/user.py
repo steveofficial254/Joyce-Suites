@@ -27,7 +27,6 @@ class User(BaseModel, SerializerMixin):
     id_document_path = db.Column(db.String(255), nullable=True)
     room_number = db.Column(db.String(20), nullable=True)
 
-    # Relationships
     leases = db.relationship(
         "Lease", 
         back_populates="tenant", 

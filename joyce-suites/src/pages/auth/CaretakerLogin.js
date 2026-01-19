@@ -13,13 +13,13 @@ const CaretakerLogin = () => {
     password: ''
   });
 
-  // Check if already logged in as caretaker or admin
+  
   useEffect(() => {
     const token = localStorage.getItem('joyce-suites-token');
     const userRole = localStorage.getItem('userRole');
     
     if (token && (userRole === 'caretaker' || userRole === 'admin')) {
-      console.log(`✅ User already logged in as ${userRole}`);
+      
       navigate('/caretaker/dashboard', { replace: true });
     }
   }, [navigate]);
@@ -63,11 +63,11 @@ const CaretakerLogin = () => {
     localStorage.setItem('userFullName', user.full_name);
     localStorage.setItem('joyce-suites-user', JSON.stringify(userData));
 
-    console.log('💾 Auth data saved successfully');
+    
   };
 
   const getErrorMessage = (err, status = null, responseData = null) => {
-    // Network/connectivity errors
+    
     if (err?.message?.includes('Failed to fetch')) {
       return 'Network error: Unable to reach the server. Please check your internet connection.';
     }
@@ -80,7 +80,7 @@ const CaretakerLogin = () => {
       return 'Server returned invalid data. Please try again.';
     }
 
-    // HTTP status-based errors
+    
     if (status === 401) {
       return 'Invalid email or password. Please try again.';
     }
@@ -97,7 +97,7 @@ const CaretakerLogin = () => {
       return 'Server error. Please try again later.';
     }
 
-    // API response errors
+    
     if (responseData?.error) {
       return responseData.error;
     }
@@ -106,7 +106,7 @@ const CaretakerLogin = () => {
       return responseData.message;
     }
 
-    // Generic fallback
+    
     return 'Login failed. Please try again.';
   };
 
@@ -116,10 +116,10 @@ const CaretakerLogin = () => {
     setLoading(true);
 
     try {
-      console.log('🧹 Clearing old tokens...');
+      
       clearStoredAuth();
 
-      // Validate form inputs
+      
       if (!formData.email || !formData.password) {
         setError('Email and password are required');
         setLoading(false);
@@ -127,12 +127,12 @@ const CaretakerLogin = () => {
       }
 
       const email = formData.email.trim().toLowerCase();
-      console.log('📡 Attempting caretaker login with email:', email);
+      
 
-      // Build login URL
+      
       const API_BASE_URL = 'https://joyce-suites-xdkp.onrender.com';
       const loginUrl = `${API_BASE_URL}/api/auth/login`;
-      console.log('🔗 Login URL:', loginUrl);
+      
 
       const response = await fetch(loginUrl, {
         method: 'POST',
@@ -145,7 +145,7 @@ const CaretakerLogin = () => {
         })
       });
 
-      // Check response content type
+      
       const contentType = response.headers.get('content-type');
       if (!contentType?.includes('application/json')) {
         console.error('❌ Invalid response format from server');
@@ -155,9 +155,9 @@ const CaretakerLogin = () => {
       }
 
       const data = await response.json();
-      console.log('📨 Login response status:', response.status);
+      
 
-      // Handle non-200 responses
+      
       if (!response.ok) {
         console.error('❌ Login failed with status:', response.status);
         clearStoredAuth();
@@ -167,7 +167,7 @@ const CaretakerLogin = () => {
         return;
       }
 
-      // Validate success flag
+      
       if (!data.success) {
         console.error('❌ Response marked as not successful');
         clearStoredAuth();
@@ -177,7 +177,7 @@ const CaretakerLogin = () => {
         return;
       }
 
-      // Validate user data structure
+      
       if (!data.user || !data.user.role) {
         console.error('❌ Invalid response structure');
         clearStoredAuth();
@@ -186,7 +186,7 @@ const CaretakerLogin = () => {
         return;
       }
 
-      // Validate user role
+      
       const validRoles = ['caretaker', 'admin'];
       if (!validRoles.includes(data.user.role)) {
         console.error('❌ User role not authorized:', data.user.role);
@@ -196,7 +196,7 @@ const CaretakerLogin = () => {
         return;
       }
 
-      // Validate authentication token
+      
       if (!data.token) {
         console.error('❌ No token in response');
         clearStoredAuth();
@@ -205,15 +205,15 @@ const CaretakerLogin = () => {
         return;
       }
 
-      // Store authentication data
-      console.log('💾 Saving caretaker token and user data...');
+      
+      
       storeAuthData(data.user, data.token);
 
-      // Verify token was saved
+      
       const savedToken = localStorage.getItem('joyce-suites-token');
-      console.log('🔍 Verification - Token in storage:', savedToken ? '✅ YES' : '❌ NO');
+      
 
-      console.log(`✅ ${data.user.role} login successful, redirecting to dashboard...`);
+      
       navigate('/caretaker/dashboard', { replace: true });
 
     } catch (err) {
@@ -226,7 +226,7 @@ const CaretakerLogin = () => {
     }
   };
 
-  // Helper to fill default credentials (development only)
+  
   const fillDefaultCredentials = () => {
     const defaultEmail = process.env.REACT_APP_DEFAULT_CARETAKER_EMAIL;
     const defaultPassword = process.env.REACT_APP_DEFAULT_CARETAKER_PASSWORD;

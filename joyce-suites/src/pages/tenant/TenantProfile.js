@@ -141,7 +141,7 @@ const TenantProfile = () => {
 
   return (
     <div className="tenant-dashboard">
-      {/* Sidebar */}
+      {}
       <aside className="sidebar">
         <div className="sidebar-header">
           <img src={logo} alt="Logo" className="sidebar-logo" />
@@ -179,9 +179,9 @@ const TenantProfile = () => {
         </div>
       </aside>
 
-      {/* Main Content */}
+      {}
       <main className="main-content">
-        {/* Topbar */}
+        {}
         <header className="topbar">
           <div className="topbar-left">
             <h1>Profile</h1>
@@ -189,11 +189,11 @@ const TenantProfile = () => {
           </div>
         </header>
 
-        {/* Messages */}
+        {}
         {success && <div className="alert alert-success">{success}</div>}
         {error && <div className="alert alert-error">{error}</div>}
 
-        {/* Profile Content */}
+        {}
         <div className="profile-content">
           <div className="profile-card">
             <div className="profile-header">
@@ -306,7 +306,7 @@ const TenantProfile = () => {
           </div>
         </div>
 
-        {/* Footer */}
+        {}
         <footer className="dashboard-footer">
           <div className="footer-content">
             <div className="footer-section">

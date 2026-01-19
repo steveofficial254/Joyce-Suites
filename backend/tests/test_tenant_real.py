@@ -12,7 +12,6 @@ class TestTenant:
     @pytest.fixture
     def tenant_token(self, client):
         """Create a tenant and return token."""
-        # Register tenant
         client.post('/api/auth/register', json={
             'email': 'tenant_real@test.com',
             'password': 'Password123',
@@ -22,7 +21,6 @@ class TestTenant:
             'idNumber': '10000001'
         })
         
-        # Login
         response = client.post('/api/auth/login', json={
             'email': 'tenant_real@test.com',
             'password': 'Password123'
@@ -42,11 +40,9 @@ class TestTenant:
 
     def test_lease_details(self, client, tenant_token):
         """Test getting lease details."""
-        # Setup: Create a property and lease for the tenant
         with client.application.app_context():
             user = User.query.filter_by(email='tenant_real@test.com').first()
             
-            # Create a landlord
             landlord = User(
                 email="landlord@test.com",
                 username="landlord",
@@ -93,11 +89,9 @@ class TestTenant:
 
     def test_maintenance_request(self, client, tenant_token):
         """Test creating maintenance request."""
-        # Setup: Need property and lease first
         with client.application.app_context():
             user = User.query.filter_by(email='tenant_real@test.com').first()
             
-            # Check if landlord exists (from previous test) or create new
             landlord = User.query.filter_by(email="landlord2@test.com").first()
             if not landlord:
                 landlord = User(

@@ -3,14 +3,14 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 
-// Mock useNavigate BEFORE importing component
+
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
 }));
 
-// Mock the imported images
+
 jest.mock('../../assets/image12.jpg', () => 'apartment1.jpg');
 jest.mock('../../assets/image21.jpg', () => 'apartment2.jpg');
 jest.mock('../../assets/image22.jpg', () => 'apartment3.jpg');
@@ -57,7 +57,7 @@ describe('TenantDashboard', () => {
     localStorage.clear();
     localStorage.setItem('token', 'mock-token');
     
-    // Mock fetch
+    
     global.fetch = jest.fn(() =>
       Promise.resolve({
         ok: true,
@@ -65,7 +65,7 @@ describe('TenantDashboard', () => {
       })
     );
 
-    // Mock setInterval to prevent auto-sliding
+    
     jest.useFakeTimers();
   });
 
@@ -537,7 +537,7 @@ describe('TenantDashboard', () => {
         
         expect(sidebarLinks.length).toBeGreaterThanOrEqual(5);
         
-        // Check for My Lease link
+        
         const leaseLinks = screen.getAllByRole('link', { name: /My Lease/i });
         expect(leaseLinks.length).toBeGreaterThan(0);
       }, { timeout: 3000 });

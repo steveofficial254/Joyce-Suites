@@ -14,7 +14,7 @@ const TenantRegister = () => {
   const [success, setSuccess] = useState('');
   const [photoPreview, setPhotoPreview] = useState(null);
   const [idPreview, setIdPreview] = useState(null);
-  // Camera removed as requested
+  
   const [rooms, setRooms] = useState([]);
   const [roomData, setRoomData] = useState(null);
   const [loadingRooms, setLoadingRooms] = useState(false);
@@ -34,14 +34,14 @@ const TenantRegister = () => {
   });
 
   useEffect(() => {
-    console.log('Component mounted, fetching rooms...');
+    
     fetchRooms();
   }, []);
 
   useEffect(() => {
-    console.log('Rooms state updated:', rooms.length, 'rooms');
+    
     if (rooms.length > 0) {
-      console.log('First room:', rooms[0]);
+      
     }
   }, [rooms]);
 
@@ -49,7 +49,7 @@ const TenantRegister = () => {
     setLoadingRooms(true);
     setError('');
     try {
-      console.log('Fetching available rooms from public endpoint...');
+      
 
       const response = await fetch(`${API_BASE_URL}/api/caretaker/rooms/public`);
 
@@ -58,26 +58,26 @@ const TenantRegister = () => {
       }
 
       const data = await response.json();
-      console.log('Full API response:', data);
+      
 
-      // Check the actual response structure
+      
       if (data.success && Array.isArray(data.rooms)) {
-        console.log(`Found ${data.rooms.length} rooms`);
-        console.log('Sample room:', data.rooms[0]);
+        
+        
 
-        // Process rooms to ensure consistent structure
+        
         const processedRooms = data.rooms.map(room => ({
           id: room.id,
           name: room.name,
-          room_number: room.name.replace('Room ', ''), // Extract room number from name
-          property_type: room.type, // Backend uses 'type' field
+          room_number: room.name.replace('Room ', ''), 
+          property_type: room.type, 
           rent_amount: room.rent_amount,
-          rent: room.rent_amount, // Add alias for compatibility
+          rent: room.rent_amount, 
           description: room.description,
-          status: 'vacant' // Since we're only getting vacant rooms
+          status: 'vacant' 
         }));
 
-        console.log('Processed rooms:', processedRooms);
+        
         setRooms(processedRooms);
       } else {
         console.error('Invalid response structure:', data);
@@ -97,22 +97,22 @@ const TenantRegister = () => {
     const { name, value, type, checked } = e.target;
 
     if (name === 'roomNumber' && value) {
-      console.log('Room selected:', value);
+      
 
-      // Find the selected room
+      
       const selectedRoom = rooms.find(room => {
         const roomNumber = room.room_number || room.name.replace('Room ', '').trim();
         return roomNumber === value.trim();
       });
 
-      console.log('Selected room object:', selectedRoom);
+      
 
       if (selectedRoom) {
-        // Calculate deposit (7% of rent)
+        
         const rentAmount = selectedRoom.rent_amount || selectedRoom.rent || 0;
         const depositAmount = rentAmount * 0.07;
 
-        // Format room type for display
+        
         let roomType = 'Room';
         const propType = selectedRoom.property_type;
         if (propType === 'bedsitter') {
@@ -133,21 +133,16 @@ const TenantRegister = () => {
           deposit: depositAmount,
           totalAmount: rentAmount + depositAmount,
           property_type: propType,
-          // Note: Your current backend endpoint doesn't return paybill/account/landlord
-          // You'll need to update the backend or fetch additional data
-          paybill: selectedRoom.paybill_number || '222111', // Default fallback
-          account: selectedRoom.account_number || 'JOYCE001', // Default fallback
-          landlord: selectedRoom.landlord_name || 'Joyce Muthoni' // Default fallback
+          
+          
+          paybill: selectedRoom.paybill_number || '222111', 
+          account: selectedRoom.account_number || 'JOYCE001', 
+          landlord: selectedRoom.landlord_name || 'Joyce Muthoni' 
         });
 
-        console.log('Updated room data:', {
-          name: selectedRoom.name,
-          type: roomType,
-          rent: rentAmount,
-          deposit: depositAmount
-        });
+        
       } else {
-        console.log('Room not found for value:', value);
+        
         setRoomData(null);
       }
     }
@@ -186,25 +181,25 @@ const TenantRegister = () => {
     }
   };
 
-  // Camera functions removed as requested
+  
 
   const validateForm = () => {
     setError('');
 
-    // Validate full name
+    
     if (!formData.fullName.trim()) {
       setError('Full name is required');
       return false;
     }
 
-    // Validate email
+    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setError('Valid email address is required');
       return false;
     }
 
-    // Validate phone (Kenyan format)
+    
     const phoneRegex = /^(\+254|0)[1-9]\d{8}$/;
     const cleanPhone = formData.phone.replace(/\s/g, '');
     if (!phoneRegex.test(cleanPhone)) {
@@ -212,19 +207,19 @@ const TenantRegister = () => {
       return false;
     }
 
-    // Validate ID number
+    
     if (!formData.idNumber.trim()) {
       setError('National ID number is required');
       return false;
     }
 
-    // Validate room selection
+    
     if (!formData.roomNumber.trim()) {
       setError('Please select a room');
       return false;
     }
 
-    // Validate password
+    
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters');
       return false;
@@ -242,7 +237,7 @@ const TenantRegister = () => {
       return false;
     }
 
-    // Validate file uploads
+    
     if (!formData.photo) {
       setError('Profile photo is required');
       return false;
@@ -252,7 +247,7 @@ const TenantRegister = () => {
       return false;
     }
 
-    // Validate terms acceptance
+    
     if (!formData.terms) {
       setError('You must agree to the terms and conditions');
       return false;
@@ -288,9 +283,9 @@ const TenantRegister = () => {
       uploadData.append('id_document', formData.idDocument);
       uploadData.append('role', 'tenant');
 
-      console.log('Submitting registration with room data:', roomData);
+      
 
-      // If roomData exists, append additional details
+      
       if (roomData) {
         uploadData.append('room_id', roomData.id);
         uploadData.append('room_type', roomData.property_type);
@@ -319,7 +314,7 @@ const TenantRegister = () => {
         data = { error: `Server error: ${response.status} ${response.statusText}` };
       }
 
-      console.log('Registration response:', data);
+      
 
       if (!response.ok) {
         const message = data.error || data.message || `Registration failed with status ${response.status}`;
@@ -328,7 +323,7 @@ const TenantRegister = () => {
       }
 
       if (data.success && data.token) {
-        // Store user data in localStorage
+        
         localStorage.setItem('joyce-suites-token', data.token);
         localStorage.setItem('joyce-suites-user', JSON.stringify({
           ...data.user,
@@ -507,11 +502,11 @@ const TenantRegister = () => {
                     </option>
                     {rooms.length > 0 ? (
                       rooms.map(room => {
-                        // Use room_number if available, otherwise extract from name
+                        
                         const roomNumber = room.room_number || room.name.replace('Room ', '').trim();
                         const roomName = room.name;
 
-                        // Get room type
+                        
                         let roomType = 'Room';
                         const propType = room.property_type;
                         if (propType === 'bedsitter') {
@@ -524,7 +519,7 @@ const TenantRegister = () => {
                           roomType = propType.replace('_', ' ').toUpperCase();
                         }
 
-                        // Get rent amount
+                        
                         const rentAmount = room.rent_amount || room.rent || 0;
 
                         return (

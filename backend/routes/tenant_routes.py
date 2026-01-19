@@ -42,38 +42,30 @@ def get_account_details_backend(room_number):
     except ValueError:
         return None
     
-    # Rooms that pay to Joyce Muthoni
     joyce_rooms = [1, 2, 3, 4, 5, 6, 8, 9, 10]
-    # Rooms that pay to Lawrence Mathea
     lawrence_rooms = [11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
     
-    # Room pricing and deposit rules
     rent_amount = 5000
     deposit_amount = 5400
     room_type = 'bedsitter'
     
     if room_num in [8, 9, 10, 17, 19, 20]:
-        # 1-bedroom standard
         rent_amount = 7500
         deposit_amount = 7900
         room_type = 'one_bedroom'
     elif room_num == 18:
-        # Special room 18
         rent_amount = 7000
         deposit_amount = 7400
         room_type = 'one_bedroom'
     elif room_num in [12, 22]:
-        # Bigger bedsitters
         rent_amount = 5500
         deposit_amount = 5900
         room_type = 'bedsitter'
     elif room_num in [11, 13, 14, 15, 21, 23, 24, 25, 26]:
-        # Standard bedsitters for Lawrence
         rent_amount = 5000
         deposit_amount = 5400
         room_type = 'bedsitter'
     
-    # Determine landlord
     if room_num in joyce_rooms:
         landlord_name = 'Joyce Muthoni Mathea'
         paybill = '222111'
@@ -98,7 +90,6 @@ def get_account_details_backend(room_number):
     }
 
 
-# ==================== DASHBOARD ROUTE ====================
 @tenant_bp.route("/dashboard", methods=["GET"])
 @tenant_required
 def dashboard():
@@ -111,7 +102,6 @@ def dashboard():
             current_app.logger.error(f"❌ User not found: {request.user_id}")
             return jsonify({"success": False, "error": "User not found"}), 404
 
-        # Get any active lease for this user
         active_lease = Lease.query.filter_by(tenant_id=user.id, status='active').first()
         
         recent_payments = []
@@ -137,31 +127,24 @@ def dashboard():
             if hasattr(active_lease, 'property') and active_lease.property:
                 property_name = active_lease.property.name
                 rent_amount = active_lease.rent_amount or 0
-                # Use property name for unit number if user doesn't have room_number
                 if not user.room_number:
                     unit_number = property_name.replace('Room ', '')
             else:
                 property_name = "Unknown Property"
 
-        # Default values
         outstanding_balance = 0.0
         
-        # Calculate outstanding balance if active lease exists
         if active_lease and active_lease.status == 'active':
             try:
-                # Calculate total months since start date
                 start_date = active_lease.start_date
                 now = datetime.utcnow().date()
                 
-                # Calculate month difference
                 months_stayed = (now.year - start_date.year) * 12 + (now.month - start_date.month)
                 
-                # If start day is passed in current month, count current month as due
                 months_due = max(1, months_stayed + 1)
                 
                 total_rent_due = months_due * float(active_lease.rent_amount)
                 
-                # Calculate total paid
                 total_paid = 0
                 payments = Payment.query.filter_by(
                     lease_id=active_lease.id, 
@@ -175,7 +158,6 @@ def dashboard():
                 
             except Exception as e:
                 current_app.logger.error(f"Balance calculation error: {str(e)}")
-                # Keep default 0.0 on error
 
         current_app.logger.info(f"✅ Dashboard data loaded for {user.email}")
         
@@ -203,7 +185,6 @@ def dashboard():
         return jsonify({"success": False, "error": f"Dashboard error: {str(e)}"}), 500
 
 
-# ==================== PROFILE ROUTE ====================
 @tenant_bp.route("/profile", methods=["GET"])
 @tenant_required
 def get_tenant_profile():
@@ -233,7 +214,6 @@ def get_tenant_profile():
         return jsonify({"success": False, "error": f"Profile error: {str(e)}"}), 500
 
 
-# ==================== PAYMENT DETAILS ROUTE ====================
 @tenant_bp.route("/payment-details", methods=["GET"])
 @tenant_required
 def get_payment_details():
@@ -241,7 +221,6 @@ def get_payment_details():
     try:
         current_app.logger.info(f"💰 Fetching payment details for user_id: {request.user_id}")
         
-        # Get active lease
         lease = Lease.query.filter_by(
             tenant_id=request.user_id,
             status='active'
@@ -254,7 +233,6 @@ def get_payment_details():
                 "error": "No active lease found. Please sign your lease agreement first."
             }), 404
         
-        # Check if lease is signed
         if not lease.signed_by_tenant:
             current_app.logger.warning(f"⚠️ Lease {lease.id} not signed yet")
             return jsonify({
@@ -262,7 +240,6 @@ def get_payment_details():
                 "error": "Please sign your lease agreement before accessing payment details"
             }), 400
         
-        # Get property details
         property = Property.query.get(lease.property_id)
         
         if not property:
@@ -272,7 +249,6 @@ def get_payment_details():
                 "error": "Property not found"
             }), 404
         
-        # Extract room number from property name (e.g., "Room 22" -> "22")
         room_number = property.name.replace("Room ", "").strip()
         
         current_app.logger.info(f"✅ Payment details found - Room: {room_number}, Rent: {property.rent_amount}")
@@ -298,7 +274,6 @@ def get_payment_details():
         }), 500
 
 
-# ==================== LEASE ROUTES ====================
 @tenant_bp.route("/lease", methods=["GET"])
 @tenant_required
 def get_lease_details():
@@ -317,7 +292,6 @@ def get_lease_details():
                 "has_lease": False
             }), 200
 
-        # Get property details
         property = Property.query.get(lease.property_id) if lease.property_id else None
         
         lease_data = {
@@ -367,19 +341,16 @@ def sign_lease():
             current_app.logger.error("❌ Must accept terms and conditions")
             return jsonify({"success": False, "error": "Must accept terms and conditions"}), 400
         
-        # Get user
         user = User.query.get(request.user_id)
         if not user:
             current_app.logger.error(f"❌ User not found: {request.user_id}")
             return jsonify({"success": False, "error": "User not found"}), 404
         
-        # Get or create lease
         lease = Lease.query.filter_by(
             tenant_id=request.user_id,
             status='active'
         ).first()
         
-        # If no lease exists, create one
         if not lease:
             current_app.logger.info(f"ℹ️ No active lease found, creating one for user_id: {request.user_id}")
             
@@ -390,7 +361,6 @@ def sign_lease():
                     "error": "No room assigned. Please contact admin."
                 }), 400
             
-            # Get room details
             account_details = get_account_details_backend(user.room_number)
             if not account_details:
                 current_app.logger.error(f"❌ Invalid room number: {user.room_number}")
@@ -399,7 +369,6 @@ def sign_lease():
                     "error": f"Invalid room number: {user.room_number}"
                 }), 400
             
-            # Create or get property
             property_name = f"Room {user.room_number}"
             property = Property.query.filter_by(name=property_name).first()
             
@@ -420,7 +389,6 @@ def sign_lease():
             else:
                 current_app.logger.info(f"✅ Using existing property: {property_name}")
             
-            # Create lease
             lease = Lease(
                 tenant_id=user.id,
                 property_id=property.id,
@@ -436,24 +404,20 @@ def sign_lease():
             db.session.commit()
             current_app.logger.info(f"✅ Created lease: {lease.id}")
         
-        # Check if already signed
         if lease.signed_by_tenant:
             current_app.logger.warning(f"⚠️ Lease {lease.id} already signed")
             return jsonify({"success": False, "error": "Lease already signed"}), 400
         
-        # Process signature
         signature_data = data['signature']
         if signature_data.startswith('data:image'):
             signature_data = signature_data.split(',')[1]
         
-        # Create signature file
         filename = f'lease_{lease.id}_{request.user_id}_{int(datetime.now().timestamp())}.png'
         filepath = os.path.join(SIGNATURE_FOLDER, filename)
         
         with open(filepath, 'wb') as f:
             f.write(base64.b64decode(signature_data))
         
-        # Update lease with signature
         lease.signature_path = filepath
         lease.signature_filename = filename
         lease.signed_by_tenant = True
@@ -464,7 +428,6 @@ def sign_lease():
         
         current_app.logger.info(f"✅ Lease {lease.id} signed successfully by user_id: {request.user_id}")
         
-        # Create notification for caretaker/admin
         try:
             property = Property.query.get(lease.property_id)
             
@@ -485,7 +448,6 @@ def sign_lease():
         except Exception as notif_error:
             current_app.logger.error(f"⚠️ Failed to create notifications: {notif_error}")
         
-        # Get property for response
         property = Property.query.get(lease.property_id) if lease.property_id else None
         
         return jsonify({
@@ -509,7 +471,6 @@ def sign_lease():
         return jsonify({"success": False, "error": f"Error signing lease: {str(e)}"}), 500
 
 
-# ==================== PAYMENT HISTORY ROUTE ====================
 @tenant_bp.route("/payments", methods=["GET"])
 @tenant_required
 def get_payment_history():
@@ -543,7 +504,6 @@ def get_payment_history():
         return jsonify({"success": False, "error": f"Payments error: {str(e)}"}), 500
 
 
-# ==================== MAINTENANCE REQUEST ROUTES ====================
 @tenant_bp.route("/maintenance/request", methods=["POST"])
 @tenant_required
 def create_maintenance_request():
@@ -555,7 +515,6 @@ def create_maintenance_request():
         if not data.get('title') or not data.get('description'):
             return jsonify({"success": False, "error": "Title and description required"}), 400
 
-        # Get user's lease
         user = User.query.get(request.user_id)
         lease = Lease.query.filter_by(tenant_id=request.user_id, status='active').first()
         
@@ -563,7 +522,6 @@ def create_maintenance_request():
         if lease:
             property_id = lease.property_id
         elif user.room_number:
-            # Try to find property by room number
             property = Property.query.filter_by(name=f"Room {user.room_number}").first()
             if property:
                 property_id = property.id
@@ -585,7 +543,6 @@ def create_maintenance_request():
 
         current_app.logger.info(f"✅ Maintenance request created: {new_request.id}")
         
-        # Create notification for caretaker/admin
         try:
             caretakers = User.query.filter_by(role='caretaker').all()
             admins = User.query.filter_by(role='admin').all()
@@ -655,7 +612,6 @@ def get_maintenance_requests():
         return jsonify({"success": False, "error": f"Failed to fetch: {str(e)}"}), 500
 
 
-# ==================== NEW MAINTENANCE REQUESTS ENDPOINT ====================
 @tenant_bp.route("/maintenance-requests", methods=["GET", "POST"])
 @tenant_required
 def maintenance_requests_combined():
@@ -666,7 +622,6 @@ def maintenance_requests_combined():
         return create_maintenance_request()
 
 
-# ==================== ROOM DETAILS ROUTE ====================
 @tenant_bp.route("/room-details/<unit_number>", methods=["GET"])
 @tenant_required
 def get_room_details(unit_number):
@@ -674,11 +629,9 @@ def get_room_details(unit_number):
     try:
         current_app.logger.info(f"🏠 Fetching room details for unit: {unit_number}, user_id: {request.user_id}")
         
-        # Try to find property by room number
         property = Property.query.filter_by(name=f"Room {unit_number}").first()
         
         if not property:
-            # Alternative: check if user has a lease with this property
             lease = Lease.query.filter_by(tenant_id=request.user_id, status='active').first()
             if lease and lease.property:
                 property = lease.property
@@ -689,7 +642,6 @@ def get_room_details(unit_number):
                 "error": "Room not found"
             }), 404
         
-        # Get landlord info
         landlord_info = {}
         if property.landlord_id:
             landlord = User.query.get(property.landlord_id)
@@ -724,7 +676,6 @@ def get_room_details(unit_number):
         return jsonify({"success": False, "error": f"Error fetching room: {str(e)}"}), 500
 
 
-# ==================== VACATE NOTICE ROUTES ====================
 @tenant_bp.route("/vacate-notice", methods=["POST"])
 @tenant_required
 def submit_vacate_notice():
@@ -773,7 +724,6 @@ def submit_vacate_notice():
         
         current_app.logger.info(f"✅ Vacate notice created: {notice.id}")
         
-        # Create notification for caretaker/admin
         try:
             user = User.query.get(request.user_id)
             property = Property.query.get(lease.property_id) if lease.property_id else None
@@ -887,7 +837,6 @@ def cancel_vacate_notice(notice_id):
         return jsonify({"success": False, "error": f"Error cancelling notice: {str(e)}"}), 500
 
 
-# ==================== NOTIFICATION ROUTES ====================
 @tenant_bp.route("/notifications", methods=["GET"])
 @tenant_required
 def get_notifications():
@@ -940,7 +889,6 @@ def mark_notification_read(notification_id):
         return jsonify({"success": False, "error": f"Update failed: {str(e)}"}), 500
 
 
-# ==================== ROOM PRICING ROUTES ====================
 @tenant_bp.route("/rooms/<room_number>", methods=["GET"])
 @tenant_required
 def get_room_pricing(room_number):
@@ -981,7 +929,6 @@ def get_room_pricing(room_number):
         }), 500
 
 
-# ==================== LEASE PREVIEW ROUTE ====================
 @tenant_bp.route("/lease/preview/<int:room_id>", methods=["GET"])
 @tenant_required
 def get_lease_preview(room_id):
@@ -997,7 +944,6 @@ def get_lease_preview(room_id):
         
         user = User.query.get(request.user_id)
         
-        # Determine landlord based on paybill
         landlord_name = "JOYCE MUTHONI MATHEA"
         landlord_phone = "0758 999322"
         landlord_email = "joycesuites@gmail.com"
@@ -1050,7 +996,6 @@ def get_lease_preview(room_id):
         }), 500
 
 
-# ==================== LEASE CREATE ROUTE (Optional but good to have) ====================
 @tenant_bp.route("/lease/create", methods=["POST"])
 @tenant_required
 def create_lease():
@@ -1062,7 +1007,6 @@ def create_lease():
         if not user:
             return jsonify({"success": False, "error": "User not found"}), 404
         
-        # Check if user already has an active lease
         existing_lease = Lease.query.filter_by(
             tenant_id=user.id, 
             status='active'
@@ -1080,7 +1024,6 @@ def create_lease():
                 "error": "No room number assigned to your account. Please contact admin."
             }), 400
         
-        # Get room details
         account_details = get_account_details_backend(user.room_number)
         if not account_details:
             return jsonify({
@@ -1088,7 +1031,6 @@ def create_lease():
                 "error": f"Invalid room number: {user.room_number}"
             }), 400
         
-        # Create or get property
         property_name = f"Room {user.room_number}"
         property = Property.query.filter_by(name=property_name).first()
         
@@ -1106,7 +1048,6 @@ def create_lease():
             db.session.commit()
             current_app.logger.info(f"✅ Created property: {property_name}")
         
-        # Create new lease
         new_lease = Lease(
             tenant_id=user.id,
             property_id=property.id,
@@ -1143,7 +1084,6 @@ def create_lease():
         return jsonify({"success": False, "error": f"Error creating lease: {str(e)}"}), 500
 
 
-# ==================== HEALTH CHECK ====================
 @tenant_bp.route("/health", methods=["GET"])
 def tenant_health():
     """Health check for tenant routes."""

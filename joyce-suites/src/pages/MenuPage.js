@@ -6,8 +6,8 @@ import {
     Instagram, Facebook, Twitter, MessageSquare, Camera
 } from 'lucide-react';
 
-// Import assets
-import heroBg from '../assets/image13.jpg'; // High quality hero
+
+import heroBg from '../assets/image13.jpg'; 
 import logo from '../assets/image1.png';
 import gallery1 from '../assets/image11.jpg';
 import gallery2 from '../assets/image12.jpg';
@@ -28,13 +28,13 @@ const MenuPage = () => {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [availableRooms, setAvailableRooms] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isVisible, setIsVisible] = useState(false); // For sticky CTA
+    const [isVisible, setIsVisible] = useState(false); 
     const [activeTab, setActiveTab] = useState('all');
     const [nextAvailableDate, setNextAvailableDate] = useState(null);
     const [adClipIndex, setAdClipIndex] = useState(0);
     const scrollRef = useRef(null);
 
-    // Inquiry Form State
+    
     const [inquiryForm, setInquiryForm] = useState({
         name: '',
         email: '',
@@ -45,7 +45,7 @@ const MenuPage = () => {
     const [inquiryStatus, setInquiryStatus] = useState(null);
     const [fetchError, setFetchError] = useState(null);
 
-    // Booking Modal State
+    
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [bookingForm, setBookingForm] = useState({
         name: '',
@@ -57,23 +57,19 @@ const MenuPage = () => {
         message: ''
     });
 
-    // ===== AUTHENTICATION HELPERS =====
-    // Check if user is already authenticated
+    
+    
     const isAuthenticated = () => {
         const token = localStorage.getItem('joyce-suites-token');
         return !!token;
     };
 
-    // Handle authenticated navigation for Sign In button
+    
     const handleAuthNavigation = () => {
-        if (isAuthenticated()) {
-            navigate('/tenant-dashboard');
-        } else {
-            navigate('/register-tenant');
-        }
+        navigate('/register-tenant');
     };
 
-    // Handle booking action - redirect to dashboard if logged in
+    
     const handleBookingAction = () => {
         if (isAuthenticated()) {
             navigate('/tenant-dashboard');
@@ -98,25 +94,33 @@ const MenuPage = () => {
         Additional Notes: ${bookingForm.message}`;
 
         try {
-            // Use the inquiry endpoint but formatted as a booking
             const response = await fetch(`${API_BASE_URL}/api/auth/inquiry`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: bookingForm.name,
                     email: bookingForm.email,
                     phone: bookingForm.phone,
                     message: messageBody,
-                    subject: 'BOOKING REQUEST' // If backend supports it, otherwise it's in body
-                }),
+                    subject: 'BOOKING REQUEST'
+                })
             });
+
             const data = await response.json();
-            if (data.success) {
-                setInquiryStatus({ type: 'success', message: 'Booking request sent! We will contact you regarding availability.' });
-                setBookingForm({ name: '', email: '', phone: '', houseType: 'one_bedroom', occupancy: 'Single', moveInDate: '', message: '' });
-                setTimeout(() => setShowBookingModal(false), 3000);
+            if (response.ok) {
+                setInquiryStatus({
+                    type: 'success',
+                    message: 'Booking request sent! Once processed, you will be directed to register.'
+                });
+                setBookingForm({
+                    name: '', email: '', phone: '', houseType: 'one_bedroom',
+                    occupancy: 'Single', moveInDate: '', message: ''
+                });
+                
+                setTimeout(() => {
+                    setShowBookingModal(false);
+                    navigate('/register-tenant');
+                }, 3000);
             } else {
                 throw new Error(data.error || 'Failed to send booking request');
             }
@@ -127,11 +131,11 @@ const MenuPage = () => {
         }
     };
 
-    // Fetch live availability
+    
     useEffect(() => {
         const fetchRooms = async () => {
             try {
-                console.log('Fetching rooms from:', `${API_BASE_URL}/api/caretaker/rooms/public`);
+                
                 const response = await fetch(`${API_BASE_URL}/api/caretaker/rooms/public`);
 
                 if (!response.ok) {
@@ -158,7 +162,7 @@ const MenuPage = () => {
 
         fetchRooms();
 
-        // Scroll listener for sticky CTA
+        
         const toggleVisibility = () => {
             if (window.pageYOffset > 300) {
                 setIsVisible(true);
@@ -225,11 +229,11 @@ const MenuPage = () => {
         { src: gallery9, tag: 'exteriors', alt: 'Building Front' },
     ];
 
-    // Auto-play Ad Clip
+    
     useEffect(() => {
         const interval = setInterval(() => {
             setAdClipIndex((prev) => (prev + 1) % galleryImages.length);
-        }, 4000); // Change image every 4 seconds
+        }, 4000); 
         return () => clearInterval(interval);
     }, [galleryImages.length]);
 
@@ -239,7 +243,7 @@ const MenuPage = () => {
             color: '#1f2937',
             overflowX: 'hidden',
         },
-        // Navbar
+        
         nav: {
             position: 'fixed',
             top: 0,
@@ -294,7 +298,7 @@ const MenuPage = () => {
             transition: 'all 0.3s',
             boxShadow: '0 4px 14px 0 rgba(245, 158, 11, 0.39)',
         },
-        // Hero
+        
         hero: {
             position: 'relative',
             height: '100vh',
@@ -329,7 +333,7 @@ const MenuPage = () => {
             color: '#f3f4f6',
             animation: 'slideUp 1s ease-out 0.3s backwards'
         },
-        // Ad Banner Animation
+        
         adBanner: {
             position: 'absolute',
             top: '100px',
@@ -343,14 +347,14 @@ const MenuPage = () => {
             zIndex: 20,
             animation: 'float 3s ease-in-out infinite'
         },
-        // Slider
+        
         sliderContainer: {
             display: 'flex',
             gap: '2rem',
             overflowX: 'auto',
             padding: '2rem 1rem',
-            scrollbarWidth: 'none', // Firefox
-            msOverflowStyle: 'none',  // IE 10+
+            scrollbarWidth: 'none', 
+            msOverflowStyle: 'none',  
             scrollBehavior: 'smooth',
             alignItems: 'stretch'
         },
@@ -410,7 +414,7 @@ const MenuPage = () => {
             justifyContent: 'center',
             margin: '0 auto 1.5rem',
         },
-        // Ad Clip Section
+        
         adClipContainer: {
             position: 'relative',
             height: '500px',
@@ -427,7 +431,7 @@ const MenuPage = () => {
             height: '100%',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            transition: 'opacity 1s ease-in-out, transform 8s ease-out', // Ken Burns effect
+            transition: 'opacity 1s ease-in-out, transform 8s ease-out', 
         },
         adOverlay: {
             position: 'absolute',
@@ -463,7 +467,7 @@ const MenuPage = () => {
             backgroundColor: '#f59e0b',
             transition: 'width 4s linear'
         },
-        // Inquiry Form
+        
         contactSection: {
             backgroundColor: '#f9fafb',
             borderRadius: '2rem',
@@ -491,7 +495,7 @@ const MenuPage = () => {
             marginTop: '0.5rem',
             minHeight: '120px'
         },
-        // Footer
+        
         footer: {
             backgroundColor: '#111827',
             color: 'white',
@@ -537,7 +541,7 @@ const MenuPage = () => {
             alignItems: 'center',
             gap: '0.5rem',
         },
-        // Modal Styles
+        
         modalOverlay: {
             position: 'fixed',
             top: 0,
@@ -585,7 +589,7 @@ const MenuPage = () => {
           .slider - card:hover { transform: translateY(-10px) scale(1.02); box - shadow: 0 20px 25px - 5px rgba(0, 0, 0, 0.1), 0 10px 10px - 5px rgba(0, 0, 0, 0.04); }
           .nav - link:hover { color: #f59e0b!important; text - decoration: underline; }
 
-/* Mobile Responsiveness */
+
 @media(max - width: 768px) {
             .hero - title { font - size: 2.5rem!important; }
             .hero - subtitle { font - size: 1rem!important; }
@@ -598,14 +602,14 @@ const MenuPage = () => {
 `}
             </style>
 
-            {/* Navigation */}
+            {}
             <nav style={styles.nav} className="nav-padding">
                 <a href="#" style={styles.logoContainer}>
                     <img src={logo} alt="Joyce Suites" style={styles.logoImg} />
                     <span>JOYCE SUITES</span>
                 </a>
 
-                {/* Desktop Nav */}
+                {}
                 <div className="desktop-nav" style={{
                     display: window.innerWidth > 768 ? 'flex' : 'none',
                     gap: '2rem',
@@ -620,7 +624,7 @@ const MenuPage = () => {
                     </button>
                 </div>
 
-                {/* Mobile Menu Button */}
+                {}
                 <button
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                     style={{
@@ -635,7 +639,7 @@ const MenuPage = () => {
                 </button>
             </nav>
 
-            {/* Mobile Menu Overlay */}
+            {}
             {mobileMenuOpen && (
                 <div style={{
                     position: 'fixed',
@@ -665,7 +669,7 @@ const MenuPage = () => {
             )}
 
 
-            {/* Hero Section */}
+            {}
             <header style={styles.hero}>
                 <div style={styles.adBanner}>Now Leasing!</div>
                 <div style={styles.heroContent}>
@@ -690,7 +694,7 @@ const MenuPage = () => {
                 </div>
             </header>
 
-            {/* Live Availability Slider */}
+            {}
             <section id="rooms" style={styles.section} className="section-padding">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: '2rem' }}>
                     <div>
@@ -776,7 +780,7 @@ const MenuPage = () => {
                 )}
             </section>
 
-            {/* Amenities Section */}
+            {}
             <section id="amenities" style={{ backgroundColor: '#f9fafb', padding: '5rem 2rem' }} className="section-padding">
                 <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                     <h2 style={styles.sectionTitle}>Why Choose Joyce Suites</h2>
@@ -803,7 +807,7 @@ const MenuPage = () => {
                 </div>
             </section>
 
-            {/* Ad Clip Video Presentation */}
+            {}
             <section id="gallery" style={styles.section} className="section-padding">
                 <h2 style={styles.sectionTitle}>Experience Joyce Suites</h2>
                 <p style={styles.sectionSubtitle}>Take a virtual tour of our premium amenities and living spaces.</p>
@@ -844,7 +848,7 @@ const MenuPage = () => {
                 </div>
             </section>
 
-            {/* Inquiry / Contact Section */}
+            {}
             <section id="contact" style={styles.section} className="section-padding">
                 <div style={styles.contactSection} className="contact-grid">
                     <div>
@@ -871,7 +875,7 @@ const MenuPage = () => {
                                 </div>
                                 <div>
                                     <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Email</div>
-                                    <div style={{ fontWeight: '600' }}>info@joycesuites.com</div>
+                                    <div style={{ fontWeight: '600' }}>joycesuites@gmail.com</div>
                                 </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -948,7 +952,7 @@ const MenuPage = () => {
                 </div>
             </section>
 
-            {/* Booking Questionnaire Modal */}
+            {}
             {showBookingModal && (
                 <div style={styles.modalOverlay} onClick={() => setShowBookingModal(false)}>
                     <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
@@ -984,6 +988,7 @@ const MenuPage = () => {
                                         required
                                         value={bookingForm.phone}
                                         onChange={e => setBookingForm({ ...bookingForm, phone: e.target.value })}
+                                        placeholder="0722870077"
                                     />
                                 </div>
                                 <div style={styles.formGroup}>
@@ -994,6 +999,7 @@ const MenuPage = () => {
                                         required
                                         value={bookingForm.email}
                                         onChange={e => setBookingForm({ ...bookingForm, email: e.target.value })}
+                                        placeholder="john@example.com"
                                     />
                                 </div>
                             </div>
@@ -1063,14 +1069,14 @@ const MenuPage = () => {
                                 style={{ ...styles.primaryBtn, width: '100%' }}
                                 disabled={sendingInquiry}
                             >
-                                {sendingInquiry ? 'Submitting Questionnaire...' : 'Submit Booking Request'}
+                                {sendingInquiry ? 'Sending...' : 'Send Booking Request'}
                             </button>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* Footer */}
+            {}
             <footer style={styles.footer}>
                 <div style={styles.footerContent} className="footer-content">
                     <div>
@@ -1109,7 +1115,7 @@ const MenuPage = () => {
                 </div>
             </footer>
 
-            {/* Sticky CTA */}
+            {}
             <button
                 style={styles.stickyCta}
                 onClick={handleBookingAction}

@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
 import LeaseAgreement from './LeaseAgreement';
 
-// Mock react-signature-canvas
+
 jest.mock('react-signature-canvas', () => {
   const mockModule = require('react');
   return mockModule.forwardRef((props, ref) => {
@@ -22,7 +22,7 @@ jest.mock('react-signature-canvas', () => {
   });
 });
 
-// Mock window.print
+
 global.print = jest.fn();
 
 const mockTenantData = {
@@ -243,7 +243,7 @@ describe('LeaseAgreement', () => {
       renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
       await waitFor(() => {
         const submitBtn = screen.getByRole('button', { name: /Sign & Submit/i });
-        // Try to submit without accepting terms (button should be disabled)
+        
         expect(submitBtn).toBeDisabled();
       });
     });
@@ -255,7 +255,7 @@ describe('LeaseAgreement', () => {
         fireEvent.click(checkbox);
         
         const submitBtn = screen.getByRole('button', { name: /Sign & Submit/i });
-        // Button should still be disabled because signature is empty
+        
         expect(submitBtn).toBeDisabled();
       });
     });
@@ -272,7 +272,7 @@ describe('LeaseAgreement', () => {
         fireEvent.click(checkbox);
       });
 
-      // Mock signature as non-empty
+      
       const mockSignatureRef = {
         current: {
           isEmpty: () => false,
@@ -282,7 +282,7 @@ describe('LeaseAgreement', () => {
 
       await waitFor(() => {
         const submitBtn = screen.getByRole('button', { name: /Sign & Submit/i });
-        // Note: The button would be enabled if signature was actually drawn
+        
         expect(submitBtn).toBeInTheDocument();
       });
     });

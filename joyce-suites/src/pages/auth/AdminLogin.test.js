@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 
-// ✅ Mock BEFORE importing component
+
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => {
   const actual = jest.requireActual('react-router-dom');
@@ -23,19 +23,19 @@ const renderComponent = () => {
   );
 };
 
-// Global setup before all tests
+
 beforeAll(() => {
-  // Ensure clean localStorage from the start
+  
   if (global.localStorage) {
     try {
       global.localStorage.clear();
     } catch (e) {
-      // Ignore
+      
     }
   }
 });
 
-// Suppress act() warnings for AdminLogin
+
 beforeEach(() => {
   const originalError = console.error;
   jest.spyOn(console, 'error').mockImplementation((...args) => {
@@ -51,7 +51,7 @@ beforeEach(() => {
 
 describe('AdminLogin Component', () => {
   beforeEach(() => {
-    // Suppress act() warnings for this test suite
+    
     const originalError = console.error;
     jest.spyOn(console, 'error').mockImplementation((...args) => {
       if (
@@ -63,24 +63,24 @@ describe('AdminLogin Component', () => {
       originalError.call(console, ...args);
     });
 
-    // Clean up from previous test
+    
     cleanup();
 
-    // FIRST: Delete localStorage if it exists to ensure complete cleanup
+    
     if (Object.getOwnPropertyDescriptor(global, 'localStorage')) {
       delete global.localStorage;
     }
 
-    // SECOND: Reset all Jest mocks
+    
     jest.clearAllMocks();
     jest.restoreAllMocks();
     mockNavigate.mockClear();
     mockNavigate.mockReset();
 
-    // THIRD: Create a completely isolated store for this test
+    
     const store = {};
 
-    // Create the mock with this test's store
+    
     const mockLocalStorage = {
       getItem: (key) => store[key] ?? null,
       setItem: (key, value) => {
@@ -101,27 +101,27 @@ describe('AdminLogin Component', () => {
       },
     };
 
-    // Replace global.localStorage completely with fresh mock
+    
     Object.defineProperty(global, 'localStorage', {
       value: mockLocalStorage,
       writable: true,
       configurable: true,
     });
 
-    // FOURTH: Create fresh fetch mock
+    
     global.fetch = jest.fn();
   });
 
   afterEach(() => {
-    // Clean up React components
+    
     cleanup();
 
-    // Clean up mocks
+    
     mockNavigate.mockClear();
     mockNavigate.mockReset();
     jest.restoreAllMocks();
 
-    // Clean up localStorage
+    
     if (Object.getOwnPropertyDescriptor(global, 'localStorage')) {
       delete global.localStorage;
     }
@@ -345,7 +345,7 @@ describe('AdminLogin Component', () => {
 
     renderComponent();
 
-    // First failed attempt
+    
     fireEvent.change(screen.getByLabelText(/Admin Email/i), {
       target: { value: 'admin@joycesuites.com' },
     });
@@ -359,7 +359,7 @@ describe('AdminLogin Component', () => {
       expect(screen.getByText(/Login failed/i)).toBeInTheDocument();
     });
 
-    // Second successful attempt
+    
     fireEvent.change(screen.getByLabelText(/Admin Email/i), {
       target: { value: 'admin@joycesuites.com' },
     });

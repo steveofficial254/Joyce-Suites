@@ -13,7 +13,6 @@ class Message(BaseModel, SerializerMixin):
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
-    # Relationships
     user = db.relationship(
         "User", 
         back_populates="messages",

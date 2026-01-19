@@ -12,11 +12,9 @@ from .vacate_notice import VacateNotice, VACATE_STATUSES
 from .property_image import PropertyImage
 
 __all__ = [
-    # Database
     'db',
     'BaseModel',
 
-    # Models
     'User',
     'Property',
     'Lease',
@@ -29,7 +27,6 @@ __all__ = [
     'VacateNotice',
     'PropertyImage',
 
-    # Constants
     'USER_ROLES',
     'PROPERTY_TYPES',
     'PROPERTY_STATUSES',

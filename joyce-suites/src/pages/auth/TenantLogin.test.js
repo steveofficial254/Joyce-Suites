@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 
-// ✅ Mock BEFORE importing component
+
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => {
   const actual = jest.requireActual('react-router-dom');
@@ -26,14 +26,14 @@ const renderComponent = () => {
 
 
 
-// Global setup before all tests
+
 beforeAll(() => {
-  // Ensure clean localStorage from the start
+  
   if (global.localStorage) {
     try {
       global.localStorage.clear();
     } catch (e) {
-      // Ignore
+      
     }
   }
 });
@@ -41,31 +41,31 @@ beforeAll(() => {
 
 describe('TenantLogin Component', () => {
   beforeEach(() => {
-    // Clear mockNavigate first and reset its implementation
+    
     mockNavigate.mockClear();
     mockNavigate.mockReset();
     
-    // Restore all mocks first
+    
     jest.restoreAllMocks();
     
-    // Clear all mocks
+    
     jest.clearAllMocks();
     
-    // Reset fetch mock completely with a fresh jest.fn()
+    
     if (global.fetch && global.fetch.mockRestore) {
       global.fetch.mockRestore();
     }
     global.fetch = jest.fn();
 
-    // Remove localStorage property if it exists
+    
     if (Object.getOwnPropertyDescriptor(global, 'localStorage')) {
       delete global.localStorage;
     }
 
-    // Create a completely isolated store for this test
+    
     const store = {};
 
-    // Create the mock with this test's store
+    
     const mockLocalStorage = {
       getItem: (key) => store[key] ?? null,
       setItem: (key, value) => {
@@ -86,7 +86,7 @@ describe('TenantLogin Component', () => {
       },
     };
 
-    // Replace global.localStorage completely with fresh instance
+    
     Object.defineProperty(global, 'localStorage', {
       value: mockLocalStorage,
       writable: true,
@@ -99,7 +99,7 @@ describe('TenantLogin Component', () => {
     mockNavigate.mockReset();
     jest.restoreAllMocks();
     
-    // Clear and remove localStorage
+    
     if (Object.getOwnPropertyDescriptor(global, 'localStorage')) {
       if (global.localStorage && global.localStorage.clear) {
         global.localStorage.clear();
@@ -278,7 +278,7 @@ describe('TenantLogin Component', () => {
   });
 
   test('handles login failure with error message from server', async () => {
-  // ✅ Start with a fake token — we want to confirm it’s cleared
+  
   localStorage.setItem('token', 'test-token');
 
   jest.spyOn(global, 'fetch').mockResolvedValueOnce({
@@ -300,12 +300,12 @@ describe('TenantLogin Component', () => {
 
   fireEvent.click(screen.getByRole('button', { name: /^Login$/i }));
 
-  // 🕒 Wait until the component shows the error message
+  
   await waitFor(() =>
     expect(screen.getByText(/Invalid email or password/i)).toBeInTheDocument()
   );
 
-  // 🧹 Then verify localStorage was cleared AFTER re-render
+  
   await waitFor(() => {
     expect(localStorage.getItem('token')).toBeNull();
     expect(localStorage.getItem('userRole')).toBeNull();
@@ -399,7 +399,7 @@ describe('TenantLogin Component', () => {
       expect(screen.getByText(/Login failed/i)).toBeInTheDocument();
     });
 
-    // Second successful attempt
+    
     fireEvent.change(screen.getByLabelText(/Email Address/i), {
       target: { value: 'correct@example.com' },
     });

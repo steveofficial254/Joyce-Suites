@@ -23,8 +23,8 @@ const TenantLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 🧹 Always clear any previous tokens before login attempt
-    console.log('🧹 Clearing old tokens...');
+    
+    
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userId');
@@ -35,7 +35,7 @@ const TenantLogin = () => {
     setLoading(true);
 
     try {
-      console.log('📡 Attempting login with email:', formData.email);
+      
       
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -44,10 +44,10 @@ const TenantLogin = () => {
       });
 
       const data = await response.json();
-      console.log('📨 Login response:', data);
+      
 
       if (!response.ok) {
-        // 🚨 Ensure full cleanup on bad response
+        
         console.error('❌ Login failed with status:', response.status);
         localStorage.removeItem('joyce-suites-token');
         localStorage.removeItem('joyce-suites-user');
@@ -57,7 +57,7 @@ const TenantLogin = () => {
         return;
       }
 
-      // ✅ Check if user role is tenant
+      
       if (data.user.role !== 'tenant') {
         console.error('❌ User is not a tenant, role is:', data.user.role);
         localStorage.removeItem('joyce-suites-token');
@@ -68,8 +68,8 @@ const TenantLogin = () => {
         return;
       }
 
-      // ✅ Successful login - SAVE WITH CORRECT KEY
-      console.log('✅ Login successful, saving token...');
+      
+      
       
       if (!data.token) {
         console.error('❌ No token in response');
@@ -78,11 +78,11 @@ const TenantLogin = () => {
         return;
       }
 
-      // Save token with CORRECT key name
+      
       localStorage.setItem('joyce-suites-token', data.token);
-      console.log('💾 Token saved as "joyce-suites-token"');
+      
 
-      // Save user data
+      
       const userData = {
         user_id: data.user.user_id,
         email: data.user.email,
@@ -95,29 +95,26 @@ const TenantLogin = () => {
       localStorage.setItem('userRole', 'tenant');
       localStorage.setItem('userId', data.user.user_id);
 
-      // ✅ CHECK FOR LEASE SIGNING REQUIRED
-      console.log('📋 Checking lease signing status:', {
-        lease_signing_required: data.lease_signing_required,
-        unsigned_lease_id: data.unsigned_lease_id
-      });
+      
+      
 
-      // Verify token was saved
+      
       const savedToken = localStorage.getItem('joyce-suites-token');
-      console.log('🔍 Verification - Token in storage:', savedToken ? '✅ YES' : '❌ NO');
+      
 
-      // Redirect based on lease signing status
+      
       if (data.lease_signing_required) {
-        console.log('🚀 Redirecting to lease gate (lease needs signing)...');
+        ...');
         navigate('/tenant/lease-gate');
       } else {
-        console.log('🚀 Redirecting to tenant dashboard...');
+        
         navigate('/tenant/dashboard');
       }
 
     } catch (err) {
       console.error('❌ Login error:', err);
       
-      // 🚨 Network or unexpected error — always clear again
+      
       localStorage.removeItem('joyce-suites-token');
       localStorage.removeItem('joyce-suites-user');
 

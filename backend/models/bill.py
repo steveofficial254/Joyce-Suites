@@ -15,7 +15,6 @@ class Bill(BaseModel, SerializerMixin):
     due_date = db.Column(db.Date, nullable=False)
     status = db.Column(db.String(20), default="unpaid", nullable=False)
 
-    # Relationships
     lease = db.relationship("Lease", back_populates="bills")
 
     serialize_rules = ("-lease.bills",)

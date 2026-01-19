@@ -1,7 +1,4 @@
-/**
- * @file AdminDashboard.test.js
- * @description Unit tests for AdminDashboard React component
- */
+
 
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -15,7 +12,7 @@ beforeAll(() => {
       msg.includes('React Router Future Flag Warning') ||
       msg.includes('Relative route resolution')
     ) {
-      return; // ignore warnings
+      return; 
     }
     console.warn(msg);
   });
@@ -70,21 +67,21 @@ describe('AdminDashboard Component', () => {
   const notificationsButton = screen.getByText(/🔔 Notifications/i);
   fireEvent.click(notificationsButton);
 
-  // Check page loaded
+  
   expect(screen.getByText(/Send Notifications/i)).toBeInTheDocument();
 
-  // Fill out form
+  
   const subjectInput = screen.getByPlaceholderText(/Enter message subject/i);
   const messageTextarea = screen.getByPlaceholderText(/Enter your message here/i);
 
   fireEvent.change(subjectInput, { target: { value: 'Test Subject' } });
   fireEvent.change(messageTextarea, { target: { value: 'This is a test message.' } });
 
-  // Click send
+  
   const sendButton = screen.getByRole('button', { name: /Send Notification/i });
   fireEvent.click(sendButton);
 
-  // ✅ Only check for the message (since subject isn't displayed)
+  
   expect(screen.getByText(/This is a test message./i)).toBeInTheDocument();
 });
 
@@ -94,7 +91,7 @@ describe('AdminDashboard Component', () => {
     const logoutButton = screen.getByRole('button', { name: /Logout/i });
     expect(logoutButton).toBeInTheDocument();
     fireEvent.click(logoutButton);
-    // Since navigation is mocked, just ensure no crash
+    
   });
 
   test('renders stats cards correctly on dashboard', () => {

@@ -27,7 +27,6 @@ class TestAuth:
         assert 'token' in data
         assert data['user']['email'] == 'newuser@test.com'
         
-        # Verify user is in database
         with client.application.app_context():
             user = User.query.filter_by(email='newuser@test.com').first()
             assert user is not None
@@ -35,7 +34,6 @@ class TestAuth:
 
     def test_register_duplicate_email(self, client):
         """Test registration with existing email."""
-        # Register first user
         client.post('/api/auth/register', json={
             'email': 'duplicate@test.com',
             'password': 'Password123',
@@ -45,7 +43,6 @@ class TestAuth:
             'idNumber': '11111111'
         })
         
-        # Try to register same email
         response = client.post('/api/auth/register', json={
             'email': 'duplicate@test.com',
             'password': 'Password123',
@@ -65,7 +62,6 @@ class TestAuth:
 
     def test_login_success(self, client):
         """Test successful login."""
-        # Register user
         reg_res = client.post('/api/auth/register', json={
             'email': 'login@test.com',
             'password': 'Password123',
@@ -77,7 +73,6 @@ class TestAuth:
         if reg_res.status_code != 201:
              print(f"\nLogin setup (registration) failed: {reg_res.get_json()}")
 
-        # Login
         response = client.post('/api/auth/login', json={
             'email': 'login@test.com',
             'password': 'Password123'
@@ -94,7 +89,6 @@ class TestAuth:
 
     def test_login_invalid_credentials(self, client):
         """Test login with wrong password."""
-        # Register user
         client.post('/api/auth/register', json={
             'email': 'wrongpass@test.com',
             'password': 'Password123',
@@ -104,7 +98,6 @@ class TestAuth:
             'idNumber': '44444444'
         })
         
-        # Login with wrong password
         response = client.post('/api/auth/login', json={
             'email': 'wrongpass@test.com',
             'password': 'WrongPassword123'
@@ -116,7 +109,6 @@ class TestAuth:
 
     def test_profile_access(self, client):
         """Test accessing profile with token."""
-        # Register and login
         client.post('/api/auth/register', json={
             'email': 'profile@test.com',
             'password': 'Password123',
@@ -132,7 +124,6 @@ class TestAuth:
         })
         token = login_res.get_json()['token']
         
-        # Access profile
         response = client.get('/api/auth/profile', headers={
             'Authorization': f'Bearer {token}'
         })

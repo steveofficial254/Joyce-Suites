@@ -18,7 +18,6 @@ def test_mpesa_token_route(client, requests_mock):
     """
     Test the Mpesa token generation route using a mocked response.
     """
-    # Mock the Mpesa OAuth endpoint
     token_url = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
     requests_mock.get(token_url, json={"access_token": "mocked_token", "expires_in": "3600"}, status_code=200)
 

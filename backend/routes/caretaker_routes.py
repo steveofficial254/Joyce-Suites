@@ -12,13 +12,11 @@ from models.lease import Lease
 from models.property import Property
 from routes.auth_routes import token_required
 from models.vacate_notice import VacateNotice
+from models.booking_inquiry import BookingInquiry
 
 caretaker_bp = Blueprint("caretaker", __name__, url_prefix="/api/caretaker")
 
 
-# =========================
-# ROLE PROTECTION DECORATOR - MUST BE FIRST
-# =========================
 def caretaker_required(f):
     """Decorator to require caretaker or admin role."""
     @wraps(f)
@@ -33,9 +31,6 @@ def caretaker_required(f):
     return decorated
 
 
-# =========================
-# OVERVIEW (NEW - REPLACES DASHBOARD)
-# =========================
 @caretaker_bp.route("/overview", methods=["GET"])
 @caretaker_required
 def get_overview():
@@ -48,10 +43,10 @@ def get_overview():
             MaintenanceRequest.updated_at >= datetime.now().date()
         ).count()
 
-        # Count based on active leases, not property status
-        occupied_properties = Lease.query.filter_by(status="active").count()
+        occupied_properties = Property.query.filter_by(status="occupied").count()
+        reserved_properties = Property.query.filter_by(status="reserved").count()
+        vacant_properties = Property.query.filter_by(status="vacant").count()
         total_properties = Property.query.count()
-        vacant_properties = total_properties - occupied_properties
 
         return jsonify({
             "success": True,
@@ -60,6 +55,7 @@ def get_overview():
                 "in_progress_maintenance": in_progress_maintenance,
                 "completed_today": completed_today,
                 "vacant_properties": vacant_properties,
+                "reserved_properties": reserved_properties,
                 "occupied_properties": occupied_properties,
                 "total_properties": total_properties
             }
@@ -72,9 +68,6 @@ def get_overview():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-# =========================
-# MAINTENANCE - CREATE (NEW)
-# =========================
 @caretaker_bp.route("/maintenance/create", methods=["POST"])
 @caretaker_required
 def create_maintenance_request():
@@ -82,17 +75,14 @@ def create_maintenance_request():
     try:
         data = request.get_json()
 
-        # Validate required fields
         for field in ["property_id", "title", "description", "priority"]:
             if field not in data:
                 return jsonify({"success": False, "error": f"{field} is required"}), 400
 
-        # Check if property exists
         prop = Property.query.get(data["property_id"])
         if not prop:
             return jsonify({"success": False, "error": "Property not found"}), 404
 
-        # Create new maintenance request
         maintenance = MaintenanceRequest(
             property_id=data["property_id"],
             title=data["title"],
@@ -118,9 +108,6 @@ def create_maintenance_request():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-# =========================
-# DASHBOARD (LEGACY - KEPT FOR BACKWARD COMPATIBILITY)
-# =========================
 @caretaker_bp.route("/dashboard", methods=["GET"])
 @caretaker_required
 def get_dashboard():
@@ -132,7 +119,6 @@ def get_dashboard():
             MaintenanceRequest.updated_at >= datetime.now().date()
         ).count()
 
-        # Count based on active leases, not property status
         occupied_properties = Lease.query.filter_by(status="active").count()
         total_properties = Property.query.count()
         vacant_properties = total_properties - occupied_properties
@@ -160,9 +146,6 @@ def get_dashboard():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-# =========================
-# MAINTENANCE - LIST & UPDATE
-# =========================
 @caretaker_bp.route("/maintenance", methods=["GET"])
 @caretaker_required
 def get_maintenance_requests():
@@ -229,9 +212,6 @@ def update_maintenance_status(req_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-# =========================
-# NOTIFICATIONS
-# =========================
 @caretaker_bp.route("/notifications/send", methods=["POST"])
 @caretaker_required
 def send_tenant_notification():
@@ -270,24 +250,20 @@ def send_tenant_notification():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-# =========================
-# ROOMS ENDPOINTS - MATCH DASHBOARD EXPECTATIONS
-# =========================
 @caretaker_bp.route("/rooms/available", methods=["GET"])
 @caretaker_required
 def get_available_rooms():
     """Get all available (vacant) rooms."""
     try:
-        # Get all properties that don't have an active lease
         occupied_property_ids = [lease.property_id for lease in Lease.query.filter_by(status="active").all()]
         
         vacant_properties = Property.query.filter(
-            ~Property.id.in_(occupied_property_ids)
+            ~Property.id.in_(occupied_property_ids),
+            Property.status == "vacant"
         ).all()
         
         rooms = []
         for prop in vacant_properties:
-            # Convert Decimal to float
             rent_amount = float(prop.rent_amount) if prop.rent_amount else 0.0
             
             rooms.append({
@@ -320,7 +296,6 @@ def get_available_rooms():
 def get_occupied_rooms():
     """Get all occupied rooms with tenant info."""
     try:
-        # Get all active leases instead of relying on property status
         active_leases = Lease.query.filter_by(status="active").all()
         rooms = []
 
@@ -329,7 +304,6 @@ def get_occupied_rooms():
             if not prop:
                 continue
             
-            # Convert Decimal to float
             rent_amount = float(prop.rent_amount) if prop.rent_amount else 0.0
                 
             room_data = {
@@ -372,25 +346,27 @@ def get_all_rooms():
         rooms = []
 
         for prop in all_properties:
-            # Determine actual status based on active leases
             is_occupied = prop.id in occupied_property_ids
             
-            # Convert Decimal to float
             rent_amount = float(prop.rent_amount) if prop.rent_amount else 0.0
+            
+            if is_occupied:
+                actual_status = "occupied"
+            else:
+                actual_status = prop.status
             
             room_data = {
                 "id": prop.id,
                 "name": prop.name,
-                "property_type": prop.property_type,  # FIXED: was 'type'
+                "property_type": prop.property_type,
                 "rent_amount": rent_amount,
-                "status": "occupied" if is_occupied else "vacant",
+                "status": actual_status,
                 "description": prop.description,
                 "tenant_name": None,
                 "tenant_phone": None,
                 "lease_id": None
             }
 
-            # If occupied, get tenant info
             if is_occupied:
                 lease = Lease.query.filter_by(
                     property_id=prop.id,
@@ -424,16 +400,15 @@ def get_all_rooms():
 def get_public_rooms():
     """Public endpoint for tenant registration."""
     try:
-        # Get all properties that don't have an active lease
         occupied_property_ids = [lease.property_id for lease in Lease.query.filter_by(status="active").all()]
         
         vacant_properties = Property.query.filter(
-            ~Property.id.in_(occupied_property_ids)
+            ~Property.id.in_(occupied_property_ids),
+            Property.status == "vacant"
         ).all()
 
         rooms = []
         for prop in vacant_properties:
-            # Convert Decimal to float
             rent_amount = float(prop.rent_amount) if prop.rent_amount else 0.0
             
             rooms.append({
@@ -441,13 +416,12 @@ def get_public_rooms():
                 "name": prop.name,
                 "property_type": prop.property_type,  # FIXED: was 'type'
                 "rent_amount": rent_amount,
-                "description": prop.description
+                "description": prop.description,
+                "images": [{"image_url": img.image_url, "is_primary": img.is_primary} for img in prop.images]
             })
 
-        # Logic for Next Available Date
         next_available_date = None
         if len(rooms) == 0:
-            # Find the active lease that ends soonest
             nearest_lease = Lease.query.filter_by(status="active").order_by(Lease.end_date.asc()).first()
             if nearest_lease and nearest_lease.end_date:
                  next_available_date = nearest_lease.end_date.strftime("%B %d, %Y")
@@ -466,9 +440,6 @@ def get_public_rooms():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-# =========================
-# PAYMENTS - ENHANCED
-# =========================
 @caretaker_bp.route("/payments/pending", methods=["GET"])
 @caretaker_required
 def get_pending_payments():
@@ -484,7 +455,6 @@ def get_pending_payments():
             ).count()
 
             if pending > 0:
-                # Convert Decimal to float for JSON serialization
                 rent_amount = float(lease.rent_amount) if lease.rent_amount else 0.0
                 
                 tenants_with_arrears.append({
@@ -513,20 +483,16 @@ def get_pending_payments():
 def get_all_tenants_payment_status():
     """Get all tenants with their current month payment status."""
     try:
-        # Get current month start (5th of current month)
         today = datetime.now()
         if today.day < 5:
-            # If before 5th, use previous month
             current_month_start = (today.replace(day=1) - relativedelta(days=1)).replace(day=5, hour=0, minute=0, second=0, microsecond=0)
         else:
             current_month_start = today.replace(day=5, hour=0, minute=0, second=0, microsecond=0)
         
-        # Next month start
         next_month_start = current_month_start + relativedelta(months=1)
         
         print(f"Payment period: {current_month_start} to {next_month_start}")
         
-        # Get all active leases
         active_leases = Lease.query.filter_by(status="active").all()
         print(f"Found {len(active_leases)} active leases")
         
@@ -540,14 +506,12 @@ def get_all_tenants_payment_status():
                 
                 print(f"Processing lease {lease.id} for tenant {lease.tenant.full_name}")
                     
-                # Check if payment exists for current month using created_at or payment_date
                 current_month_payment = Payment.query.filter(
                     Payment.lease_id == lease.id,
                     Payment.created_at >= current_month_start,
                     Payment.created_at < next_month_start
                 ).first()
                 
-                # If no payment by created_at, try payment_date
                 if not current_month_payment:
                     current_month_payment = Payment.query.filter(
                         Payment.lease_id == lease.id,
@@ -555,13 +519,11 @@ def get_all_tenants_payment_status():
                         Payment.payment_date < next_month_start
                     ).first()
                 
-                # Get last successful payment
                 last_payment = Payment.query.filter_by(
                     lease_id=lease.id,
                     status="paid"
                 ).order_by(Payment.payment_date.desc()).first()
                 
-                # Determine if current month is paid
                 is_paid = False
                 if current_month_payment:
                     is_paid = current_month_payment.status == "paid"
@@ -569,14 +531,12 @@ def get_all_tenants_payment_status():
                 else:
                     print(f"No payment found for current month")
                 
-                # Safely convert rent_amount
                 try:
                     rent_amount = float(lease.rent_amount) if lease.rent_amount else 0.0
                 except (TypeError, ValueError) as e:
                     print(f"Error converting rent_amount: {e}")
                     rent_amount = 0.0
                 
-                # Safely get last payment date
                 last_payment_date = None
                 if last_payment and last_payment.payment_date:
                     try:
@@ -631,7 +591,6 @@ def mark_payment_status():
         data = request.get_json()
         print(f"Received payment mark request: {data}")
         
-        # Validate required fields
         for field in ["tenant_id", "status", "amount"]:
             if field not in data:
                 return jsonify({"success": False, "error": f"{field} is required"}), 400
@@ -639,7 +598,6 @@ def mark_payment_status():
         if data["status"] not in ["paid", "unpaid"]:
             return jsonify({"success": False, "error": "Status must be 'paid' or 'unpaid'"}), 400
         
-        # Get active lease
         lease = Lease.query.filter_by(
             tenant_id=data["tenant_id"],
             status="active"
@@ -650,27 +608,22 @@ def mark_payment_status():
         
         print(f"Found lease {lease.id} for tenant {data['tenant_id']}")
         
-        # Get current month start (5th of current month)
         today = datetime.now()
         if today.day < 5:
-            # If before 5th, use previous month
             current_month_start = (today.replace(day=1) - relativedelta(days=1)).replace(day=5, hour=0, minute=0, second=0, microsecond=0)
         else:
             current_month_start = today.replace(day=5, hour=0, minute=0, second=0, microsecond=0)
         
-        # Next month start
         next_month_start = current_month_start + relativedelta(months=1)
         
         print(f"Payment period: {current_month_start} to {next_month_start}")
         
-        # Check if payment record exists for current month using created_at
         existing_payment = Payment.query.filter(
             Payment.lease_id == lease.id,
             Payment.created_at >= current_month_start,
             Payment.created_at < next_month_start
         ).first()
         
-        # Convert amount to float
         try:
             amount = float(data["amount"])
         except (TypeError, ValueError) as e:
@@ -678,14 +631,12 @@ def mark_payment_status():
         
         if existing_payment:
             print(f"Updating existing payment {existing_payment.id}")
-            # Update existing payment
             existing_payment.status = data["status"]
             if data["status"] == "paid":
                 existing_payment.payment_date = datetime.now()
                 existing_payment.amount_paid = amount
                 existing_payment.payment_method = "manual"
             else:
-                # If marking as unpaid, clear payment details
                 existing_payment.payment_date = None
                 existing_payment.amount_paid = 0
                 existing_payment.payment_method = None
@@ -694,7 +645,6 @@ def mark_payment_status():
             payment_result = existing_payment
         else:
             print(f"Creating new payment record")
-            # Create new payment record (without due_date field)
             new_payment = Payment(
                 tenant_id=lease.tenant_id,
                 lease_id=lease.id,
@@ -710,7 +660,6 @@ def mark_payment_status():
         
         print(f"Payment marked as {data['status']} successfully")
         
-        # Return a simplified response
         return jsonify({
             "success": True,
             "message": f"Payment marked as {data['status']}",
@@ -730,9 +679,6 @@ def mark_payment_status():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-# =========================
-# TENANTS
-# =========================
 @caretaker_bp.route("/tenants", methods=["GET"])
 @caretaker_required
 def get_tenants():
@@ -746,7 +692,6 @@ def get_tenants():
 
         tenants = []
         for tenant in pagination.items:
-            # Get active lease for room number
             lease = Lease.query.filter_by(
                 tenant_id=tenant.id,
                 status="active"
@@ -780,9 +725,6 @@ def get_tenants():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-# =========================
-# VACATE NOTICES
-# =========================
 @caretaker_bp.route("/vacate-notices", methods=["GET"])
 @caretaker_required
 def get_vacate_notices():
@@ -846,23 +788,19 @@ def create_vacate_notice():
     try:
         data = request.get_json()
 
-        # Validate required fields
         for field in ["lease_id", "vacate_date"]:
             if field not in data:
                 return jsonify({"success": False, "error": f"{field} is required"}), 400
 
-        # Check if lease exists
         lease = Lease.query.get(data["lease_id"])
         if not lease:
             return jsonify({"success": False, "error": "Lease not found"}), 404
 
-        # Parse vacate date
         try:
             vacate_date = datetime.fromisoformat(data["vacate_date"]).date()
         except (ValueError, TypeError):
             return jsonify({"success": False, "error": "Invalid vacate_date format (use YYYY-MM-DD)"}), 400
 
-        # Check if notice already exists for this lease
         existing = VacateNotice.query.filter_by(
             lease_id=data["lease_id"],
             status="pending"
@@ -874,7 +812,6 @@ def create_vacate_notice():
                 "error": "A pending vacate notice already exists for this lease"
             }), 400
 
-        # Create new vacate notice
         notice = VacateNotice(
             lease_id=data["lease_id"],
             vacate_date=vacate_date,
@@ -963,7 +900,6 @@ def update_vacate_notice(notice_id):
 
         data = request.get_json()
 
-        # Update fields
         if "vacate_date" in data:
             try:
                 notice.vacate_date = datetime.fromisoformat(data["vacate_date"]).date()
@@ -1010,7 +946,6 @@ def approve_vacate_notice(notice_id):
 
         data = request.get_json() or {}
         
-        # Approve the notice
         notice.approve(notes=data.get("admin_notes"))
 
         return jsonify({
@@ -1042,7 +977,6 @@ def reject_vacate_notice(notice_id):
 
         data = request.get_json() or {}
         
-        # Reject the notice
         notice.reject(notes=data.get("admin_notes"))
 
         return jsonify({
@@ -1078,7 +1012,6 @@ def complete_vacate_notice(notice_id):
                 "error": "Only approved notices can be completed"
             }), 400
 
-        # Complete the notice (this also terminates the lease)
         notice.complete()
 
         return jsonify({
@@ -1151,9 +1084,116 @@ def get_vacate_notices_summary():
                 "completed": completed
             }
         }), 200
-
     except Exception as e:
         print(f"Error in get_vacate_notices_summary: {str(e)}")
         import traceback
         traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@caretaker_bp.route("/inquiries", methods=["GET"])
+@caretaker_required
+def get_booking_inquiries():
+    """Get all booking inquiries."""
+    try:
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 20, type=int)
+        status = request.args.get("status", "pending")
+        
+        query = BookingInquiry.query
+        if status:
+            query = query.filter_by(status=status)
+            
+        pagination = query.order_by(BookingInquiry.created_at.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        
+        return jsonify({
+            "success": True,
+            "inquiries": [i.to_dict() for i in pagination.items],
+            "total": pagination.total,
+            "pages": pagination.pages,
+            "current_page": page
+        }), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@caretaker_bp.route("/inquiries/<int:inquiry_id>/approve", methods=["POST"])
+@caretaker_required
+def approve_inquiry(inquiry_id):
+    """Approve a booking inquiry and reserve the room."""
+    try:
+        inquiry = BookingInquiry.query.get(inquiry_id)
+        if not inquiry:
+            return jsonify({"success": False, "error": "Inquiry not found"}), 404
+            
+        inquiry.status = "approved"
+        inquiry.approved_by = request.user_id
+        
+        if inquiry.room_id:
+            room = Property.query.get(inquiry.room_id)
+            if room:
+                room.status = "reserved"
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True, 
+            "message": "Booking inquiry approved and room reserved.",
+            "inquiry": inquiry.to_dict()
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@caretaker_bp.route("/inquiries/<int:inquiry_id>/reject", methods=["POST"])
+@caretaker_required
+def reject_inquiry(inquiry_id):
+    """Reject a booking inquiry."""
+    try:
+        inquiry = BookingInquiry.query.get(inquiry_id)
+        if not inquiry:
+            return jsonify({"success": False, "error": "Inquiry not found"}), 404
+            
+        inquiry.status = "rejected"
+        inquiry.approved_by = request.user_id
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True, 
+            "message": "Booking inquiry rejected.",
+            "inquiry": inquiry.to_dict()
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@caretaker_bp.route("/inquiries/<int:inquiry_id>/mark-paid", methods=["POST"])
+@caretaker_required
+def mark_inquiry_paid(inquiry_id):
+    """Mark a booking inquiry as paid."""
+    try:
+        inquiry = BookingInquiry.query.get(inquiry_id)
+        if not inquiry:
+            return jsonify({"success": False, "error": "Inquiry not found"}), 404
+            
+        inquiry.status = "paid"
+        inquiry.is_paid = True
+        inquiry.paid_at = datetime.utcnow()
+        inquiry.approved_by = request.user_id
+        
+        if inquiry.room_id:
+            room = Property.query.get(inquiry.room_id)
+            if room:
+                room.status = "reserved"
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True, 
+            "message": "Booking inquiry marked as paid. Tenant can now proceed to registration.",
+            "inquiry": inquiry.to_dict()
+        }), 200
+    except Exception as e:
+        db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500

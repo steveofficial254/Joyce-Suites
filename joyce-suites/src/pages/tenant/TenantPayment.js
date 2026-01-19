@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // Import Link
+import { useNavigate, Link } from 'react-router-dom'; 
 import './TenantPayment.css';
 import logo from '../../assets/image1.png';
 
@@ -15,28 +15,28 @@ const TenantPayments = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [mpesaPhone, setMpesaPhone] = useState('');
   
-  // State to hold actual tenant lease information
+  
   const [tenantInfo, setTenantInfo] = useState({ leaseId: null, roomNumber: null });
 
-  // 1. Initial Data Fetch (Payments & Summary)
+  
   useEffect(() => {
     fetchPayments(currentPage, statusFilter);
   }, [statusFilter, currentPage]);
 
-  // 2. Fetch Tenant Lease Info on Component Mount
+  
   useEffect(() => {
     fetchTenantLeaseInfo();
-  }, []); // Run once on mount
+  }, []); 
 
   const fetchTenantLeaseInfo = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        // Will be redirected by fetchPayments or a higher-level component
+        
         return; 
       }
       
-      // Assumes this endpoint returns the active lease ID and room number
+      
       const response = await fetch('/api/tenant/lease/active', { 
         method: 'GET',
         headers: {
@@ -49,7 +49,7 @@ const TenantPayments = () => {
       
       if (!response.ok || !data.lease_id || !data.room_number) {
         console.warn('Could not load active lease information. Payment initiation will be disabled.');
-        // Do not throw error here, just prevent setting info
+        
         return; 
       }
       
@@ -60,7 +60,7 @@ const TenantPayments = () => {
       
     } catch (err) {
       console.error('Error fetching tenant lease info:', err);
-      // Set an error state if critical info fetch fails
+      
       setError('Failed to load critical tenant data. Cannot initiate payments.');
     }
   };
@@ -140,7 +140,7 @@ const TenantPayments = () => {
         body: JSON.stringify({
           amount: selectedPayment.amount,
           phone_number: mpesaPhone,
-          // Using fetched state values instead of dummy data
+          
           lease_id: tenantInfo.leaseId, 
           room_number: tenantInfo.roomNumber
         })
@@ -206,7 +206,7 @@ const TenantPayments = () => {
         </div>
 
         <nav className="sidebar-nav">
-          {/* FIX: Use Link component for internal navigation */}
+          {}
           <Link to="/tenant/dashboard" className="nav-item">
             <span className="nav-icon">📊</span>
             Dashboard
@@ -250,7 +250,7 @@ const TenantPayments = () => {
                 const payable = payments.find(p => p.status === 'pending' || p.status === 'overdue');
                 handlePayNow(payable || { amount: summary.total_pending, month: 'Current', due_date: new Date().toISOString() });
               }}
-              // Disable button if lease info is missing
+              
               disabled={!tenantInfo.leaseId || !tenantInfo.roomNumber} 
             >
               💳 Make Payment
@@ -344,7 +344,7 @@ const TenantPayments = () => {
                           <button 
                             className="action-btn pay"
                             onClick={() => handlePayNow(payment)}
-                            // Disable individual pay buttons if info is missing
+                            
                             disabled={!tenantInfo.leaseId || !tenantInfo.roomNumber}
                           >
                             Pay
@@ -369,7 +369,7 @@ const TenantPayments = () => {
           </div>
         </div>
 
-        {/* Payment Modal */}
+        {}
         {showPaymentModal && (
           <div className="modal-overlay" onClick={() => setShowPaymentModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -382,7 +382,7 @@ const TenantPayments = () => {
                 <div className="payment-details-summary">
                   <p><strong>Month:</strong> {selectedPayment.month || 'N/A'}</p>
                   <p><strong>Amount:</strong> <span className="modal-amount">KSh {selectedPayment.amount.toLocaleString()}</span></p>
-                  {/* Displaying fetched/real values */}
+                  {}
                   <p><strong>Lease:</strong> Lease ID {tenantInfo.leaseId || 'N/A'} (Room {tenantInfo.roomNumber || 'N/A'})</p>
                 </div>
               )}
@@ -408,7 +408,7 @@ const TenantPayments = () => {
                   <button 
                     className="btn btn-primary" 
                     onClick={handleMpesaPayment}
-                    // Disable button if lease info is missing or phone number is empty
+                    
                     disabled={!tenantInfo.leaseId || !tenantInfo.roomNumber || !mpesaPhone} 
                   >
                     Initiate STK Push
@@ -445,7 +445,7 @@ const TenantPayments = () => {
             </div>
             <div className="footer-section">
               <h4>Quick Links</h4>
-              {/* FIX: Use Link component for internal navigation */}
+              {}
               <Link to="/tenant/dashboard">Dashboard</Link>
               <Link to="/tenant/maintenance">Maintenance</Link>
               <Link to="/tenant/profile">Profile</Link>

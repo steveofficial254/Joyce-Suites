@@ -13,9 +13,7 @@ app = create_app()
 with app.app_context():
     print("Running diagnostic on /api/admin/payments/report logic...")
     try:
-        # Replicating the logic from get_payment_report
         
-        # 1. Stats
         print("Fetching stats...")
         total_payments = Payment.query.count()
         successful_payments = Payment.query.filter_by(status='paid').count()
@@ -27,7 +25,6 @@ with app.app_context():
             
         print(f"Stats: Total={total_payments}, Success={successful_payments}, Pending={pending_payments}, Failed={failed_payments}, Amount={total_amount}")
 
-        # 2. Recent Payments
         print("Fetching recent payments...")
         recent = Payment.query\
             .join(Lease, Payment.lease_id == Lease.id)\
@@ -42,7 +39,6 @@ with app.app_context():
         recent_payments = []
         for payment in recent:
             print(f"Processing payment {payment.id}...")
-            # Simulate the dictionary creation
             item = {
                 'id': payment.id,
                 'tenant_name': f"{payment.lease.tenant.first_name} {payment.lease.tenant.last_name}" if payment.lease and payment.lease.tenant else "Unknown",
@@ -57,12 +53,10 @@ with app.app_context():
             
         print("Recent payments processed successfully.")
 
-        # 3. Monthly Breakdown
         print("Calculating monthly breakdown...")
         monthly_data = []
         for i in range(5, -1, -1):
             month_start = datetime.utcnow().replace(day=1) - timedelta(days=30*i)
-            # Logic from the route:
             month_end = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
             
             print(f"Querying for {month_start.strftime('%b %Y')} ({month_start} to {month_end})")

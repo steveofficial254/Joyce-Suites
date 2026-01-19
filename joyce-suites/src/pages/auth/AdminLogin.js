@@ -13,13 +13,13 @@ const AdminLogin = () => {
     password: 'Admin@123456'
   });
 
-  // Check if already logged in
+  
   useEffect(() => {
     const token = localStorage.getItem('joyce-suites-token');
     const userRole = localStorage.getItem('userRole');
     
     if (token && userRole === 'admin') {
-      console.log('✅ User already logged in as admin');
+      
       navigate('/admin/dashboard', { replace: true });
     }
   }, [navigate]);
@@ -43,7 +43,7 @@ const AdminLogin = () => {
   };
 
   const getErrorMessage = (err, status = null, responseData = null) => {
-    // Network/connectivity errors
+    
     if (err?.message?.includes('Failed to fetch')) {
       return 'Network error: Unable to reach the server. Please check your internet connection.';
     }
@@ -56,7 +56,7 @@ const AdminLogin = () => {
       return 'Server returned invalid data. Please try again.';
     }
 
-    // HTTP status-based errors
+    
     if (status === 401) {
       return 'Invalid email or password. Please try again.';
     }
@@ -73,7 +73,7 @@ const AdminLogin = () => {
       return 'Server error. Please try again later.';
     }
 
-    // API response errors
+    
     if (responseData?.error) {
       return responseData.error;
     }
@@ -82,7 +82,7 @@ const AdminLogin = () => {
       return responseData.message;
     }
 
-    // Generic fallback
+    
     return 'Login failed. Please try again.';
   };
 
@@ -92,7 +92,7 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      console.log('🧹 Clearing old tokens...');
+      
       clearStoredAuth();
 
       if (!formData.email || !formData.password) {
@@ -102,9 +102,9 @@ const AdminLogin = () => {
       }
 
       const email = formData.email.trim().toLowerCase();
-      console.log('📡 Attempting admin login with email:', email);
+      
 
-      // Build login URL
+      
       const API_BASE_URL = 'https://joyce-suites-xdkp.onrender.com';
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
@@ -125,7 +125,7 @@ const AdminLogin = () => {
       }
 
       const data = await response.json();
-      console.log('📨 Login response status:', response.status);
+      
 
       if (!response.ok) {
         console.error('❌ Login failed with status:', response.status);
@@ -145,7 +145,7 @@ const AdminLogin = () => {
         return;
       }
 
-      // Validate response
+      
       if (!data.user || !data.user.role) {
         console.error('❌ Invalid response structure');
         clearStoredAuth();
@@ -154,7 +154,7 @@ const AdminLogin = () => {
         return;
       }
 
-      // Check if user is admin
+      
       if (data.user.role !== 'admin') {
         console.error('❌ User is not an admin, role is:', data.user.role);
         clearStoredAuth();
@@ -170,8 +170,8 @@ const AdminLogin = () => {
         return;
       }
 
-      // ✅ Store authentication data
-      console.log('💾 Saving admin token and user data...');
+      
+      
       localStorage.setItem('joyce-suites-token', data.token);
       localStorage.setItem('userRole', data.user.role);
       localStorage.setItem('userId', data.user.user_id);
@@ -189,11 +189,11 @@ const AdminLogin = () => {
 
       localStorage.setItem('joyce-suites-user', JSON.stringify(userData));
 
-      // Verify token was saved
+      
       const savedToken = localStorage.getItem('joyce-suites-token');
-      console.log('🔍 Verification - Token in storage:', savedToken ? '✅ YES' : '❌ NO');
+      
 
-      console.log('✅ Admin login successful, redirecting to dashboard...');
+      
       
       navigate('/admin/dashboard', { replace: true });
 
@@ -207,7 +207,7 @@ const AdminLogin = () => {
     }
   };
 
-  // Helper to fill default credentials (development only)
+  
   const fillDefaultCredentials = () => {
     const defaultEmail = process.env.REACT_APP_DEFAULT_ADMIN_EMAIL;
     const defaultPassword = process.env.REACT_APP_DEFAULT_ADMIN_PASSWORD;

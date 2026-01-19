@@ -32,7 +32,7 @@ const CaretakerDashboard = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // State for all data
+  
   const [overview, setOverview] = useState(null);
   const [maintenanceRequests, setMaintenanceRequests] = useState([]);
   const [availableRooms, setAvailableRooms] = useState([]);
@@ -44,7 +44,7 @@ const CaretakerDashboard = () => {
   const [allTenantsPaymentStatus, setAllTenantsPaymentStatus] = useState([]);
   const [vacateNotices, setVacateNotices] = useState([]);
 
-  // Modal states
+  
   const [selectedMaintenanceRequest, setSelectedMaintenanceRequest] = useState(null);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
   const [showCreateMaintenanceModal, setShowCreateMaintenanceModal] = useState(false);
@@ -65,7 +65,7 @@ const CaretakerDashboard = () => {
     return localStorage.getItem('token') || localStorage.getItem('joyce-suites-token');
   };
 
-  // Enhanced API call helper
+  
   const apiCall = async (endpoint, options = {}) => {
     const token = getToken();
 
@@ -105,7 +105,7 @@ const CaretakerDashboard = () => {
     }
   };
 
-  // Fetch functions
+  
   const fetchOverview = async () => {
     try {
       const data = await apiCall('/api/caretaker/overview');
@@ -477,7 +477,7 @@ const CaretakerDashboard = () => {
     fetchPageData();
   }, [activePage]);
 
-  // Initial load
+  
   useEffect(() => {
     fetchNotifications();
   }, []);
@@ -868,7 +868,7 @@ const CaretakerDashboard = () => {
         </section>
       </main>
 
-      {/* Modals */}
+      {}
       {showMaintenanceModal && selectedMaintenanceRequest && (
         <MaintenanceDetailsModal
           request={selectedMaintenanceRequest}
@@ -925,11 +925,11 @@ const CaretakerDashboard = () => {
       {showCreateVacateNoticeModal && (
         <CreateVacateNoticeModal
           leases={
-            // Filter only occupied rooms for the dropdown to avoid errors if object structure differs
+            
             occupiedRooms.length > 0 ? occupiedRooms.map(room => ({
               lease_id: room.lease_id,
               tenant_name: room.tenant_name,
-              room_number: room.name // Occupied room name/number
+              room_number: room.name 
             })) : []
           }
           initialData={selectedLeaseForVacate}
@@ -969,7 +969,7 @@ const CaretakerDashboard = () => {
   );
 };
 
-// ==================== DASHBOARD PAGE ====================
+
 const DashboardPage = ({
   overview,
   maintenanceRequests,
@@ -1282,7 +1282,7 @@ const DashboardPage = ({
   );
 };
 
-// ==================== MAINTENANCE PAGE ====================
+
 const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails, onCreateMaintenance }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
@@ -1431,7 +1431,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails, onC
   );
 };
 
-// ==================== PROPERTIES PAGE ====================
+
 const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading, onViewDetails }) => {
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -1571,7 +1571,7 @@ const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading, onVi
   );
 };
 
-// ==================== TENANTS PAGE ====================
+
 const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNotification, onCreateVacateNotice, onViewDetails }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('all');
@@ -1746,7 +1746,7 @@ const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNot
   );
 };
 
-// ==================== PAYMENTS PAGE ====================
+
 const PaymentsPage = ({ pendingPayments, allPayments, loading, onMarkPayment }) => {
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -1908,7 +1908,7 @@ const PaymentsPage = ({ pendingPayments, allPayments, loading, onMarkPayment }) 
   );
 };
 
-// ==================== VACATE PAGE ====================
+
 const VacatePage = ({ notices, loading, onViewDetails, onUpdateStatus, onDelete, onCreateNotice }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -2112,7 +2112,7 @@ const VacatePage = ({ notices, loading, onViewDetails, onUpdateStatus, onDelete,
   );
 };
 
-// ==================== NOTIFICATIONS PAGE ====================
+
 const NotificationsPage = ({ tenants, onSendNotification }) => {
   const activeTenantsCount = tenants.filter(t => t.is_active).length;
 
@@ -2145,11 +2145,11 @@ const NotificationsPage = ({ tenants, onSendNotification }) => {
   );
 };
 
-// ==================== MODALS ====================
+
 const TenantDetailsModal = ({ tenant, onClose }) => {
   const [activeTab, setActiveTab] = useState('personal');
 
-  // Extract tenant data
+  
   const tenantData = {
     personal: {
       'Full Name': tenant ? tenant.name : 'N/A',
@@ -2209,7 +2209,7 @@ const TenantDetailsModal = ({ tenant, onClose }) => {
                       />
                     </div>
                   )}
-                  {/* Placeholder for ID Doc if we had a path, defaulting to National ID text/icon for now if no path */}
+                  {}
                   {tenantData.images.id_doc && (
                     <div>
                       <p style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>National ID Document</p>
@@ -2572,7 +2572,7 @@ const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
     const { name, value } = e.target;
 
     if (name === 'amount') {
-      // Ensure amount is a number
+      
       const numValue = value === '' ? '' : parseFloat(value);
       setFormData({
         ...formData,
@@ -2594,7 +2594,7 @@ const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
     e.preventDefault();
     const newErrors = {};
 
-    // Validation
+    
     if (!formData.tenant_id) {
       newErrors.tenant_id = 'Tenant ID is required';
     }
@@ -2610,7 +2610,7 @@ const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
       return;
     }
 
-    // Prepare data exactly as backend expects
+    
     const submitData = {
       tenant_id: parseInt(formData.tenant_id),
       amount: parseFloat(formData.amount),
@@ -2917,7 +2917,7 @@ const CreateVacateNoticeModal = ({ leases, initialData, onClose, onSubmit, loadi
     onSubmit(formData);
   };
 
-  // Set minimum date to tomorrow
+  
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDate = tomorrow.toISOString().split('T')[0];
@@ -3069,7 +3069,7 @@ const PropertyDetailsModal = ({ property, onClose }) => {
   );
 };
 
-// ==================== HELPER COMPONENTS ====================
+
 const OverviewCard = ({ title, value, icon: Icon, color }) => (
   <div style={styles.overviewCard}>
     <div style={{ ...styles.cardIcon, backgroundColor: color + '20', color: color }}>
@@ -3082,7 +3082,7 @@ const OverviewCard = ({ title, value, icon: Icon, color }) => (
   </div>
 );
 
-// ==================== STYLES ====================
+
 const styles = {
   container: {
     display: 'flex',
@@ -3177,7 +3177,7 @@ const styles = {
     padding: '1rem',
     borderTop: '1px solid #374151',
     backgroundColor: '#111827',
-    display: 'none' // Default hidden
+    display: 'none' 
   },
   logoutBtnWrapperVisible: {
     display: 'block'
@@ -3226,7 +3226,7 @@ const styles = {
     gap: '12px'
   },
   menuBtn: {
-    display: 'flex', // Always available but we hide on desktop via logic
+    display: 'flex', 
     background: 'transparent',
     border: 'none',
     cursor: 'pointer',
@@ -3838,7 +3838,7 @@ const styles = {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     zIndex: 99
   },
-  // Mobile Top Nav Styles
+  
   mobileTopNav: {
     display: 'flex',
     overflowX: 'auto',
@@ -3870,7 +3870,7 @@ const styles = {
     color: 'white',
     backgroundColor: '#374151'
   },
-  // New Styles for Inquiries and Modal
+  
   inquiryCard: {
     backgroundColor: 'white',
     borderRadius: '12px',
@@ -3934,7 +3934,7 @@ const styles = {
     padding: '12px',
     borderRadius: '8px'
   },
-  // Modal Enhancements
+  
   modalTabs: {
     display: 'flex',
     borderBottom: '1px solid #e5e7eb',
@@ -3965,7 +3965,7 @@ const styles = {
   }
 };
 
-// Add animation for spinner
+
 if (typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.textContent = `

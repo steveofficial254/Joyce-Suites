@@ -7,7 +7,6 @@ class TestAdminDashboard:
     
     def test_overview_success(self, client, admin_user):
         """Test getting admin overview with valid token."""
-        # Login as admin
         login_response = client.post('/api/auth/login', json={
             'email': admin_user['email'],
             'password': admin_user['password']
@@ -34,7 +33,6 @@ class TestAdminDashboard:
     
     def test_overview_tenant_forbidden(self, client, tenant_user):
         """Test that tenant cannot access admin overview."""
-        # Login as tenant
         login_response = client.post('/api/auth/login', json={
             'email': tenant_user['email'],
             'password': tenant_user['password']
@@ -261,7 +259,6 @@ class TestTenantManagement:
         token = login_response.get_json()['token']
         headers = {'Authorization': f'Bearer {token}'}
         
-        # Create a tenant first
         create_response = client.post('/api/admin/tenant/create',
             headers=headers,
             json={
@@ -274,7 +271,6 @@ class TestTenantManagement:
         
         tenant_id = create_response.get_json()['tenant']['tenant_id']
         
-        # Delete the tenant
         delete_response = client.delete(f'/api/admin/tenant/delete/{tenant_id}',
             headers=headers
         )
@@ -395,7 +391,6 @@ class TestAdminIntegration:
     
     def test_complete_admin_flow(self, client):
         """Test complete admin user flow."""
-        # 1. Register as admin
         reg_response = client.post('/api/auth/register', json={
             'email': 'integration.admin@test.com',
             'password': 'Integration@123456',
@@ -407,7 +402,6 @@ class TestAdminIntegration:
         assert reg_response.status_code == 201
         print(f"✓ Step 1: Registration successful")
         
-        # 2. Login
         login_response = client.post('/api/auth/login', json={
             'email': 'integration.admin@test.com',
             'password': 'Integration@123456'
@@ -417,22 +411,18 @@ class TestAdminIntegration:
         headers = {'Authorization': f'Bearer {token}'}
         print(f"✓ Step 2: Login successful")
         
-        # 3. Get overview
         overview_response = client.get('/api/admin/overview', headers=headers)
         assert overview_response.status_code == 200
         print(f"✓ Step 3: Overview access successful")
         
-        # 4. Get all tenants
         tenants_response = client.get('/api/admin/tenants', headers=headers)
         assert tenants_response.status_code == 200
         print(f"✓ Step 4: Tenants list access successful")
         
-        # 5. Get tenant details
         details_response = client.get('/api/admin/tenant/1', headers=headers)
         assert details_response.status_code == 200
         print(f"✓ Step 5: Tenant details access successful")
         
-        # 6. Create new tenant
         create_response = client.post('/api/admin/tenant/create',
             headers=headers,
             json={
@@ -446,7 +436,6 @@ class TestAdminIntegration:
         assert create_response.status_code == 201
         print(f"✓ Step 6: Tenant created successfully")
         
-        # 7. Update tenant
         update_response = client.put('/api/admin/tenant/update/1',
             headers=headers,
             json={'occupation': 'Test Occupation'}
@@ -454,17 +443,14 @@ class TestAdminIntegration:
         assert update_response.status_code == 200
         print(f"✓ Step 7: Tenant updated successfully")
         
-        # 8. Get contracts
         contracts_response = client.get('/api/admin/contracts', headers=headers)
         assert contracts_response.status_code == 200
         print(f"✓ Step 8: Contracts access successful")
         
-        # 9. Get payment report
         report_response = client.get('/api/admin/payments/report', headers=headers)
         assert report_response.status_code == 200
         print(f"✓ Step 9: Payment report generated successfully")
         
-        # 10. Get occupancy report
         occupancy_response = client.get('/api/admin/occupancy/report', headers=headers)
         assert occupancy_response.status_code == 200
         print(f"✓ Step 10: Occupancy report generated successfully")

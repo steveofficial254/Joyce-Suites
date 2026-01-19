@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 
-// ✅ Mock BEFORE importing component
+
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -84,12 +84,12 @@ describe('TenantRegister Component', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Register as Tenant/i }));
 
-    // Wait for success message to appear
+    
     await waitFor(() => {
       expect(screen.getByText(/Registration successful/i)).toBeInTheDocument();
     });
 
-    // Advance timers to trigger the delayed navigation
+    
     await act(async () => {
       jest.advanceTimersByTime(2000);
     });

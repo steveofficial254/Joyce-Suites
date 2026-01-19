@@ -10,7 +10,6 @@ import pytest
 import os
 import sys
 
-# Add backend directory to Python path
 backend_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, backend_path)
 
@@ -61,11 +60,6 @@ def db_session(app):
 @pytest.fixture(autouse=True)
 def clear_blacklist(app):
     """Clear the token blacklist before each test to avoid cross-test contamination."""
-    # Import here to avoid circular imports
-    # Note: In the new implementation, we might use a DB model for blacklist
-    # But for now, if we still use the set in auth_routes (which we plan to remove),
-    # we should handle it. Since we are rewriting auth_routes, this might become obsolete
-    # but keeping it safe for now if we keep the set temporarily.
     try:
         from routes.auth_routes import blacklisted_tokens
         if isinstance(blacklisted_tokens, set):
@@ -92,16 +86,13 @@ def patch_tenant_decorator(app):
     from functools import wraps
     from flask import request, jsonify
     
-    # Store original
     original_tenant_required = tenant_routes.tenant_required
     
     def patched_tenant_required(f):
         """Patched tenant_required that chains with token_required."""
-        @token_required  # Apply token_required FIRST (bottom decorator)
+        @token_required
         @wraps(f)
         def decorated(*args, **kwargs):
-            # At this point, token_required has already validated the token
-            # and set request.user_id and request.user_role
             
             if not hasattr(request, 'user_role') or request.user_role != "tenant":
                 return jsonify({
@@ -109,17 +100,14 @@ def patch_tenant_decorator(app):
                     "error": "Forbidden: Tenant access required"
                 }), 403
             
-            # All checks passed, call the actual route handler
             return f(*args, **kwargs)
         
         return decorated
     
-    # Monkey patch the decorator
     tenant_routes.tenant_required = patched_tenant_required
     
     yield
     
-    # Restore original
     tenant_routes.tenant_required = original_tenant_required
 
 
@@ -135,8 +123,6 @@ def admin_user(client):
         'role': 'admin',
         'idNumber': '12345678'
     }
-    # We use the API to register so it goes through the route handler
-    # This depends on auth_routes being fixed to use DB
     response = client.post('/api/auth/register', json=user_data)
     
     return {

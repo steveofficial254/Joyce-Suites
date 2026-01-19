@@ -39,7 +39,6 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ========== CORS OPTIONS HANDLERS ==========
 @admin_bp.route("/vacate-notices", methods=["OPTIONS"])
 @admin_bp.route("/dashboard-stats", methods=["OPTIONS"])
 @admin_bp.route("/overview", methods=["OPTIONS"])
@@ -58,41 +57,34 @@ def handle_admin_options(tenant_id=None):
     """Handle CORS preflight for all admin endpoints"""
     return '', 200
 
-# Catch-all OPTIONS handler for any other routes
 @admin_bp.route("/<path:path>", methods=["OPTIONS"])
 def handle_all_admin_options(path):
     """Catch-all OPTIONS handler for all admin routes"""
     return '', 200
 
-# ========== DASHBOARD ENDPOINTS ==========
 
 @admin_bp.route("/dashboard-stats", methods=["GET"])
 @admin_required
 def get_dashboard_stats():
     """Get dashboard statistics for admin"""
     try:
-        # Count properties by status
         total_properties = Property.query.count()
         vacant_properties = Property.query.filter_by(status='vacant').count()
+        reserved_properties = Property.query.filter_by(status='reserved').count()
         occupied_properties = Property.query.filter_by(status='occupied').count()
         
-        # Count tenants
         total_tenants = User.query.filter_by(role='tenant').count()
         active_tenants = User.query.filter_by(role='tenant', is_active=True).count()
         
-        # Payment stats
         total_payments = Payment.query.count()
         total_payments_amount = db.session.query(func.sum(Payment.amount)).filter_by(status='completed').scalar() or 0
         pending_payments = Payment.query.filter_by(status='pending').count()
         
-        # Maintenance stats
         pending_maintenance = MaintenanceRequest.query.filter_by(status='pending').count()
         
-        # Vacate notices stats
         pending_vacate_notices = VacateNotice.query.filter_by(status='pending').count()
         approved_vacate_notices = VacateNotice.query.filter_by(status='approved').count()
         
-        # Recent payments (last 5)
         recent_payments = Payment.query\
             .join(Lease, Payment.lease_id == Lease.id)\
             .join(User, Lease.tenant_id == User.id)\
@@ -113,7 +105,6 @@ def get_dashboard_stats():
                 'created_at': payment.created_at.isoformat() if payment.created_at else None
             })
         
-        # Recent vacate notices (last 5)
         recent_notices = VacateNotice.query\
             .join(Lease, VacateNotice.lease_id == Lease.id)\
             .join(User, Lease.tenant_id == User.id)\
@@ -143,6 +134,7 @@ def get_dashboard_stats():
                 'properties': {
                     'total': total_properties,
                     'vacant': vacant_properties,
+                    'reserved': reserved_properties,
                     'occupied': occupied_properties,
                     'occupancy_rate': round((occupied_properties / total_properties * 100), 2) if total_properties > 0 else 0
                 },
@@ -182,20 +174,15 @@ def get_dashboard_stats():
 def get_admin_overview():
     """Get admin dashboard overview with key statistics."""
     try:
-        # Count total tenants
         total_tenants = User.query.filter_by(role='tenant').count()
         
-        # Count active leases
         active_leases = Lease.query.filter_by(status='active').count()
         
-        # Count pending maintenance requests
         pending_maintenance = MaintenanceRequest.query.filter_by(status='pending').count()
         
-        # Calculate total revenue (sum of successful payments)
         total_revenue = db.session.query(func.sum(Payment.amount))\
             .filter_by(status='completed').scalar() or 0
         
-        # Get recent tenants (last 5)
         recent_tenants = User.query.filter_by(role='tenant')\
             .order_by(User.created_at.desc()).limit(5).all()
         
@@ -235,7 +222,6 @@ def get_admin_overview():
 def get_financial_summary():
     """Get financial summary for admin dashboard."""
     try:
-        # This month's payments
         today = datetime.utcnow().date()
         first_day_of_month = today.replace(day=1)
         last_day_of_month = (first_day_of_month.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
@@ -247,13 +233,11 @@ def get_financial_summary():
                 Payment.status == 'completed'
             ).scalar() or 0
         
-        # Total outstanding (active leases rent - payments this month)
         active_leases = Lease.query.filter_by(status='active').all()
         total_monthly_rent = sum([float(lease.rent_amount or 0) for lease in active_leases])
         
         outstanding_rent = max(0, total_monthly_rent - float(monthly_payments))
         
-        # Total deposits collected
         deposit_payments = db.session.query(func.sum(Payment.amount))\
             .filter(
                 Payment.payment_type == 'deposit',
@@ -279,7 +263,6 @@ def get_financial_summary():
             "message": str(e)
         }), 500
 
-# ========== TENANT MANAGEMENT ==========
 
 @admin_bp.route("/tenants", methods=["GET"])
 @admin_required
@@ -291,12 +274,10 @@ def get_all_tenants():
         
         tenants_query = User.query.filter_by(role='tenant')
         
-        # Pagination
         pagination = tenants_query.paginate(page=page, per_page=per_page, error_out=False)
         
         tenants_list = []
         for tenant in pagination.items:
-            # Get current lease
             current_lease = Lease.query.filter_by(
                 tenant_id=tenant.id, 
                 status='active'
@@ -347,10 +328,8 @@ def get_tenant_details(tenant_id):
         if not tenant:
             return jsonify({"success": False, "error": "Tenant not found"}), 404
         
-        # Get tenant's current lease
         lease = Lease.query.filter_by(tenant_id=tenant_id, status='active').first()
         
-        # Get payment history
         payments = []
         if lease:
             payments = Payment.query.filter_by(lease_id=lease.id)\
@@ -366,7 +345,6 @@ def get_tenant_details(tenant_id):
                 'created_at': payment.created_at.isoformat() if payment.created_at else None
             })
         
-        # Get maintenance requests
         maintenance = MaintenanceRequest.query.filter_by(reported_by_id=tenant_id)\
             .order_by(MaintenanceRequest.created_at.desc()).limit(10).all()
         
@@ -384,7 +362,6 @@ def get_tenant_details(tenant_id):
                 'resolved_at': req.resolved_at.isoformat() if hasattr(req, 'resolved_at') and req.resolved_at else None
             })
         
-        # Get vacate notices
         vacate_notices = []
         if lease:
             vacate_notices = VacateNotice.query.filter_by(lease_id=lease.id)\
@@ -457,23 +434,19 @@ def create_tenant():
                     "error": f"{field} is required"
                 }), 400
         
-        # Check if email exists
         if User.query.filter_by(email=data['email']).first():
             return jsonify({
                 "success": False, 
                 "error": "Email already exists"
             }), 409
         
-        # Split full name
         names = data['full_name'].split(' ', 1)
         first_name = names[0]
         last_name = names[1] if len(names) > 1 else ""
         
-        # Auto-generate username from email
         import uuid
         username = f"{data['email'].split('@')[0]}_{str(uuid.uuid4())[:8]}"
         
-        # Create tenant
         new_tenant = User(
             email=data['email'],
             username=username,
@@ -522,7 +495,6 @@ def update_tenant(tenant_id):
         
         data = request.get_json()
         
-        # Update allowed fields
         if 'full_name' in data:
             names = data['full_name'].split(' ', 1)
             tenant.first_name = names[0]
@@ -572,24 +544,18 @@ def delete_tenant(tenant_id):
         if not tenant:
             return jsonify({"success": False, "error": "Tenant not found"}), 404
         
-        # Check for active leases
         active_lease = Lease.query.filter_by(tenant_id=tenant_id, status='active').first()
         if active_lease:
-            # Auto-terminate lease and vacate room
             try:
-                # 1. Terminate Lease
                 active_lease.status = 'terminated'
                 active_lease.end_date = datetime.utcnow().date()
                 
-                # 2. Vacate Property
                 if active_lease.property_id:
                     prop = Property.query.get(active_lease.property_id)
                     if prop:
                         prop.status = 'vacant'
                         prop.current_tenant_id = None
                 
-                # 3. Handle outstanding payments (optional: could mark as written off or keep them)
-                # For now, we just leave them linked to the lease.
                 
                 db.session.add(active_lease)
                 if active_lease.property_id and prop:
@@ -620,7 +586,6 @@ def delete_tenant(tenant_id):
             "message": str(e)
         }), 500
 
-# ========== CONTRACT MANAGEMENT ==========
 
 @admin_bp.route("/contracts", methods=["GET"])
 @admin_required
@@ -674,7 +639,6 @@ def get_all_contracts():
             "message": str(e)
         }), 500
 
-# ========== PROPERTY MANAGEMENT ==========
 
 @admin_bp.route("/properties", methods=["GET"])
 @admin_required
@@ -708,7 +672,6 @@ def get_all_properties():
                         'phone': tenant.phone_number
                     }
                     
-                    # Get current lease
                     lease = Lease.query.filter_by(
                         property_id=prop.id,
                         tenant_id=tenant.id,
@@ -733,7 +696,8 @@ def get_all_properties():
                 "description": prop.description,
                 "current_tenant": current_tenant,
                 "current_lease": current_lease,
-                "created_at": prop.created_at.isoformat() if prop.created_at else None
+                "created_at": prop.created_at.isoformat() if prop.created_at else None,
+                "images": [{"url": img.image_url, "primary": img.is_primary} for img in prop.images]
             })
         
         return jsonify({
@@ -758,7 +722,6 @@ def get_all_properties():
             "message": str(e)
         }), 500
 
-# ========== MAINTENANCE MANAGEMENT ==========
 
 @admin_bp.route("/maintenance", methods=["GET"])
 @admin_required
@@ -823,14 +786,12 @@ def get_all_maintenance():
             "message": str(e)
         }), 500
 
-# ========== REPORTS ==========
 
 @admin_bp.route("/payments/report", methods=["GET"])
 @admin_required
 def get_payment_report():
     """Generate payment report."""
     try:
-        # Get payment statistics
         total_payments = Payment.query.count()
         successful_payments = Payment.query.filter(Payment.status.in_(['paid', 'completed'])).count()
         pending_payments = Payment.query.filter(Payment.status.in_(['pending', 'unpaid'])).count()
@@ -839,7 +800,6 @@ def get_payment_report():
         total_amount = db.session.query(func.sum(Payment.amount))\
             .filter(Payment.status.in_(['paid', 'completed'])).scalar() or 0
         
-        # Get recent payments
         recent = Payment.query\
             .join(Lease, Payment.lease_id == Lease.id)\
             .join(User, Lease.tenant_id == User.id)\
@@ -861,7 +821,6 @@ def get_payment_report():
                 'created_at': payment.created_at.isoformat() if payment.created_at else None
             })
         
-        # Get monthly breakdown for last 6 months
         monthly_data = []
         for i in range(5, -1, -1):
             month_start = datetime.utcnow().replace(day=1) - timedelta(days=30*i)
@@ -913,7 +872,6 @@ def get_occupancy_report():
         
         occupancy_rate = (occupied_properties / total_properties * 100) if total_properties > 0 else 0
         
-        # Get occupancy by property type
         bedsitter_occupied = Property.query.filter_by(
             property_type='bedsitter',
             status='occupied'
@@ -939,6 +897,7 @@ def get_occupancy_report():
             "report": {
                 "total_properties": total_properties,
                 "occupied": occupied_properties,
+                "reserved": Property.query.filter_by(status='reserved').count(),
                 "vacant": vacant_properties,
                 "active_leases": active_leases,
                 "occupancy_rate": round(occupancy_rate, 2),
@@ -966,35 +925,28 @@ def get_occupancy_report():
             "message": str(e)
         }), 500
 
-# ========== VACATE NOTICES MANAGEMENT ==========
 
 @admin_bp.route("/vacate-notices", methods=["GET"])
 @admin_required
 def get_vacate_notices():
     """Get all vacate notices with pagination"""
     try:
-        # Get pagination parameters
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 100, type=int)
         status = request.args.get('status', 'all')
         
-        # Build query
         query = VacateNotice.query
         
-        # Filter by status
         if status and status != 'all':
             query = query.filter(VacateNotice.status == status)
         
-        # Order by latest first
         query = query.order_by(VacateNotice.created_at.desc())
         
-        # Paginate
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         
         notices = []
         for notice in pagination.items:
             try:
-                # Get lease details
                 lease = notice.lease if hasattr(notice, 'lease') else Lease.query.get(notice.lease_id)
                 
                 if not lease:
@@ -1067,13 +1019,11 @@ def update_vacate_notice(notice_id):
         
         notice = VacateNotice.query.get_or_404(notice_id)
         
-        # Store old status for comparison
         old_status = notice.status
         notice.status = status
         notice.admin_notes = admin_notes
         notice.updated_at = datetime.utcnow()
         
-        # If approved, mark property as vacant and end the lease
         if status == 'approved' and old_status != 'approved':
             lease = notice.lease if hasattr(notice, 'lease') else Lease.query.get(notice.lease_id)
             
@@ -1085,13 +1035,11 @@ def update_vacate_notice(notice_id):
                     property_.status = 'vacant'
                     property_.current_tenant_id = None
                 
-                # End the lease
                 lease.status = 'terminated'
                 lease.end_date = datetime.utcnow().date()
                 if hasattr(lease, 'termination_reason'):
                     lease.termination_reason = 'Tenant vacated'
                 
-                # Mark tenant as inactive if they have no other active leases
                 if tenant:
                     other_active_leases = Lease.query.filter(
                         Lease.tenant_id == tenant.id,
