@@ -23,8 +23,8 @@ const TenantLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    
-    
+
+
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userId');
@@ -35,8 +35,8 @@ const TenantLogin = () => {
     setLoading(true);
 
     try {
-      
-      
+
+
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,10 +44,10 @@ const TenantLogin = () => {
       });
 
       const data = await response.json();
-      
+
 
       if (!response.ok) {
-        
+
         console.error('❌ Login failed with status:', response.status);
         localStorage.removeItem('joyce-suites-token');
         localStorage.removeItem('joyce-suites-user');
@@ -57,7 +57,7 @@ const TenantLogin = () => {
         return;
       }
 
-      
+
       if (data.user.role !== 'tenant') {
         console.error('❌ User is not a tenant, role is:', data.user.role);
         localStorage.removeItem('joyce-suites-token');
@@ -68,9 +68,9 @@ const TenantLogin = () => {
         return;
       }
 
-      
-      
-      
+
+
+
       if (!data.token) {
         console.error('❌ No token in response');
         setError('No authentication token received');
@@ -78,11 +78,11 @@ const TenantLogin = () => {
         return;
       }
 
-      
-      localStorage.setItem('joyce-suites-token', data.token);
-      
 
-      
+      localStorage.setItem('joyce-suites-token', data.token);
+
+
+
       const userData = {
         user_id: data.user.user_id,
         email: data.user.email,
@@ -95,26 +95,25 @@ const TenantLogin = () => {
       localStorage.setItem('userRole', 'tenant');
       localStorage.setItem('userId', data.user.user_id);
 
-      
-      
 
-      
+
+
+
       const savedToken = localStorage.getItem('joyce-suites-token');
-      
 
-      
+
+
       if (data.lease_signing_required) {
-        ...');
         navigate('/tenant/lease-gate');
       } else {
-        
+
         navigate('/tenant/dashboard');
       }
 
     } catch (err) {
       console.error('❌ Login error:', err);
-      
-      
+
+
       localStorage.removeItem('joyce-suites-token');
       localStorage.removeItem('joyce-suites-user');
 

@@ -30,23 +30,23 @@ const TenantDashboard = () => {
   const [paymentDetails, setPaymentDetails] = useState(null);
   const [loadingPaymentDetails, setLoadingPaymentDetails] = useState(false);
 
-  
+
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
   const [showVacateModal, setShowVacateModal] = useState(false);
   const [showLeaseModal, setShowLeaseModal] = useState(false);
 
-  
+
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [signatureEmpty, setSignatureEmpty] = useState(true);
   const [leaseData, setLeaseData] = useState(null);
   const [fullLeaseDetails, setFullLeaseDetails] = useState(null);
 
-  
+
   const [roomDetails, setRoomDetails] = useState(null);
   const [accountDetails, setAccountDetails] = useState(null);
 
-  
+
   const [mpesaPhone, setMpesaPhone] = useState('');
   const [maintenanceForm, setMaintenanceForm] = useState({
     title: '',
@@ -68,7 +68,7 @@ const TenantDashboard = () => {
     year: 'numeric'
   });
 
-  
+
   useEffect(() => {
     const validateToken = () => {
       const token = localStorage.getItem('joyce-suites-token');
@@ -119,7 +119,7 @@ const TenantDashboard = () => {
     };
   };
 
-  
+
   const fetchWithAuth = useCallback(async (url, options = {}) => {
     let token = localStorage.getItem('joyce-suites-token');
 
@@ -140,11 +140,11 @@ const TenantDashboard = () => {
         credentials: 'include'
       });
 
-      
-      if (response.status === 401) {
-        
 
-        
+      if (response.status === 401) {
+
+
+
         const refreshToken = localStorage.getItem('joyce-suites-refresh-token');
         if (refreshToken) {
           try {
@@ -164,7 +164,7 @@ const TenantDashboard = () => {
                 localStorage.setItem('joyce-suites-refresh-token', refreshData.refresh_token);
               }
 
-              
+
               headers.Authorization = `Bearer ${refreshData.access_token}`;
               const retryResponse = await fetch(url, {
                 ...options,
@@ -178,7 +178,7 @@ const TenantDashboard = () => {
           }
         }
 
-        
+
         localStorage.removeItem('joyce-suites-token');
         localStorage.removeItem('joyce-suites-refresh-token');
         throw new Error('Session expired. Please login again.');
@@ -194,7 +194,7 @@ const TenantDashboard = () => {
     }
   }, [navigate]);
 
-  
+
   const calculateOutstandingBalance = () => {
     if (!dashboardData?.rent_amount || !paymentsData.length) {
       return dashboardData?.rent_amount || 0;
@@ -213,43 +213,43 @@ const TenantDashboard = () => {
     return Math.max(0, totalDue - totalPaid);
   };
 
-  
+
   const getAccountDetails = (roomNumber) => {
     const roomNum = parseInt(roomNumber);
 
-    
+
     const joyceRooms = [1, 2, 3, 4, 5, 6, 8, 9, 10];
-    
+
     const lawrenceRooms = [11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26];
 
-    
+
     let rentAmount = 5000;
     let depositAmount = 5400;
     let roomType = 'bedsitter';
 
     if ([8, 9, 10, 17, 19, 20].includes(roomNum)) {
-      
+
       rentAmount = 7500;
       depositAmount = 7900;
       roomType = 'one_bedroom';
     } else if (roomNum === 18) {
-      
+
       rentAmount = 7000;
       depositAmount = 7400;
       roomType = 'one_bedroom';
     } else if ([12, 22].includes(roomNum)) {
-      
+
       rentAmount = 5500;
       depositAmount = 5900;
       roomType = 'bedsitter';
     } else if ([11, 13, 14, 15, 21, 23, 24, 25, 26].includes(roomNum)) {
-      
+
       rentAmount = 5000;
       depositAmount = 5400;
       roomType = 'bedsitter';
     }
 
-    
+
     let landlordName = '';
     let paybill = '';
     let accountNumber = '';
@@ -257,11 +257,11 @@ const TenantDashboard = () => {
     if (joyceRooms.includes(roomNum)) {
       landlordName = 'Joyce Muthoni Mathea';
       paybill = '222111';
-      accountNumber = '2536316'; 
+      accountNumber = '2536316';
     } else if (lawrenceRooms.includes(roomNum)) {
       landlordName = 'Lawrence Mathea';
       paybill = '222111';
-      accountNumber = '54544'; 
+      accountNumber = '54544';
     } else {
       landlordName = 'Not Assigned';
       paybill = 'N/A';
@@ -353,8 +353,8 @@ const TenantDashboard = () => {
         return;
       }
 
-      
-      
+
+
       const [dashRes, profileRes, paymentsRes, vacateRes, notificationsRes] = await Promise.all([
         fetchWithAuth(`${config.apiBaseUrl}/api/tenant/dashboard`),
         fetchWithAuth(`${config.apiBaseUrl}/api/auth/profile`),
@@ -363,12 +363,12 @@ const TenantDashboard = () => {
         fetchWithAuth(`${config.apiBaseUrl}/api/auth/notifications`)
       ]);
 
-      
+
       if (dashRes && dashRes.ok) {
         const dashData = await dashRes.json();
         setDashboardData(dashData.dashboard);
 
-        
+
         if (dashData.dashboard?.unit_number) {
           const accountInfo = getAccountDetails(dashData.dashboard.unit_number);
           setAccountDetails(accountInfo);
@@ -378,20 +378,20 @@ const TenantDashboard = () => {
         console.error(`Dashboard response error: ${dashRes ? dashRes.status : 'No response'}`);
       }
 
-      
-      
+
+
       if (profileRes && profileRes.ok) {
         const profData = await profileRes.json();
-        
-        
-        
+
+
+
         setProfileData(profData.user);
       } else {
         console.error(`Profile response error: ${profileRes ? profileRes.status : 'No response'}`);
       }
 
-      
-      
+
+
       if (paymentsRes && paymentsRes.ok) {
         const paysData = await paymentsRes.json();
         setPaymentsData(paysData.payments || []);
@@ -399,8 +399,8 @@ const TenantDashboard = () => {
         console.error(`Payments response error: ${paymentsRes ? paymentsRes.status : 'No response'}`);
       }
 
-      
-      
+
+
       if (vacateRes && vacateRes.ok) {
         const vacData = await vacateRes.json();
         setVacateNotices(vacData.notices || []);
@@ -408,8 +408,8 @@ const TenantDashboard = () => {
         console.error(`Vacate notices response error: ${vacateRes ? vacateRes.status : 'No response'}`);
       }
 
-      
-      
+
+
       if (notificationsRes && notificationsRes.ok) {
         const notifData = await notificationsRes.json();
         setNotifications(notifData.notifications || []);
@@ -417,10 +417,10 @@ const TenantDashboard = () => {
         console.error(`Notifications response error: ${notificationsRes ? notificationsRes.status : 'No response'}`);
       }
 
-      
+
       await fetchLeaseData();
 
-      
+
 
     } catch (err) {
       console.error('Fetch all data error:', err);
@@ -443,7 +443,7 @@ const TenantDashboard = () => {
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
-      
+
       localStorage.removeItem('joyce-suites-token');
       localStorage.removeItem('joyce-suites-refresh-token');
       localStorage.removeItem('user-data');
@@ -464,7 +464,7 @@ const TenantDashboard = () => {
     setTermsAccepted(false);
     setSignatureEmpty(true);
 
-    
+
     if (signatureRef.current) {
       signatureRef.current.clear();
     }
@@ -566,7 +566,7 @@ const TenantDashboard = () => {
         terms_accepted: true
       };
 
-      
+
       const response = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/lease/sign`, {
         method: 'POST',
         body: JSON.stringify(leaseSubmission)
@@ -623,7 +623,7 @@ const TenantDashboard = () => {
         priority: maintenanceForm.priority
       };
 
-      
+
       const response = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/maintenance-requests`, {
         method: 'POST',
         body: JSON.stringify(requestData)
@@ -668,7 +668,7 @@ const TenantDashboard = () => {
     try {
       setLoading(true);
 
-      
+
       const response = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/vacate-notice`, {
         method: 'POST',
         body: JSON.stringify({
@@ -775,21 +775,21 @@ const TenantDashboard = () => {
   minVacateDate.setDate(minVacateDate.getDate() + 30);
   const minVacateDateString = minVacateDate.toISOString().split('T')[0];
 
-  
+
   const roomNumber = dashboardData?.unit_number || profileData?.room_number || 'Not Assigned';
   const currentAccountDetails = accountDetails || getAccountDetails(roomNumber);
 
-  
+
   const outstandingBalance = dashboardData?.outstanding_balance !== undefined
     ? dashboardData.outstanding_balance
     : calculateOutstandingBalance();
 
   const roomTypeDisplay = currentAccountDetails?.roomType === 'one_bedroom' ? '1-Bedroom' : 'Bedsitter';
 
-  
+
   const getProfilePhotoUrl = () => {
     if (profileData?.photo_path) {
-      
+
       return `${config.apiBaseUrl}/${profileData.photo_path}`;
     }
     return null;
@@ -872,7 +872,7 @@ const TenantDashboard = () => {
                     className="avatar-image"
                     onError={(e) => {
                       console.error('❌ Avatar photo failed to load:', profilePhotoUrl);
-                      
+
                       if (profileData?.photo_path && !profileData.photo_path.startsWith('http')) {
                         e.target.src = `/${profileData.photo_path}`;
                       } else {
@@ -880,7 +880,7 @@ const TenantDashboard = () => {
                         e.target.parentElement.innerHTML = `<div class="avatar-placeholder">${(dashboardData.tenant_name?.charAt(0) || 'T').toUpperCase()}</div>`;
                       }
                     }}
-                    onLoad={() => }
+                    onLoad={() => { }}
                   />
                 ) : (
                   <div className="avatar-placeholder">
@@ -1031,7 +1031,7 @@ const TenantDashboard = () => {
                 </div>
               </div>
 
-              {}
+              { }
               <div className="card" style={{ marginTop: '24px' }}>
                 <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <h3>Recent Notifications</h3>
@@ -1155,7 +1155,7 @@ const TenantDashboard = () => {
 
           {activeTab === 'profile' && profileData && (
             <div className="content">
-              {}
+              { }
               <div className="card" style={{ marginBottom: '20px', backgroundColor: '#f8f9fa', border: '1px solid #dee2e6' }}>
                 <h4>Profile Information</h4>
                 <div className="debug-info" style={{ fontSize: '12px', fontFamily: 'monospace' }}>
@@ -1179,7 +1179,7 @@ const TenantDashboard = () => {
                             className="profile-photo"
                             onError={(e) => {
                               console.error('❌ Failed to load profile photo from:', e.target.src);
-                              
+
                               if (profileData.photo_path && !profileData.photo_path.startsWith('http')) {
                                 e.target.src = `/${profileData.photo_path}`;
                               } else {
@@ -1191,7 +1191,7 @@ const TenantDashboard = () => {
                                 `;
                               }
                             }}
-                            onLoad={() => }
+                            onLoad={() => { }}
                           />
                           <div className="photo-label">Profile Photo</div>
                         </div>
@@ -1210,7 +1210,7 @@ const TenantDashboard = () => {
                                 </div>
                               `;
                             }}
-                            onLoad={() => }
+                            onLoad={() => { }}
                           />
                           <div className="photo-label">ID Document (Fallback)</div>
                         </div>
@@ -1392,7 +1392,7 @@ const TenantDashboard = () => {
         </main>
       </div >
 
-      {}
+      { }
       < footer className="dashboard-footer" >
         <div className="footer-content">
           <div className="footer-section">
@@ -1444,7 +1444,7 @@ const TenantDashboard = () => {
         </div>
       </footer >
 
-      {}
+      { }
       {
         showPaymentModal && (
           <div className="modal-overlay" onClick={() => setShowPaymentModal(false)}>
@@ -1533,7 +1533,7 @@ const TenantDashboard = () => {
         )
       }
 
-      {}
+      { }
       {
         showMaintenanceModal && (
           <div className="modal-overlay" onClick={() => setShowMaintenanceModal(false)}>
@@ -1577,7 +1577,24 @@ const TenantDashboard = () => {
                   <label>Attach Photo (Optional, max 5MB)</label>
                   <input
                     type="file"
-                    accept="image}
+                    accept="image/*"
+                    onChange={(e) => setMaintenanceForm({ ...maintenanceForm, file: e.target.files[0] })}
+                  />
+                </div>
+                <div className="form-actions">
+                  <button type="submit" className="btn btn-primary" disabled={loading}>
+                    {loading ? 'Submitting...' : 'Submit Request'}
+                  </button>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowMaintenanceModal(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )
+      }
+
       {
         showVacateModal && (
           <div className="modal-overlay" onClick={() => setShowVacateModal(false)}>
@@ -1607,16 +1624,21 @@ const TenantDashboard = () => {
                     rows="3"
                   />
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? 'Submitting...' : 'Submit Vacate Notice'}
-                </button>
+                <div className="form-actions">
+                  <button type="submit" className="btn btn-primary" disabled={loading}>
+                    {loading ? 'Submitting...' : 'Submit Vacate Notice'}
+                  </button>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowVacateModal(false)}>
+                    Cancel
+                  </button>
+                </div>
               </form>
             </div>
           </div>
         )
       }
 
-      {}
+      { }
       {
         showLeaseModal && leaseData && (
           <div className="modal-overlay" onClick={() => setShowLeaseModal(false)}>
@@ -1690,7 +1712,7 @@ const TenantDashboard = () => {
                   </div>
                 </div>
 
-                {}
+                { }
                 {(!fullLeaseDetails || (fullLeaseDetails && !fullLeaseDetails.signed_by_tenant)) ? (
                   <div className="lease-signing-section">
                     {error && <div className="alert alert-error">{error}</div>}
