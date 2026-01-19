@@ -22,14 +22,14 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
   });
 
   useEffect(() => {
-    // Fetch tenant and unit data on mount
+    
     fetchLeaseData();
   }, []);
 
   const fetchLeaseData = async () => {
     try {
-      // In production, fetch from backend
-      // For now, using mock data structure
+      
+      
       setLeaseData({
         tenant: tenantData || {
           fullName: 'John Doe',
@@ -82,10 +82,10 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
     setLoading(true);
 
     try {
-      // Get signature as data URL
+      
       const signatureDataUrl = signatureRef.current.toDataURL();
 
-      // Prepare lease data
+      
       const leaseSubmission = {
         tenantId: leaseData.tenant.id,
         roomNumber: leaseData.tenant.roomNumber,
@@ -100,7 +100,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
         }
       };
 
-      // Send to backend
+      
       const response = await fetch('/api/lease/sign', {
         method: 'POST',
         headers: {
@@ -146,11 +146,11 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
       </div>
 
       <div className="lease-content-wrapper">
-        {/* Error/Success Messages */}
+        {}
         {error && <div className="alert alert-error">{error}</div>}
         {success && <div className="alert alert-success">{success}</div>}
 
-        {/* Lease Document */}
+        {}
         <div className="lease-document">
           <div className="lease-intro">
             <p>
@@ -159,7 +159,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
             </p>
           </div>
 
-          {/* Landlord Section */}
+          {}
           <div className="lease-section">
             <h3>LANDLORD:</h3>
             <div className="info-box">
@@ -169,7 +169,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
             </div>
           </div>
 
-          {/* Tenant Section */}
+          {}
           <div className="lease-section">
             <h3>TENANT:</h3>
             <div className="info-box tenant-info">
@@ -180,7 +180,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
             </div>
           </div>
 
-          {/* Property Address */}
+          {}
           <div className="lease-section">
             <h3>PROPERTY ADDRESS:</h3>
             <div className="info-box">
@@ -191,7 +191,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
             </div>
           </div>
 
-          {/* Terms and Conditions */}
+          {}
           <div className="lease-terms">
             <div className="term-item">
               <h4>1. TERM OF LEASE</h4>
@@ -307,11 +307,11 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
           </div>
         </div>
 
-        {/* Signature Section */}
+        {}
         <div className="signature-section">
           <h3>Agreement Acceptance & Signature</h3>
 
-          {/* Terms Acceptance */}
+          {}
           <div className="terms-acceptance">
             <label className="checkbox-label">
               <input
@@ -328,7 +328,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
             </label>
           </div>
 
-          {/* Signature Canvas */}
+          {}
           <div className="signature-canvas-container">
             <label className="signature-label">
               Tenant's Signature *
@@ -363,7 +363,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
             </div>
           </div>
 
-          {/* Submit Button */}
+          {}
           <div className="submit-section">
             <button
               onClick={handleSubmit}
@@ -387,7 +387,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {}
         <div className="lease-actions">
           <button
             onClick={() => window.print()}

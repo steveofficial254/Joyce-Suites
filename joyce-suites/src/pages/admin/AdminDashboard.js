@@ -29,7 +29,7 @@ const AdminDashboard = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // State for all data
+  
   const [overview, setOverview] = useState(null);
   const [tenants, setTenants] = useState([]);
   const [contracts, setContracts] = useState([]);
@@ -40,7 +40,7 @@ const AdminDashboard = () => {
   const [vacateNotices, setVacateNotices] = useState([]);
   const [notifications, setNotifications] = useState([]);
 
-  // Modal states
+  
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [showTenantModal, setShowTenantModal] = useState(false);
   const [showCreateTenantModal, setShowCreateTenantModal] = useState(false);
@@ -57,14 +57,14 @@ const AdminDashboard = () => {
   const token = localStorage.getItem('token') || localStorage.getItem('joyce-suites-token');
 
   useEffect(() => {
-    console.log('Token check:', token ? 'Token found' : 'No token found');
-    console.log('API Base URL:', API_BASE_URL);
+    
+    
   }, [token]);
 
-  // Enhanced API call helper with better error handling
+  
   const apiCall = async (endpoint, options = {}) => {
     try {
-      console.log('Making API call to:', `${API_BASE_URL}${endpoint}`);
+      
 
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
@@ -75,7 +75,7 @@ const AdminDashboard = () => {
         },
       });
 
-      console.log('Response status:', response.status);
+      
 
       if (response.status === 401 || response.status === 403) {
         console.error('Unauthorized - redirecting to login');
@@ -85,7 +85,7 @@ const AdminDashboard = () => {
       }
 
       const data = await response.json();
-      console.log('Response data:', data);
+      
 
       if (!response.ok) {
         throw new Error(data.error || data.message || `HTTP ${response.status}`);
@@ -110,7 +110,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // Helper to mark notification as read
+  
   const markAsRead = async (id) => {
     try {
       await apiCall(`/api/auth/notifications/${id}/read`, { method: 'PUT' });
@@ -122,7 +122,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // Fetch functions
+  
   const fetchOverview = async () => {
     setLoading(true);
     try {
@@ -211,7 +211,7 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       console.error('Failed to fetch vacate notices:', err);
-      // Set empty array if endpoint doesn't exist
+      
       setVacateNotices([]);
     }
   };
@@ -231,7 +231,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // CRUD operations
+  
   const handleDeleteTenant = async (tenantId) => {
     if (!window.confirm('Are you sure you want to delete this tenant?')) {
       return;
@@ -242,7 +242,7 @@ const AdminDashboard = () => {
       if (data && data.success) {
         setSuccessMessage('Tenant deleted successfully');
         setTenants(tenants.filter(t => t.id !== tenantId));
-        // Refresh available rooms to show the newly vacant room
+        
         await fetchAvailableRooms();
         await fetchOverview();
         setTimeout(() => setSuccessMessage(''), 3000);
@@ -398,7 +398,7 @@ const AdminDashboard = () => {
     }
 
     const fetchPageData = async () => {
-      console.log('Fetching data for page:', activePage);
+      
       setLoading(true);
       try {
         switch (activePage) {
@@ -433,7 +433,7 @@ const AdminDashboard = () => {
             await fetchTenants();
             break;
           case 'messages':
-            await fetchNotifications(); // Fetch notifications for messages page
+            await fetchNotifications(); 
             break;
           default:
             break;
@@ -819,7 +819,7 @@ const AdminDashboard = () => {
   );
 };
 
-// ==================== DASHBOARD PAGE ====================
+
 const DashboardPage = ({
   overview,
   paymentReport,
@@ -876,22 +876,22 @@ const DashboardPage = ({
     return statusMatch && searchMatch;
   });
 
-  // Calculate active tenants count
+  
   const activeTenantsCount = tenants.filter(function (t) {
     return t.is_active;
   }).length || 0;
 
-  // Calculate success rate safely
+  
   const successRate = paymentReport && paymentReport.total_payments > 0
     ? Math.round((paymentReport.successful / paymentReport.total_payments) * 100)
     : 0;
 
-  // Get pending vacate notices
+  
   const pendingVacate = vacateNotices ? vacateNotices.filter(function (n) {
     return n.status === 'pending';
   }) : [];
 
-  // Get recent maintenance
+  
   const recentMaintenance = maintenanceRequests ? maintenanceRequests.slice(0, 5) : [];
 
   return (
@@ -950,7 +950,7 @@ const DashboardPage = ({
       </div>
 
       <div style={styles.dashboardGrid}>
-        {/* Left column */}
+        {}
         <div style={styles.dashboardColumn}>
           {paymentReport && (
             <div style={styles.section}>
@@ -997,7 +997,7 @@ const DashboardPage = ({
           </div>
         </div>
 
-        {/* Right column */}
+        {}
         <div style={styles.dashboardColumn}>
           <div style={styles.section}>
             <div style={styles.sectionHeaderControls}>
@@ -1109,7 +1109,7 @@ const DashboardPage = ({
         </div>
       </div>
 
-      {/* Recent Activities */}
+      {}
       <div style={styles.section}>
         <h3 style={styles.sectionTitle}>Recent Activities</h3>
         <div style={styles.activitiesGrid}>
@@ -1154,7 +1154,7 @@ const DashboardPage = ({
   );
 };
 
-// ==================== CONTRACTS PAGE ====================
+
 const ContractsPage = ({ contracts, tenants, loading }) => {
   const [filterStatus, setFilterStatus] = useState('all');
 
@@ -1264,7 +1264,7 @@ const ContractsPage = ({ contracts, tenants, loading }) => {
   );
 };
 
-// ==================== MAINTENANCE PAGE ====================
+
 const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
@@ -1431,7 +1431,7 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
   );
 };
 
-// ==================== VACATE NOTICES PAGE ====================
+
 const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDetails }) => {
   const [filterStatus, setFilterStatus] = useState('all');
 
@@ -1444,7 +1444,7 @@ const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDe
     );
   }
 
-  // Handle case where notices is null or undefined
+  
   const noticesList = notices || [];
 
   const filtered = filterStatus === 'all'
@@ -1586,7 +1586,7 @@ const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDe
   );
 };
 
-// ==================== NOTIFICATIONS PAGE ====================
+
 const NotificationsPage = ({ tenants, onSendNotification }) => {
   const activeTenantsCount = tenants.filter(function (t) {
     return t.is_active;
@@ -1625,7 +1625,7 @@ const NotificationsPage = ({ tenants, onSendNotification }) => {
   );
 };
 
-// ==================== REPORTS PAGE ====================
+
 const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
   if (loading) {
     return (
@@ -1636,7 +1636,7 @@ const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
     );
   }
 
-  // Calculate detailed occupancy statistics
+  
   const occupancyStats = occupancyReport ? {
     total: occupancyReport.total_properties || 0,
     occupied: occupancyReport.occupied || 0,
@@ -1648,7 +1648,7 @@ const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
       : 0
   } : null;
 
-  // Calculate payment statistics
+  
   const paymentStats = paymentReport ? {
     total: paymentReport.total_payments || 0,
     successful: paymentReport.successful || 0,
@@ -1735,7 +1735,7 @@ const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
         </div>
       )}
 
-      {/* Financial Summary */}
+      {}
       <div style={styles.section}>
         <h3 style={styles.sectionTitle}>Financial Summary</h3>
         <div style={styles.financialSummary}>
@@ -1768,7 +1768,7 @@ const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
   );
 };
 
-// ==================== PROPERTIES PAGE ====================
+
 const PropertiesPage = ({ availableRooms, loading }) => {
   if (loading) {
     return (
@@ -1830,11 +1830,11 @@ const PropertiesPage = ({ availableRooms, loading }) => {
   );
 };
 
-// ==================== TENANT DETAILS MODAL ====================
+
 const TenantDetailsModal = ({ tenant, onClose }) => {
   const [activeTab, setActiveTab] = useState('personal');
 
-  // Extract all tenant data including personal info
+  
   const tenantData = {
     personal: {
       'Full Name': tenant ? tenant.name : 'N/A',
@@ -2066,7 +2066,7 @@ const TenantDetailsModal = ({ tenant, onClose }) => {
   );
 };
 
-// ==================== CREATE TENANT MODAL ====================
+
 const CreateTenantModal = ({ onClose, onSubmit, loading }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -2206,7 +2206,7 @@ const CreateTenantModal = ({ onClose, onSubmit, loading }) => {
   );
 };
 
-// ==================== CREATE LEASE MODAL ====================
+
 const CreateLeaseModal = ({ tenant, rooms, onClose, onSubmit, loading }) => {
   const [formData, setFormData] = useState({
     tenant_id: tenant.id,
@@ -2368,7 +2368,7 @@ const CreateLeaseModal = ({ tenant, rooms, onClose, onSubmit, loading }) => {
   );
 };
 
-// ==================== SEND NOTIFICATION MODAL ====================
+
 const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
   const [formData, setFormData] = useState({
     tenant_id: '',
@@ -2491,7 +2491,7 @@ const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
   );
 };
 
-// ==================== MAINTENANCE DETAILS MODAL ====================
+
 const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
@@ -2586,7 +2586,7 @@ const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
   );
 };
 
-// ==================== VACATE NOTICE DETAILS MODAL ====================
+
 const VacateNoticeDetailsModal = ({ notice, onClose, onUpdateStatus }) => {
   const [notes, setNotes] = useState(notice.admin_notes || '');
   const [action, setAction] = useState('');
@@ -2730,7 +2730,7 @@ const VacateNoticeDetailsModal = ({ notice, onClose, onUpdateStatus }) => {
   );
 };
 
-// ==================== HELPER COMPONENTS ====================
+
 const OverviewCard = ({ title, value, icon: Icon, color, subtitle }) => (
   <div style={styles.overviewCard}>
     <div style={{ ...styles.cardIcon, backgroundColor: color + '20', color: color }}>
@@ -2751,8 +2751,8 @@ const SummaryCard = ({ label, value, color = '#6b7280' }) => (
   </div>
 );
 
-// ==================== STYLES ====================
-// Replace your current styles object with this cleaned version
+
+
 const styles = {
   container: {
     display: 'flex',
@@ -2802,7 +2802,7 @@ const styles = {
     padding: '20px 0',
     overflowY: 'auto'
   },
-  // FIXED: Use separate border properties instead of mixing border and borderLeft
+  
   navItem: {
     width: '100%',
     padding: '12px 20px',
@@ -2821,7 +2821,7 @@ const styles = {
     transition: 'all 0.2s',
     textAlign: 'left'
   },
-  // FIXED: Use separate border properties
+  
   navItemActive: {
     backgroundColor: '#374151',
     color: 'white',
@@ -2856,7 +2856,7 @@ const styles = {
     padding: '1rem',
     borderTop: '1px solid #374151',
     backgroundColor: '#111827',
-    display: 'none' // Default hidden, shown via style override or logic
+    display: 'none' 
   },
   logoutBtnWrapperVisible: {
     display: 'block'
@@ -2906,14 +2906,14 @@ const styles = {
     gap: '12px'
   },
   menuBtn: {
-    display: 'flex', // Always available but we can hide on desktop via logic
+    display: 'flex', 
     background: 'transparent',
     border: 'none',
     cursor: 'pointer',
     padding: '8px',
     marginRight: '8px'
   },
-  // Mobile Top Nav Styles
+  
   mobileTopNav: {
     display: 'flex',
     overflowX: 'auto',
@@ -2923,8 +2923,8 @@ const styles = {
     borderBottom: '1px solid #374151',
     whiteSpace: 'nowrap',
     WebkitOverflowScrolling: 'touch',
-    scrollbarWidth: 'none', // Hide scrollbar Firefox
-    msOverflowStyle: 'none' // Hide scrollbar IE/Edge
+    scrollbarWidth: 'none', 
+    msOverflowStyle: 'none' 
   },
   mobileNavItem: {
     display: 'flex',
@@ -2945,7 +2945,7 @@ const styles = {
     color: 'white',
     boxShadow: '0 2px 5px rgba(59, 130, 246, 0.5)'
   },
-  // Professional Inquiry Card Styles
+  
   inquiryCard: {
     backgroundColor: 'white',
     borderRadius: '12px',
@@ -3011,7 +3011,7 @@ const styles = {
     justifyContent: 'flex-end',
     gap: '8px'
   },
-  // Tenant Modal Image Styles
+  
   imagePreview: {
     width: '100%',
     height: '200px',
@@ -3173,7 +3173,7 @@ const styles = {
     fontWeight: '600',
     color: '#111827'
   },
-  // Fixed: Renamed to avoid duplicate key
+  
   actionButtonsContainer: {
     display: 'flex',
     gap: '12px',
@@ -3435,7 +3435,7 @@ const styles = {
     fontWeight: '500',
     whiteSpace: 'nowrap'
   },
-  // Fixed: Changed name from duplicate key
+  
   buttonActions: {
     display: 'flex',
     gap: '8px',
@@ -3820,7 +3820,7 @@ const styles = {
   }
 };
 
-// Add animation for spinner
+
 const spinKeyframes = `
   @keyframes spin {
     0% { transform: rotate(0deg); }
@@ -3828,7 +3828,7 @@ const spinKeyframes = `
   }
 `;
 
-// Add the animation to the document head
+
 if (typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.textContent = spinKeyframes;

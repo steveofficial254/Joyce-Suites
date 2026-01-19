@@ -19,14 +19,12 @@ class Lease(BaseModel, SerializerMixin):
     status = db.Column(Enum(*LEASE_STATUSES, name='lease_status_enum'), default='active', nullable=False)
     deposit_amount = db.Column(db.Float, default=0.0)
     
-    # Add these missing fields
     signed_by_tenant = db.Column(db.Boolean, default=False)
     signed_at = db.Column(db.DateTime)
     terms_accepted = db.Column(db.Boolean, default=False)
     signature_path = db.Column(db.String(255))
     signature_filename = db.Column(db.String(255))
 
-    # Relationships
     tenant = db.relationship('User', back_populates='leases', foreign_keys=[tenant_id])
     property = db.relationship('Property', back_populates='leases')
     payments = db.relationship('Payment', back_populates='lease', cascade='all, delete-orphan')

@@ -20,16 +20,13 @@ from typing import Tuple, Dict, Any, Optional
 from models.base import db
 from models.user import User
 from models.notification import Notification
+from models.booking_inquiry import BookingInquiry
 
-# Blueprint initialization
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
-# Configuration
-# In production, these should be strictly from environment variables
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
-# Allowed file extensions
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
 
 class UserRole(Enum):
@@ -39,7 +36,6 @@ class UserRole(Enum):
     TENANT = "tenant"
     LANDLORD = "landlord"
 
-# In-memory blacklist for tokens (Note: In a multi-worker production env, use Redis)
 blacklisted_tokens = set()
 
 def allowed_file(filename):
@@ -65,16 +61,13 @@ def validate_password(password: str) -> Tuple[bool, Optional[str]]:
 def validate_phone(phone: str) -> bool:
     """Validate phone number format (Kenya format)."""
     import re
-    # Kenya phone format: +254 or 0 followed by 9-10 digits
     pattern = r"^(\+254|0)[1-9]\d{8}$"
     return re.match(pattern, phone) is not None
 
 def generate_jwt_token(user_id: int, role: str) -> str:
     """Generate a JWT token for authenticated user."""
-    # Get secret from app config
     jwt_secret = current_app.config.get('JWT_SECRET') or os.getenv("JWT_SECRET", "dev-secret-key")
     
-    # Fetch user to get details
     user = User.query.get(user_id)
     
     payload = {
@@ -143,7 +136,6 @@ def admin_required(f):
     
     return decorated
 
-# ==================== AUTH ROUTES ====================
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
@@ -151,28 +143,21 @@ def register():
     Register a new user (tenant, caretaker, or admin).
     Handles both JSON and FormData (multipart/form-data with file uploads).
     """
-    # Rate limiting is applied globally via app.limiter
-    # Additional endpoint-specific limit
     limiter = getattr(current_app, 'limiter', None)
     if limiter:
-        # 5 registrations per hour per IP
         limiter.limit("5 per hour")(lambda: None)()
     
     try:
-        # Handle FormData (multipart/form-data)
         if request.form:
             data = request.form.to_dict()
         else:
-            # Fallback to JSON
             data = request.get_json()
         
         print(f"[DEBUG] Received registration data keys: {list(data.keys())}")  # Debug log
         
-        # Extract file uploads if present
         photo = request.files.get('photo')
         id_document = request.files.get('idDocument') or request.files.get('id_document')
         
-        # Handle full_name or fullName
         full_name = data.get("full_name") or data.get("fullName")
         if not full_name or not full_name.strip():
             return jsonify({
@@ -180,7 +165,6 @@ def register():
                 "error": "Full name is required"
             }), 400
         
-        # Handle id_number or idNumber
         id_number = data.get("id_number") or data.get("idNumber")
         if not id_number:
             print(f"[ERROR] ID number is missing. Available keys: {list(data.keys())}")
@@ -189,10 +173,8 @@ def register():
                 "error": "National ID is required"
             }), 400
         
-        # Handle room_number or roomNumber
         room_number = data.get("room_number") or data.get("roomNumber")
         
-        # Validate other required fields
         required_fields = ["email", "password", "phone", "role"]
         missing = [field for field in required_fields if field not in data or not data[field]]
         if missing:
@@ -208,24 +190,19 @@ def register():
         
         print(f"[DEBUG] Processing registration - Email: {email}, ID: {id_number}, Room: {room_number}")
         
-        # Validate email format
         if not validate_email(email):
             return jsonify({"success": False, "error": "Invalid email format"}), 400
         
-        # Check if email already exists
         if User.query.filter_by(email=email).first():
             return jsonify({"success": False, "error": "Email already registered"}), 409
         
-        # Validate password strength
         is_valid, error_msg = validate_password(password)
         if not is_valid:
             return jsonify({"success": False, "error": error_msg}), 400
         
-        # Validate phone format
         if not validate_phone(phone):
             return jsonify({"success": False, "error": "Invalid phone number format"}), 400
         
-        # Validate role
         valid_roles = [r.value for r in UserRole]
         if role not in valid_roles:
             return jsonify({
@@ -233,13 +210,11 @@ def register():
                 "error": f"Invalid role. Must be one of: {', '.join(valid_roles)}"
             }), 400
 
-        # Validate and convert national ID to integer
         try:
             id_number = int(id_number)
         except (ValueError, TypeError):
             return jsonify({"success": False, "error": "National ID must be a valid number"}), 400
 
-        # Handle file uploads
         photo_path = None
         id_document_path = None
         
@@ -262,12 +237,10 @@ def register():
             id_document_path = f"uploads/documents/{filename}"
             print(f"[DEBUG] ID document saved: {id_document_path}")
 
-        # Split full name into first and last name
         names = full_name.split(' ', 1)
         first_name = names[0]
         last_name = names[1] if len(names) > 1 else ""
         
-        # Auto-generate username from email (required by model but not exposed to user)
         import uuid
         username = f"{email.split('@')[0]}_{str(uuid.uuid4())[:8]}"
 
@@ -284,14 +257,13 @@ def register():
             id_document_path=id_document_path,
             is_active=True
         )
-        new_user.password = password  # Use property setter
+        new_user.password = password
         
         db.session.add(new_user)
         db.session.commit()
         
         print(f"[SUCCESS] User registered: ID={new_user.id}, Email={email}, Room={room_number}")
         
-        # Generate JWT token
         token = generate_jwt_token(new_user.id, role)
         
         return jsonify({
@@ -311,7 +283,6 @@ def register():
     
     except Exception as e:
         db.session.rollback()
-        # Log the error for debugging
         print(f"[ERROR] Registration failed: {str(e)}")
         import traceback
         traceback.print_exc()
@@ -324,11 +295,6 @@ def register():
 @auth_bp.route("/login", methods=["POST"])
 def login():
     """Authenticate user and return JWT token."""
-    # Rate limiting temporarily disabled for debugging
-    # from flask import current_app
-    # limiter = getattr(current_app, 'limiter', None)
-    # if limiter:
-    #     limiter.limit("5 per minute")(lambda: None)()
     
     try:
         data = request.get_json()
@@ -339,21 +305,16 @@ def login():
         email = data["email"].strip().lower()
         password = data["password"]
         
-        # Find user
         user = User.query.filter_by(email=email).first()
         
-        if not user or not user.verify_password(password):  # Use verify_password
+        if not user or not user.verify_password(password):
             return jsonify({"success": False, "error": "Invalid email or password"}), 401
         
         if not user.is_active:
             return jsonify({"success": False, "error": "User account is inactive"}), 403
         
-        # Generate JWT token
         token = generate_jwt_token(user.id, user.role)
         
-        # Update last login (optional, if model supports it)
-        # user.last_login = datetime.utcnow()
-        # db.session.commit()
         
         return jsonify({
             "success": True,
@@ -469,20 +430,16 @@ def get_available_rooms():
     This is a public endpoint that doesn't require authentication.
     """
     try:
-        # Import Property model here to avoid circular imports
         from models.property import Property
         
-        # Get only vacant rooms
         vacant_rooms = Property.query.filter_by(status='vacant').all()
         
         rooms_data = []
         for room in vacant_rooms:
-            # Get landlord info if available
             landlord_name = "Unknown"
             if room.landlord:
                 landlord_name = f"{room.landlord.first_name} {room.landlord.last_name}"
             
-            # Extract room number from name (e.g., "Room 1" -> "1")
             room_number = ""
             if room.name:
                 import re
@@ -553,32 +510,30 @@ def send_inquiry():
         email = data.get("email")
         message = data.get("message")
         phone = data.get("phone", "")
+        room_id = data.get("room_id")
         
-        if not name or not email or not message:
-            return jsonify({
-                "success": False, 
-                "error": "Name, email, and message are required"
-            }), 400
+        inquiry = BookingInquiry(
+            name=name,
+            email=email,
+            phone=phone,
+            message=message,
+            subject=subject,
+            room_id=room_id
+        )
+        
+        db.session.add(inquiry)
+        db.session.commit()
             
-        # Validate email
-        if not validate_email(email):
-            return jsonify({"success": False, "error": "Invalid email format"}), 400
-            
-        # Get all admins and caretakers
         recipients = User.query.filter(
             User.role.in_([UserRole.ADMIN.value, UserRole.CARETAKER.value])
         ).all()
         
-        # Get subject or use default
-        subject = data.get("subject") or f"New Inquiry from {name}"
-        
-        # Create notifications
         notifications = []
         for recipient in recipients:
             note = Notification(
                 user_id=recipient.id,
-                title=subject,
-                message=f"Message: {message}\nContact: {email} {phone}",
+                title=f"NEW BOOKING: {name}",
+                message=f"A new booking inquiry has been received. Please review and mark as paid when settled.\nContact: {email} {phone}",
                 notification_type="inquiry"
             )
             notifications.append(note)
@@ -589,7 +544,8 @@ def send_inquiry():
             
         return jsonify({
             "success": True, 
-            "message": "Inquiry sent successfully. We will contact you soon."
+            "message": "Booking request sent successfully. Once approved, you will be directed to register.",
+            "inquiry_id": inquiry.id
         }), 201
         
     except Exception as e:

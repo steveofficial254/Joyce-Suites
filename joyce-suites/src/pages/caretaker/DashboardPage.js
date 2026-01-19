@@ -15,7 +15,7 @@ const DashboardPage = ({ data, loading }) => {
     <>
       <h2 className="page-title">Dashboard Overview</h2>
       
-      {/* Stats Grid */}
+      {}
       <div className="stats-grid">
         <div className="stat-card stat-card-primary">
           <div className="stat-icon">👥</div>
@@ -50,7 +50,7 @@ const DashboardPage = ({ data, loading }) => {
         </div>
       </div>
 
-      {/* Maintenance Summary */}
+      {}
       <div className="section">
         <h3 className="section-title">Maintenance Overview</h3>
         <div className="summary-grid">
@@ -81,7 +81,7 @@ const DashboardPage = ({ data, loading }) => {
         </div>
       </div>
 
-      {/* Quick Actions */}
+      {}
       <div className="section info-section">
         <h3 className="section-title">Quick Actions</h3>
         <div className="guidelines-list">

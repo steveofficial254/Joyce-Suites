@@ -1,4 +1,3 @@
-# backend/seed_rooms.py
 
 from app import create_app, db
 from models.property import Property
@@ -11,10 +10,8 @@ def seed_rooms():
     with app.app_context():
         print("Starting to seed rooms...")
         
-        # Check if users already exist
         print("\n🔧 Creating/checking users...")
         
-        # 1. CREATE ADMIN USER FIRST
         admin = User.query.filter_by(email='admin@joycesuites.com').first()
         if not admin:
             print("Creating admin user...")
@@ -25,7 +22,7 @@ def seed_rooms():
                 last_name='Administrator',
                 phone_number='+254700000001',
                 role='admin',
-                national_id=99999999,  # Admin ID
+                national_id=99999999,
                 is_active=True
             )
             admin.password = 'Admin@123456'  # Use the password setter
@@ -34,7 +31,6 @@ def seed_rooms():
         else:
             print("⚠️ Admin user already exists")
         
-        # 2. Create landlords
         joyce = User.query.filter_by(email='joyce@joycesuites.com').first()
         if not joyce:
             print("Creating Joyce Muthoni user...")
@@ -69,7 +65,6 @@ def seed_rooms():
             db.session.add(lawrence)
             print("✅ Lawrence Mathea created")
         
-        # 3. Create caretaker
         caretaker = User.query.filter_by(email='caretaker@joycesuites.com').first()
         if not caretaker:
             print("Creating caretaker user...")
@@ -89,16 +84,13 @@ def seed_rooms():
         
         db.session.commit()
         
-        # 4. Check if rooms already exist
         existing_room = Property.query.first()
         if existing_room:
             print("\n⚠️ Rooms already exist in database. Skipping room creation.")
         else:
             print("\n🏠 Creating rooms...")
             
-            # Define all rooms with paybill, account numbers, rent, and deposit
             rooms_data = [
-                # Bedsitters - Joyce Muthoni (Rooms 1-6) - 5k rent, 5400 deposit
                 {'room': 1, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
                 {'room': 2, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
                 {'room': 3, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
@@ -106,12 +98,10 @@ def seed_rooms():
                 {'room': 5, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
                 {'room': 6, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
                 
-                # 1-Bedrooms - Joyce Muthoni (Rooms 8, 9, 10) - 7500 rent, 7900 deposit
                 {'room': 8, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
                 {'room': 9, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
                 {'room': 10, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
                 
-                # Bedsitters - Lawrence Mathea (Rooms 11-15, 21-26)
                 {'room': 11, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
                 {'room': 12, 'type': 'bedsitter', 'rent': 5500, 'deposit': 5900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
                 {'room': 13, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
@@ -124,14 +114,12 @@ def seed_rooms():
                 {'room': 25, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
                 {'room': 26, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
                 
-                # 1-Bedrooms - Lawrence Mathea (Rooms 17-20)
                 {'room': 17, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
                 {'room': 18, 'type': 'one_bedroom', 'rent': 7000, 'deposit': 7400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
                 {'room': 19, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
                 {'room': 20, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
             ]
             
-            # Add all rooms
             created_count = 0
             for room_data in rooms_data:
                 new_room = Property(
@@ -154,16 +142,13 @@ def seed_rooms():
             db.session.commit()
             print(f"\n✅ Successfully created {created_count} rooms!")
         
-        # Verification summary
         print("\n📊 ========== DATABASE SUMMARY ==========")
         
-        # User summary
         users = User.query.all()
         print(f"\n👤 USERS ({len(users)} total):")
         for user in users:
             print(f"  • {user.email:30} | {user.role:10} | {user.first_name} {user.last_name}")
         
-        # Room summary
         total = Property.query.count()
         vacant = Property.query.filter_by(status='vacant').count()
         occupied = Property.query.filter_by(status='occupied').count()

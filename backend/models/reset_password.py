@@ -12,7 +12,6 @@ class ResetPassword(BaseModel, SerializerMixin):
     expires_at = db.Column(db.DateTime(timezone=True), nullable=False)
     used = db.Column(db.Boolean, default=False, nullable=False)
 
-    # Relationships
     user = db.relationship("User", back_populates="reset_passwords")
 
     serialize_rules = (
@@ -33,7 +32,6 @@ class ResetPassword(BaseModel, SerializerMixin):
         now = datetime.now(timezone.utc)
         expires_at = self.expires_at
         
-        # Normalize to timezone-aware UTC
         if expires_at.tzinfo is None:
             expires_at = expires_at.replace(tzinfo=timezone.utc)
         

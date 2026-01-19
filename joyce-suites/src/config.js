@@ -1,18 +1,18 @@
-// config.js - Production-safe configuration
+
 
 const getConfig = () => {
   return {
-    // API Configuration
+    
     apiBaseUrl: 'https://joyce-suites-xdkp.onrender.com',
 
-    // App Configuration
+    
     appName: 'Joyce Suites',
     appVersion: '1.0.0',
     appDescription: 'Property Management System',
 
-    // Endpoints Configuration
+    
     endpoints: {
-      // Authentication Endpoints
+      
       auth: {
         login: '/api/auth/login',
         logout: '/api/auth/logout',
@@ -21,7 +21,7 @@ const getConfig = () => {
         verify: '/api/auth/verify'
       },
 
-      // Caretaker Endpoints
+      
       caretaker: {
         dashboard: '/api/caretaker/dashboard',
         maintenance: '/api/caretaker/maintenance',
@@ -49,10 +49,14 @@ const getConfig = () => {
         profile: '/api/caretaker/profile',
         updateProfile: '/api/caretaker/profile',
         systemHealth: '/api/caretaker/system/health',
-        debugRooms: '/api/caretaker/debug/rooms'
+        debugRooms: '/api/caretaker/debug/rooms',
+        inquiries: '/api/caretaker/inquiries',
+        approveInquiry: '/api/caretaker/inquiries/:id/approve',
+        rejectInquiry: '/api/caretaker/inquiries/:id/reject',
+        markInquiryPaid: '/api/caretaker/inquiries/:id/mark-paid'
       },
 
-      // Admin Endpoints
+      
       admin: {
         overview: '/api/admin/overview',
         tenants: '/api/admin/tenants',
@@ -60,7 +64,7 @@ const getConfig = () => {
         reports: '/api/admin/reports'
       },
 
-      // Tenant Endpoints
+      
       tenant: {
         dashboard: '/api/tenant/dashboard',
         profile: '/api/tenant/profile',
@@ -69,13 +73,13 @@ const getConfig = () => {
         lease: '/api/tenant/lease'
       },
 
-      // Public Endpoints
+      
       public: {
         rooms: '/api/caretaker/rooms/public'
       }
     },
 
-    // App Settings
+    
     settings: {
       itemsPerPage: 20,
       defaultCurrency: 'KES',
@@ -85,12 +89,12 @@ const getConfig = () => {
       maintenancePriorities: ['urgent', 'high', 'normal', 'low'],
       maintenanceStatuses: ['pending', 'in_progress', 'completed', 'cancelled'],
       paymentStatuses: ['successful', 'pending', 'failed', 'refunded'],
-      propertyStatuses: ['vacant', 'occupied', 'under_maintenance'],
+      propertyStatuses: ['vacant', 'occupied', 'under_maintenance', 'reserved'],
       propertyTypes: ['bedsitter', 'one_bedroom'],
       vacateStatuses: ['pending', 'approved', 'completed', 'rejected']
     },
 
-    // UI Configuration
+    
     ui: {
       primaryColor: '#3b82f6',
       secondaryColor: '#10b981',

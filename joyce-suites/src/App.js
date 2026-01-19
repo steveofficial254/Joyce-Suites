@@ -2,17 +2,17 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Lazy Load Pages
-// Auth Pages
+
+
 const TenantRegister = lazy(() => import('./pages/auth/TenantRegister'));
 const TenantLogin = lazy(() => import('./pages/auth/TenantLogin'));
 const CaretakerLogin = lazy(() => import('./pages/auth/CaretakerLogin'));
 const AdminLogin = lazy(() => import('./pages/auth/AdminLogin'));
 
-// Lease Agreement
+
 const LeaseAgreement = lazy(() => import('./pages/Lease/LeaseAgreement'));
 
-// Dashboard Pages
+
 const TenantDashboard = lazy(() => import('./pages/tenant/TenantDashboard'));
 const CaretakerDashboard = lazy(() => import('./pages/caretaker/CaretakerDashboard'));
 const TenantPayments = lazy(() => import('./pages/tenant/TenantPayment'));
@@ -20,14 +20,14 @@ const TenantProfile = lazy(() => import('./pages/tenant/TenantProfile'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const MenuPage = lazy(() => import('./pages/MenuPage'));
 
-// Loading Component
+
 const LoadingSpinner = () => (
   <div className="loading-container">
     <div className="loading-spinner">Loading...</div>
   </div>
 );
 
-// Protected Route Component
+
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, loading } = useAuth();
 
@@ -36,7 +36,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   }
 
   if (!user) {
-    // Redirect to appropriate login based on allowed roles
+    
     if (allowedRoles.includes('caretaker')) {
       return <Navigate to="/caretaker-login" replace />;
     } else if (allowedRoles.includes('admin')) {
@@ -53,32 +53,12 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   return children;
 };
 
-// Public Route Component (redirects to dashboard if already authenticated)
-const PublicRoute = ({ children, restricted = true }) => {
-  const { user, loading } = useAuth();
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
-  if (user && restricted) {
-    // Redirect to appropriate dashboard based on user role
-    switch (user.role) {
-      case 'tenant':
-        return <Navigate to="/tenant/dashboard" replace />;
-      case 'caretaker':
-        return <Navigate to="/caretaker/dashboard" replace />;
-      case 'admin':
-        return <Navigate to="/admin/dashboard" replace />;
-      default:
-        return <Navigate to="/tenant/dashboard" replace />;
-    }
-  }
-
+const PublicRoute = ({ children }) => {
   return children;
 };
 
-// Unauthorized Page
+
 const UnauthorizedPage = () => (
   <div className="unauthorized-container">
     <h1>Access Denied</h1>
@@ -87,7 +67,7 @@ const UnauthorizedPage = () => (
   </div>
 );
 
-// App Content with Routes
+
 function AppContent() {
   const { loading } = useAuth();
 
@@ -98,17 +78,17 @@ function AppContent() {
   return (
     <Suspense fallback={<LoadingSpinner />}>
       <Routes>
-        {/* Landing/Home Route */}
+        {}
         <Route
           path="/"
           element={
-            <PublicRoute restricted={false}>
+            <PublicRoute>
               <MenuPage />
             </PublicRoute>
           }
         />
 
-        {/* Public Auth Routes */}
+        {}
         <Route
           path="/register-tenant"
           element={
@@ -142,7 +122,7 @@ function AppContent() {
           }
         />
 
-        {/* Lease Agreement - Protected for tenants */}
+        {}
         <Route
           path="/lease-agreement"
           element={
@@ -152,7 +132,7 @@ function AppContent() {
           }
         />
 
-        {/* Tenant Routes - Protected */}
+        {}
         <Route
           path="/tenant/dashboard"
           element={
@@ -178,7 +158,7 @@ function AppContent() {
           }
         />
 
-        {/* Caretaker Routes - Protected */}
+        {}
         <Route
           path="/caretaker/dashboard"
           element={
@@ -188,7 +168,7 @@ function AppContent() {
           }
         />
 
-        {/* Admin Routes - Protected */}
+        {}
         <Route
           path="/admin/dashboard"
           element={
@@ -198,13 +178,13 @@ function AppContent() {
           }
         />
 
-        {/* Error Routes */}
+        {}
         <Route
           path="/unauthorized"
           element={<UnauthorizedPage />}
         />
 
-        {/* Catch-all route */}
+        {}
         <Route
           path="*"
           element={

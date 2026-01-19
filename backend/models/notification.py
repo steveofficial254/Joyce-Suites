@@ -17,7 +17,6 @@ class Notification(BaseModel, SerializerMixin):
     is_read = db.Column(db.Boolean, default=False, nullable=False)
     read_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
-    # Relationships
     user = db.relationship("User", back_populates="notifications")
 
     serialize_rules = (

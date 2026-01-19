@@ -5,18 +5,15 @@ print("=" * 60)
 print("FINAL VERIFICATION SCRIPT")
 print("=" * 60)
 
-# Check 1: Database file
 print("\n1. DATABASE FILE:")
 conn = sqlite3.connect('instance/app.db')
 cursor = conn.cursor()
 
-# Check tables
 cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
 tables = [row[0] for row in cursor.fetchall()]
 print(f"   Tables found: {len(tables)}")
 print(f"   Table list: {', '.join(tables)}")
 
-# Check 2: Alembic version
 print("\n2. ALEBIC MIGRATION VERSION:")
 try:
     cursor.execute("SELECT version_num FROM alembic_version")
@@ -28,13 +25,11 @@ try:
 except:
     print("   ⚠️  Could not read alembic version")
 
-# Check 3: Lease table details
 print("\n3. LEASE TABLE VERIFICATION:")
 cursor.execute("SELECT COUNT(*) FROM leases")
 lease_count = cursor.fetchone()[0]
 print(f"   Total leases: {lease_count}")
 
-# Check a sample lease
 cursor.execute("SELECT id, tenant_id, status, signed_by_tenant FROM leases LIMIT 3")
 leases = cursor.fetchall()
 if leases:
@@ -44,7 +39,6 @@ if leases:
 else:
     print("   ℹ️  No leases in database (this is ok)")
 
-# Check 4: New columns specifically
 print("\n4. NEW COLUMNS STATUS:")
 new_columns = ['signed_by_tenant', 'signed_at', 'terms_accepted', 'signature_path', 'signature_filename']
 all_found = True

@@ -10,7 +10,6 @@ app = create_app()
 with app.app_context():
     print("=== DATABASE DIAGNOSTICS ===")
     
-    # 1. Property Statuses
     print("\n[Properties]")
     total_props = Property.query.count()
     print(f"Total Properties: {total_props}")
@@ -18,7 +17,6 @@ with app.app_context():
     for status, count in statuses:
         print(f"  - {status}: {count}")
 
-    # 2. Lease Statuses
     print("\n[Leases]")
     total_leases = Lease.query.count()
     print(f"Total Leases: {total_leases}")
@@ -26,7 +24,6 @@ with app.app_context():
     for status, count in lease_statuses:
         print(f"  - {status}: {count}")
 
-    # 3. Payment Statuses
     print("\n[Payments]")
     total_payments = Payment.query.count()
     print(f"Total Payments: {total_payments}")
@@ -34,7 +31,6 @@ with app.app_context():
     for status, count in pay_statuses:
         print(f"  - {status}: {count}")
         
-    # 4. Total Amount Calculation Check
     print("\n[Revenue Calculation]")
     paid_sum = db.session.query(func.sum(Payment.amount)).filter_by(status='paid').scalar()
     completed_sum = db.session.query(func.sum(Payment.amount)).filter_by(status='completed').scalar()

@@ -1,4 +1,4 @@
-// src/context/TenantContext.js
+
 import { createContext, useContext, useState, useEffect } from "react";
 
 const TenantContext = createContext();

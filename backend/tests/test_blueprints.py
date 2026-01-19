@@ -4,7 +4,7 @@ def test_mpesa_route(client):
     Replace '/example' with a real endpoint in mpesa_routes.py.
     """
     response = client.get("/api/mpesa/example")
-    assert response.status_code in [200, 404]  # Adjust based on real endpoint
+    assert response.status_code in [200, 404]
 
 def test_auth_register_route(client):
     """
@@ -16,4 +16,4 @@ def test_auth_register_route(client):
         "password": "testpass"
     }
     response = client.post("/api/auth/register", json=payload)
-    assert response.status_code in [200, 201, 400]  # Adjust based on logic
+    assert response.status_code in [200, 201, 400]

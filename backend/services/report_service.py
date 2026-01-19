@@ -39,7 +39,6 @@ class ReportService:
         Returns:
             Dictionary containing payment summary, details, and statistics
         """
-        # Validate month and year
         if not (1 <= month <= 12):
             return {
                 "success": False,
@@ -53,8 +52,6 @@ class ReportService:
             }
         
         try:
-            # In production, query Payment and Contract models
-            # For now, using mock data
             mock_payments = [
                 {
                     "payment_id": "PAY001",
@@ -88,7 +85,6 @@ class ReportService:
                 }
             ]
             
-            # Calculate statistics
             total_expected = sum(p["amount"] for p in mock_payments)
             total_paid = sum(
                 p["amount"] for p in mock_payments 
@@ -137,8 +133,6 @@ class ReportService:
             Dictionary containing occupancy statistics and room details
         """
         try:
-            # In production, query Room and Contract models
-            # Mock data simulating room occupancy
             total_rooms = 20
             occupied_rooms = [
                 {
@@ -218,8 +212,6 @@ class ReportService:
             Dictionary containing active tenants, balances, and contact details
         """
         try:
-            # In production, query Tenant, Contract, and Payment models
-            # Mock data for demonstration
             mock_tenants = [
                 {
                     "tenant_id": 1,
@@ -265,12 +257,10 @@ class ReportService:
                 }
             ]
             
-            # Calculate aggregate statistics
             total_tenants = len(mock_tenants)
             total_monthly_rent = sum(t["monthly_rent"] for t in mock_tenants)
             total_outstanding_balance = sum(t["balance"] for t in mock_tenants)
             
-            # Identify tenants with outstanding balances
             tenants_with_balance = [t for t in mock_tenants if t["balance"] > 0]
             
             report = {
@@ -308,7 +298,6 @@ class ReportService:
             Dictionary containing aggregated data from all reports
         """
         try:
-            # Fetch individual reports
             current_date = datetime.now()
             payment_report = self.generate_payment_report(
                 current_date.month,
@@ -351,5 +340,4 @@ class ReportService:
             }
 
 
-# Convenience instance for use in Flask routes
 report_service = ReportService()

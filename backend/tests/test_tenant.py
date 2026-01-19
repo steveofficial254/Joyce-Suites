@@ -12,7 +12,6 @@ class TestTenantDashboard:
     
     def test_dashboard_success(self, client, tenant_user):
         """Test getting tenant dashboard with valid token."""
-        # Login as tenant
         login_response = client.post('/api/auth/login', json={
             'email': tenant_user['email'],
             'password': tenant_user['password']
@@ -40,7 +39,6 @@ class TestTenantDashboard:
     
     def test_dashboard_admin_forbidden(self, client, admin_user):
         """Test that admin cannot access tenant dashboard."""
-        # Login as admin
         login_response = client.post('/api/auth/login', json={
             'email': admin_user['email'],
             'password': admin_user['password']
@@ -554,7 +552,6 @@ class TestTenantIntegration:
     
     def test_complete_tenant_flow(self, client):
         """Test complete tenant user flow."""
-        # 1. Register as tenant
         reg_response = client.post('/api/auth/register', json={
             'email': 'integration@test.com',
             'password': 'Integration@123456',
@@ -566,7 +563,6 @@ class TestTenantIntegration:
         assert reg_response.status_code == 201
         print(f"✓ Step 1: Registration successful")
         
-        # 2. Login
         login_response = client.post('/api/auth/login', json={
             'email': 'integration@test.com',
             'password': 'Integration@123456'
@@ -576,22 +572,18 @@ class TestTenantIntegration:
         headers = {'Authorization': f'Bearer {token}'}
         print(f"✓ Step 2: Login successful")
         
-        # 3. Get dashboard
         dash_response = client.get('/api/tenant/dashboard', headers=headers)
-        assert dash_response.status_code in [200, 404]  # 404 if no profile exists
+        assert dash_response.status_code in [200, 404]
         print(f"✓ Step 3: Dashboard access successful")
         
-        # 4. Get profile
         profile_response = client.get('/api/tenant/profile', headers=headers)
         assert profile_response.status_code in [200, 404]
         print(f"✓ Step 4: Profile access successful")
         
-        # 5. Get payments
         payments_response = client.get('/api/tenant/payments', headers=headers)
         assert payments_response.status_code in [200, 404]
         print(f"✓ Step 5: Payments access successful")
         
-        # 6. Submit maintenance request
         maintenance_response = client.post('/api/tenant/maintenance/request',
             headers=headers,
             json={
@@ -602,7 +594,6 @@ class TestTenantIntegration:
         assert maintenance_response.status_code in [201, 404]
         print(f"✓ Step 6: Maintenance request submission successful")
         
-        # 7. Logout
         logout_response = client.post('/api/tenant/logout', headers=headers)
         assert logout_response.status_code == 200
         print(f"✓ Step 7: Logout successful")

@@ -4,7 +4,6 @@ from models.property import Unit
 from models.tenant import Tenant
 from models.payment import Paymentfrom datetime import datetime
 
-# UNITS SEED DATA - All deposits 
 units = [
     {"room_no": 1, "room_type": "bedsitter", "rent_amount": 5000, "deposit_amount": 5400, "payment_account": "Joyce Muthoni"},
     {"room_no": 2, "room_type": "bedsitter", "rent_amount": 5000, "deposit_amount": 5400, "payment_account": "Joyce Muthoni"},
@@ -32,7 +31,6 @@ units = [
     {"room_no": 26, "room_type": "bedsitter", "rent_amount": 5000, "deposit_amount": 5400, "payment_account": "Lawrence Mathea"}
 ]
 
-# Complete payment records from your document - corrected years to 2025
 payment_records = [
     {"room_no": 13, "tenant_name": "Ann", "month": "January", "year": 2025, "rent_dep": 3500, "rent": 7000, "water_dep": 3000, "water_bill": 2500, "total_rent": 10100, "payment_date": "2025-01-01", "status": "PAID", "payment_method": "Cash"},
     {"room_no": 14, "tenant_name": "Dennis", "month": "January", "year": 2025, "rent_dep": 2000, "rent": 5000, "water_dep": 4000, "water_bill": 1600, "total_rent": 6000, "payment_date": "2025-01-05", "status": "PAID", "payment_method": "Cash"},
@@ -193,12 +191,10 @@ payment_records = [
     {"room_no": 1, "tenant_name": "Symon", "month": "October", "year": 2025, "rent_dep": 0, "rent": 5000, "water_dep": 0, "water_bill": 0, "total_rent": 5000, "payment_date": "2024-10-05", "status": "PAID", "payment_method": "M-Pesa"},
 ]
 
-# SEED FUNCTIONS
 
 def seed_units():
     """Seed all units/rooms into database"""
     for u in units:
-        # Check if unit already exists
         existing = Unit.query.filter_by(room_no=u["room_no"]).first()
         if not existing:
             unit = Unit(
@@ -215,7 +211,6 @@ def seed_units():
 def seed_payments():
     """Seed all payment records into database"""
     for record in payment_records:
-        # Check if payment already exists
         existing = Payment.query.filter_by(
             room_no=record["room_no"],
             tenant_name=record["tenant_name"],

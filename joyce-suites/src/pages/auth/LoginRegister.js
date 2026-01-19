@@ -41,18 +41,18 @@ const LoginRegister = () => {
       admin: { email: 'admin@example.com', password: 'password' }
     };
     
-    // Update form fields so user can see the credentials
+    
     setFormData(prev => ({
       ...prev,
       email: demoUsers[role].email,
       password: demoUsers[role].password
     }));
 
-    // Call login directly with demo credentials
+    
     try {
       await login(demoUsers[role].email, demoUsers[role].password);
     } catch (error) {
-      // Error handling is done in AuthContext
+      
     }
   };
 
@@ -119,7 +119,7 @@ const LoginRegister = () => {
           </button>
         </form>
 
-        {/* Demo Login Buttons */}
+        {}
         <div className="demo-buttons">
           <h4>Demo Logins:</h4>
           <button 

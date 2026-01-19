@@ -13,7 +13,6 @@ class TestCaretakerDashboard:
     
     def test_dashboard_success(self, client, caretaker_user):
         """Test getting caretaker dashboard with valid token."""
-        # Login as caretaker
         login_response = client.post('/api/auth/login', json={
             'email': caretaker_user['email'],
             'password': caretaker_user['password']
@@ -41,7 +40,6 @@ class TestCaretakerDashboard:
     
     def test_dashboard_tenant_forbidden(self, client, tenant_user):
         """Test that tenant cannot access caretaker dashboard."""
-        # Login as tenant
         login_response = client.post('/api/auth/login', json={
             'email': tenant_user['email'],
             'password': tenant_user['password']
@@ -488,7 +486,6 @@ class TestCaretakerIntegration:
     
     def test_complete_caretaker_flow(self, client):
         """Test complete caretaker user flow."""
-        # 1. Register as caretaker
         reg_response = client.post('/api/auth/register', json={
             'email': 'integration.caretaker@test.com',
             'password': 'Integration@123456',
@@ -500,7 +497,6 @@ class TestCaretakerIntegration:
         assert reg_response.status_code == 201
         print(f"✓ Step 1: Registration successful")
         
-        # 2. Login
         login_response = client.post('/api/auth/login', json={
             'email': 'integration.caretaker@test.com',
             'password': 'Integration@123456'
@@ -510,17 +506,14 @@ class TestCaretakerIntegration:
         headers = {'Authorization': f'Bearer {token}'}
         print(f"✓ Step 2: Login successful")
         
-        # 3. Get dashboard
         dash_response = client.get('/api/caretaker/dashboard', headers=headers)
         assert dash_response.status_code == 200
         print(f"✓ Step 3: Dashboard access successful")
         
-        # 4. Get maintenance requests
         maint_response = client.get('/api/caretaker/maintenance', headers=headers)
         assert maint_response.status_code == 200
         print(f"✓ Step 4: Maintenance requests access successful")
         
-        # 5. Send notification
         notif_response = client.post('/api/caretaker/tenant/notify',
             headers=headers,
             json={
@@ -533,17 +526,14 @@ class TestCaretakerIntegration:
         assert notif_response.status_code == 201
         print(f"✓ Step 5: Notification sent successfully")
         
-        # 6. Get pending payments
         payments_response = client.get('/api/caretaker/payments/pending', headers=headers)
         assert payments_response.status_code == 200
         print(f"✓ Step 6: Pending payments access successful")
         
-        # 7. Get available rooms
         rooms_response = client.get('/api/caretaker/rooms/available', headers=headers)
         assert rooms_response.status_code == 200
         print(f"✓ Step 7: Available rooms access successful")
         
-        # 8. Update maintenance status
         update_response = client.post('/api/caretaker/maintenance/update/1',
             headers=headers,
             json={

@@ -20,7 +20,6 @@ class MaintenanceRequest(BaseModel, SerializerMixin):
     reported_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     assigned_to_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
-    # Relationships
     property = db.relationship('Property', back_populates='maintenance_requests')
     reported_by = db.relationship('User', foreign_keys=[reported_by_id], back_populates='reported_maintenance')
     assigned_to = db.relationship('User', foreign_keys=[assigned_to_id], back_populates='assigned_maintenance')

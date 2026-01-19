@@ -2,7 +2,6 @@ import os
 import sys
 from app import app, db
 
-# Add the backend directory to the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 def update_schema():
@@ -11,7 +10,6 @@ def update_schema():
         try:
             print("🔄 Starting database schema update...")
             
-            # Create all tables and update schema
             db.create_all()
             
             print("✅ Database schema updated successfully!")

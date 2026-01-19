@@ -10,18 +10,14 @@ import logging
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
-# Import blueprints
 from routes.auth_routes import auth_bp
 from routes.tenant_routes import tenant_bp
 from routes.admin_routes import admin_bp
 from routes.caretaker_routes import caretaker_bp
-from routes.mpesa_routes import mpesa_bp, payment_bp
 
-# Import configuration and database
 from config import Config
 from models.base import db
 
-# Import all models so db.create_all() knows about them
 from models.user import User
 from models.payment import Payment
 from models.lease import Lease
@@ -33,8 +29,8 @@ from models.notification import Notification
 from models.property import Property
 from models.property_image import PropertyImage
 from models.reset_password import ResetPassword
+from models.booking_inquiry import BookingInquiry
 
-# Load environment variables
 load_dotenv()
 
 
@@ -43,20 +39,16 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # Initialize extensions
     db.init_app(app)
     Migrate(app, db)
     
-    # CORS configuration
     cors_origins = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
 
-        # Vercel production
         "https://joyce-suites.vercel.app",
 
-        # Preview deployments (optional)
         "https://joyce-suites-jcfw.vercel.app",
         "https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app",
         "https://joyce-suites-git-feature-backend-steves-projects-d95e3bef.vercel.app",
@@ -75,7 +67,6 @@ def create_app():
              }
          })
     
-    # Rate limiting
     is_development = os.getenv("FLASK_ENV", "development") == "development"
     
     limiter = Limiter(
@@ -87,14 +78,11 @@ def create_app():
     )
     app.limiter = limiter
     
-    # CSRF Protection
     csrf = CSRFProtect(app)
     csrf.exempt(auth_bp)
     csrf.exempt(tenant_bp)
     csrf.exempt(admin_bp)
     csrf.exempt(caretaker_bp)
-    csrf.exempt(mpesa_bp)
-    csrf.exempt(payment_bp)
 
     configure_logging(app)
     register_blueprints(app)
@@ -113,8 +101,6 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
     app.register_blueprint(caretaker_bp, url_prefix="/api/caretaker")
     app.register_blueprint(tenant_bp, url_prefix="/api/tenant")
-    app.register_blueprint(mpesa_bp, url_prefix="/api/mpesa")
-    app.register_blueprint(payment_bp, url_prefix="/api/payments")
 
     @app.route("/", methods=["GET"])
     def root():
@@ -317,7 +303,6 @@ def register_request_logging(app: Flask) -> None:
             )
 
 
-# Expose app globally for Gunicorn / Render
 app = create_app()
 
 

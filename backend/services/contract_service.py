@@ -42,7 +42,6 @@ class ContractService:
             end = datetime.fromisoformat(end_date)
             current_date = datetime.now().date()
             
-            # Compare dates without time component
             if start.date() >= end.date():
                 return False, "Start date must be before end date"
             
@@ -100,19 +99,16 @@ class ContractService:
         Raises:
             ValueError: If validation fails
         """
-        # Validate required fields
         if not tenant_id or not room_id:
             return {
                 "success": False,
                 "error": "Tenant ID and Room ID are required"
             }
         
-        # Validate dates
         date_valid, date_error = self.validate_contract_dates(start_date, end_date)
         if not date_valid:
             return {"success": False, "error": date_error}
         
-        # Validate rent amount
         amount_valid, amount_error = self.validate_rent_amount(rent_amount)
         if not amount_valid:
             return {"success": False, "error": amount_error}
@@ -132,8 +128,6 @@ class ContractService:
                 "deposit_amount": float(Decimal(str(kwargs.get("deposit_amount", 0))))
             }
             
-            # In production, this would persist to the database
-            # contract = Contract.create(**contract)
             
             return {
                 "success": True,
@@ -163,7 +157,6 @@ class ContractService:
             }
         
         try:
-            # Mock data - replace with actual database query
             contract = {
                 "contract_id": "CNT001",
                 "tenant_id": tenant_id,
@@ -216,14 +209,12 @@ class ContractService:
             }
         
         try:
-            # Validate rent amount if provided
             if "rent_amount" in updates:
                 amount_valid, amount_error = self.validate_rent_amount(updates["rent_amount"])
                 if not amount_valid:
                     return {"success": False, "error": amount_error}
                 updates["rent_amount"] = float(Decimal(str(updates["rent_amount"])))
             
-            # Mock update - replace with actual database operation
             updated_contract = {
                 "contract_id": "CNT001",
                 "tenant_id": tenant_id,
@@ -270,7 +261,6 @@ class ContractService:
             }
         
         try:
-            # Mock termination - replace with actual database operation
             termination_record = {
                 "contract_id": "CNT001",
                 "tenant_id": tenant_id,
@@ -303,5 +293,4 @@ class ContractService:
         return f"CNT-{uuid4().hex[:8].upper()}"
 
 
-# Convenience instance for use in Flask routes
 contract_service = ContractService()
