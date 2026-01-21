@@ -13,6 +13,7 @@ from models.property import Property
 from routes.auth_routes import token_required
 from models.vacate_notice import VacateNotice
 from models.booking_inquiry import BookingInquiry
+from utils.finance import calculate_outstanding_balance
 
 caretaker_bp = Blueprint("caretaker", __name__, url_prefix="/api/caretaker")
 
@@ -703,6 +704,7 @@ def get_tenants():
                 "email": tenant.email,
                 "phone_number": tenant.phone_number,
                 "room_number": tenant.room_number,
+                "outstanding_balance": calculate_outstanding_balance(lease),
                 "is_active": tenant.is_active,
                 "created_at": tenant.created_at.isoformat() if tenant.created_at else None
             })

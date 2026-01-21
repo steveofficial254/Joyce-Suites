@@ -14,6 +14,7 @@ from routes.auth_routes import auth_bp
 from routes.tenant_routes import tenant_bp
 from routes.admin_routes import admin_bp
 from routes.caretaker_routes import caretaker_bp
+from routes.payment_routes import payment_bp
 
 from config import Config
 from models.base import db
@@ -83,6 +84,7 @@ def create_app():
     csrf.exempt(tenant_bp)
     csrf.exempt(admin_bp)
     csrf.exempt(caretaker_bp)
+    csrf.exempt(payment_bp)
 
     configure_logging(app)
     register_blueprints(app)
@@ -101,6 +103,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
     app.register_blueprint(caretaker_bp, url_prefix="/api/caretaker")
     app.register_blueprint(tenant_bp, url_prefix="/api/tenant")
+    app.register_blueprint(payment_bp, url_prefix="/api/payments")
 
     @app.route("/", methods=["GET"])
     def root():

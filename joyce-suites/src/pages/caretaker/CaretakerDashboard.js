@@ -17,7 +17,7 @@ const CaretakerDashboard = () => {
   const [activePage, setActivePage] = useState('dashboard');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleResize = () => {
@@ -32,7 +32,7 @@ const CaretakerDashboard = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  
+
   const [overview, setOverview] = useState(null);
   const [maintenanceRequests, setMaintenanceRequests] = useState([]);
   const [availableRooms, setAvailableRooms] = useState([]);
@@ -44,7 +44,7 @@ const CaretakerDashboard = () => {
   const [allTenantsPaymentStatus, setAllTenantsPaymentStatus] = useState([]);
   const [vacateNotices, setVacateNotices] = useState([]);
 
-  
+
   const [selectedMaintenanceRequest, setSelectedMaintenanceRequest] = useState(null);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
   const [showCreateMaintenanceModal, setShowCreateMaintenanceModal] = useState(false);
@@ -65,7 +65,7 @@ const CaretakerDashboard = () => {
     return localStorage.getItem('token') || localStorage.getItem('joyce-suites-token');
   };
 
-  
+
   const apiCall = async (endpoint, options = {}) => {
     const token = getToken();
 
@@ -105,7 +105,7 @@ const CaretakerDashboard = () => {
     }
   };
 
-  
+
   const fetchOverview = async () => {
     try {
       const data = await apiCall('/api/caretaker/overview');
@@ -429,7 +429,8 @@ const CaretakerDashboard = () => {
               fetchAvailableRooms().catch(err => console.error('Rooms fetch failed:', err)),
               fetchTenants().catch(err => console.error('Tenants fetch failed:', err)),
               fetchPendingPayments().catch(err => console.error('Payments fetch failed:', err)),
-              fetchVacateNotices().catch(err => console.error('Vacate notices fetch failed:', err))
+              fetchVacateNotices().catch(err => console.error('Vacate notices fetch failed:', err)),
+              fetchNotifications().catch(err => console.error('Notifications fetch failed:', err))
             ]);
             break;
           case 'maintenance':
@@ -457,9 +458,6 @@ const CaretakerDashboard = () => {
           case 'vacate':
             await fetchVacateNotices();
             break;
-          case 'vacate':
-            await fetchVacateNotices();
-            break;
           case 'notifications':
           case 'inquiries':
             await fetchNotifications();
@@ -476,11 +474,6 @@ const CaretakerDashboard = () => {
 
     fetchPageData();
   }, [activePage]);
-
-  
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
 
   const renderContent = () => {
     switch (activePage) {
@@ -868,7 +861,7 @@ const CaretakerDashboard = () => {
         </section>
       </main>
 
-      {}
+      { }
       {showMaintenanceModal && selectedMaintenanceRequest && (
         <MaintenanceDetailsModal
           request={selectedMaintenanceRequest}
@@ -925,11 +918,11 @@ const CaretakerDashboard = () => {
       {showCreateVacateNoticeModal && (
         <CreateVacateNoticeModal
           leases={
-            
+
             occupiedRooms.length > 0 ? occupiedRooms.map(room => ({
               lease_id: room.lease_id,
               tenant_name: room.tenant_name,
-              room_number: room.name 
+              room_number: room.name
             })) : []
           }
           initialData={selectedLeaseForVacate}
@@ -2149,7 +2142,7 @@ const NotificationsPage = ({ tenants, onSendNotification }) => {
 const TenantDetailsModal = ({ tenant, onClose }) => {
   const [activeTab, setActiveTab] = useState('personal');
 
-  
+
   const tenantData = {
     personal: {
       'Full Name': tenant ? tenant.name : 'N/A',
@@ -2209,7 +2202,7 @@ const TenantDetailsModal = ({ tenant, onClose }) => {
                       />
                     </div>
                   )}
-                  {}
+                  { }
                   {tenantData.images.id_doc && (
                     <div>
                       <p style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>National ID Document</p>
@@ -2572,7 +2565,7 @@ const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
     const { name, value } = e.target;
 
     if (name === 'amount') {
-      
+
       const numValue = value === '' ? '' : parseFloat(value);
       setFormData({
         ...formData,
@@ -2594,7 +2587,7 @@ const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
     e.preventDefault();
     const newErrors = {};
 
-    
+
     if (!formData.tenant_id) {
       newErrors.tenant_id = 'Tenant ID is required';
     }
@@ -2610,7 +2603,7 @@ const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
       return;
     }
 
-    
+
     const submitData = {
       tenant_id: parseInt(formData.tenant_id),
       amount: parseFloat(formData.amount),
@@ -2917,7 +2910,7 @@ const CreateVacateNoticeModal = ({ leases, initialData, onClose, onSubmit, loadi
     onSubmit(formData);
   };
 
-  
+
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDate = tomorrow.toISOString().split('T')[0];
@@ -3177,7 +3170,7 @@ const styles = {
     padding: '1rem',
     borderTop: '1px solid #374151',
     backgroundColor: '#111827',
-    display: 'none' 
+    display: 'none'
   },
   logoutBtnWrapperVisible: {
     display: 'block'
@@ -3226,7 +3219,7 @@ const styles = {
     gap: '12px'
   },
   menuBtn: {
-    display: 'flex', 
+    display: 'flex',
     background: 'transparent',
     border: 'none',
     cursor: 'pointer',
@@ -3838,7 +3831,7 @@ const styles = {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     zIndex: 99
   },
-  
+
   mobileTopNav: {
     display: 'flex',
     overflowX: 'auto',
@@ -3870,7 +3863,7 @@ const styles = {
     color: 'white',
     backgroundColor: '#374151'
   },
-  
+
   inquiryCard: {
     backgroundColor: 'white',
     borderRadius: '12px',
@@ -3934,7 +3927,7 @@ const styles = {
     padding: '12px',
     borderRadius: '8px'
   },
-  
+
   modalTabs: {
     display: 'flex',
     borderBottom: '1px solid #e5e7eb',

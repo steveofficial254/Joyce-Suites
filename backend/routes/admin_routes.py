@@ -23,6 +23,7 @@ from models.maintenance import MaintenanceRequest
 from models.property import Property
 from models.vacate_notice import VacateNotice
 from routes.auth_routes import token_required
+from utils.finance import calculate_outstanding_balance
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
@@ -293,6 +294,7 @@ def get_all_tenants():
                 "is_active": tenant.is_active,
                 "property": current_lease.property.name if current_lease and current_lease.property else None,
                 "rent_amount": float(current_lease.rent_amount) if current_lease and current_lease.rent_amount else 0,
+                "outstanding_balance": calculate_outstanding_balance(current_lease),
                 "created_at": tenant.created_at.isoformat() if tenant.created_at else None
             })
         
@@ -390,6 +392,7 @@ def get_tenant_details(tenant_id):
                 "phone": tenant.phone_number,
                 "room_number": tenant.room_number,
                 "national_id": tenant.national_id,
+                "outstanding_balance": calculate_outstanding_balance(lease),
                 "is_active": tenant.is_active,
                 "created_at": tenant.created_at.isoformat() if tenant.created_at else None,
                 "lease": {

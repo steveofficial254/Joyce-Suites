@@ -315,7 +315,6 @@ def login():
         
         token = generate_jwt_token(user.id, user.role)
         
-        
         return jsonify({
             "success": True,
             "message": "Login successful",
@@ -511,6 +510,7 @@ def send_inquiry():
         message = data.get("message")
         phone = data.get("phone", "")
         room_id = data.get("room_id")
+        subject = data.get("subject", "General Inquiry")
         
         inquiry = BookingInquiry(
             name=name,
