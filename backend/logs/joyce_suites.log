@@ -11109,3 +11109,24 @@ WHERE leases.tenant_id = ? AND leases.status = ?
 2026-01-19 14:08:06,063 - INFO - Application initialized
 2026-01-19 14:08:30,677 - INFO - Joyce Suites API started - Env: development
 2026-01-19 14:08:30,702 - INFO - Application initialized
+2026-01-19 16:26:39,987 - INFO - Joyce Suites API started - Env: development
+2026-01-19 16:26:40,010 - INFO - Application initialized
+2026-01-19 16:26:40,606 - INFO - Joyce Suites API started - Env: development
+2026-01-19 16:26:40,629 - INFO - Application initialized
+2026-01-21 12:12:10,976 - INFO - Joyce Suites API started - Env: production
+2026-01-21 12:12:11,005 - INFO - Application initialized
+2026-01-21 12:12:16,985 - INFO - Joyce Suites API started - Env: production
+2026-01-21 12:12:17,014 - INFO - Application initialized
+2026-01-21 12:12:17,015 - ERROR - Database connection failed
+2026-01-21 12:56:14,359 - INFO - Joyce Suites API started - Env: production
+2026-01-21 12:56:14,381 - INFO - Application initialized
+2026-01-21 12:56:14,383 - INFO - Joyce Suites API started - Env: production
+2026-01-21 12:56:14,383 - INFO - Joyce Suites API started - Env: production
+2026-01-21 12:56:14,405 - INFO - Application initialized
+2026-01-21 12:56:14,405 - INFO - Application initialized
+2026-01-21 12:57:26,799 - INFO - Joyce Suites API started - Env: production
+2026-01-21 12:57:26,820 - INFO - Application initialized
+2026-01-21 12:57:26,822 - INFO - Joyce Suites API started - Env: production
+2026-01-21 12:57:26,822 - INFO - Joyce Suites API started - Env: production
+2026-01-21 12:57:26,850 - INFO - Application initialized
+2026-01-21 12:57:26,850 - INFO - Application initialized

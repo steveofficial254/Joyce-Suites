@@ -1436,3 +1436,35 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: #660000;
 }
+/* Profile Mobile Alignment Fixes */
+@media (max-width: 768px) {
+    .profile-header {
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+        gap: 20px !important;
+    }
+
+    .profile-photo-container {
+        margin-right: 0 !important;
+        margin-bottom: 20px !important;
+        display: flex !important;
+        justify-content: center !important;
+        width: 100% !important;
+    }
+
+    .photo-display {
+        margin: 0 auto !important;
+    }
+
+    .profile-name {
+        text-align: center !important;
+        width: 100% !important;
+    }
+
+    .profile-actions {
+        display: flex !important;
+        justify-content: center !important;
+        width: 100% !important;
+    }
+}

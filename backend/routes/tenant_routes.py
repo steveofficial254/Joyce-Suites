@@ -14,6 +14,9 @@ from models.notification import Notification
 from models.vacate_notice import VacateNotice
 from models.property import Property
 from routes.auth_routes import token_required
+from services.mpesa_service import MpesaService
+from config import Config
+from utils.finance import calculate_outstanding_balance
 
 tenant_bp = Blueprint("tenant", __name__, url_prefix="/api/tenant")
 
@@ -132,32 +135,7 @@ def dashboard():
             else:
                 property_name = "Unknown Property"
 
-        outstanding_balance = 0.0
-        
-        if active_lease and active_lease.status == 'active':
-            try:
-                start_date = active_lease.start_date
-                now = datetime.utcnow().date()
-                
-                months_stayed = (now.year - start_date.year) * 12 + (now.month - start_date.month)
-                
-                months_due = max(1, months_stayed + 1)
-                
-                total_rent_due = months_due * float(active_lease.rent_amount)
-                
-                total_paid = 0
-                payments = Payment.query.filter_by(
-                    lease_id=active_lease.id, 
-                    status='completed'
-                ).all()
-                
-                for p in payments:
-                    total_paid += float(p.amount)
-                
-                outstanding_balance = max(0.0, total_rent_due - total_paid)
-                
-            except Exception as e:
-                current_app.logger.error(f"Balance calculation error: {str(e)}")
+        outstanding_balance = calculate_outstanding_balance(active_lease)
 
         current_app.logger.info(f"✅ Dashboard data loaded for {user.email}")
         
@@ -471,6 +449,69 @@ def sign_lease():
         return jsonify({"success": False, "error": f"Error signing lease: {str(e)}"}), 500
 
 
+@tenant_bp.route("/stk-push", methods=["POST"])
+@tenant_required
+def initiate_mpesa_payment():
+    """Initiate M-Pesa STK Push."""
+    try:
+        data = request.get_json()
+        phone_number = data.get('phone_number')
+        amount = data.get('amount')
+        
+        if not phone_number or not amount:
+            return jsonify({"success": False, "error": "Phone number and amount are required"}), 400
+            
+        lease = Lease.query.filter_by(tenant_id=request.user_id, status='active').first()
+        if not lease:
+            return jsonify({"success": False, "error": "No active lease found"}), 404
+            
+        mpesa_service = MpesaService(Config)
+        
+        # Automate account details based on room number
+        account_details = get_account_details_backend(user.room_number)
+        if not account_details:
+            return jsonify({"success": False, "error": "Invalid account configuration"}), 400
+            
+        shortcode = account_details['paybill']
+        account_reference = account_details['account_number']
+        description = f"Rent payment for Room {user.room_number}"
+        
+        response_data, error = mpesa_service.initiate_stk_push(
+            phone_number=phone_number,
+            amount=amount,
+            shortcode=shortcode,
+            account_reference=account_reference,
+            description=description
+        )
+        
+        if error:
+            return jsonify({"success": False, "error": error}), 400
+            
+        # Create pending payment record
+        payment = Payment(
+            tenant_id=request.user_id,
+            lease_id=lease.id,
+            amount=amount,
+            status='pending',
+            payment_method='M-Pesa',
+            checkout_request_id=response_data.get('CheckoutRequestID'),
+            description=description
+        )
+        db.session.add(payment)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True, 
+            "message": "STK Push initiated successfully. Please enter your PIN on your phone.",
+            "checkout_request_id": payment.checkout_request_id
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"STK Push error: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @tenant_bp.route("/payments", methods=["GET"])
 @tenant_required
 def get_payment_history():
@@ -488,6 +529,7 @@ def get_payment_history():
             "amount": float(p.amount) if p.amount else 0,
             "status": p.status,
             "transaction_id": p.transaction_id if hasattr(p, 'transaction_id') else None,
+            "checkout_request_id": p.checkout_request_id,
             "created_at": p.created_at.isoformat() if p.created_at else None,
             "payment_method": p.payment_method if hasattr(p, 'payment_method') else "M-Pesa"
         } for p in payments]
@@ -1093,3 +1135,73 @@ def tenant_health():
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat()
     }), 200
+@tenant_bp.route("/payment-status/<checkout_id>", methods=["GET"])
+@tenant_required
+def check_payment_status(checkout_id):
+    """Query Safaricom for STK Push status."""
+    try:
+        payment = Payment.query.filter_by(checkout_request_id=checkout_id).first()
+        if not payment:
+            return jsonify({"success": False, "error": "Payment record not found"}), 404
+            
+        if payment.status in ['paid', 'completed']:
+            return jsonify({
+                "success": True, 
+                "status": payment.status,
+                "message": "Payment already confirmed as successful"
+            }), 200
+            
+        lease = Lease.query.get(payment.lease_id)
+        if not lease:
+            return jsonify({"success": False, "error": "Lease not found"}), 404
+            
+        property = Property.query.get(lease.property_id)
+        if not property or not property.paybill_number:
+            return jsonify({"success": False, "error": "Property paybill configuration missing"}), 400
+            
+        mpesa_service = MpesaService(Config)
+        response_data, error = mpesa_service.query_stk_status(checkout_id, property.paybill_number)
+        
+        if error:
+            return jsonify({"success": False, "error": error}), 400
+            
+        result_code = response_data.get("ResultCode")
+        
+        if str(result_code) == "0":
+            payment.status = 'paid'
+            # In Safaricom STK Query, receipt is not always in the same place as callback
+            # But we can update the status at least.
+            db.session.commit()
+            return jsonify({
+                "success": True, 
+                "status": "paid",
+                "message": "Payment confirmed successfully"
+            }), 200
+        elif str(result_code) == "1032":
+            payment.status = 'cancelled'
+            db.session.commit()
+            return jsonify({
+                "success": True, 
+                "status": "cancelled",
+                "message": "Request cancelled by user"
+            }), 200
+        elif str(result_code) in ["1", "1037"]:
+            # 1: record not found (expired), 1037: timeout
+            return jsonify({
+                "success": True, 
+                "status": "pending",
+                "message": "Payment still pending or expired. Please check your phone."
+            }), 200
+        else:
+            payment.status = 'failed'
+            payment.notes = response_data.get("ResultDesc")
+            db.session.commit()
+            return jsonify({
+                "success": True, 
+                "status": "failed",
+                "message": response_data.get("ResultDesc")
+            }), 200
+            
+    except Exception as e:
+        current_app.logger.error(f"Payment status query error: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500

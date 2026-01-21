@@ -600,10 +600,53 @@ const TenantDashboard = () => {
     }
   };
 
-  const handleInitiateMpesa = (e) => {
+  const handleInitiateMpesa = async (e) => {
     e.preventDefault();
-    setSuccess('Please use the manual payment instructions below to complete your payment. STK push is temporarily unavailable.');
-    setTimeout(() => setSuccess(''), 5000);
+
+    if (!mpesaPhone) {
+      setError('Please enter your M-Pesa phone number');
+      return;
+    }
+
+    // Validate phone number format (basic)
+    if (!/^(07|01|254)\d{8}$/.test(mpesaPhone)) {
+      setError('Please enter a valid M-Pesa phone number');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      setSuccess('');
+
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/stk-push`, {
+        method: 'POST',
+        body: JSON.stringify({
+          phone_number: mpesaPhone,
+          amount: outstandingBalance || paymentDetails?.rent_amount || 0
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess(data.message || 'STK Push initiated! Please check your phone.');
+        setMpesaPhone('');
+
+        // Wait for a bit and then refresh data to see if payment was processed
+        setTimeout(() => {
+          fetchAllData();
+          setSuccess('');
+        }, 10000);
+      } else {
+        setError(data.error || 'Failed to initiate M-Pesa payment');
+      }
+    } catch (err) {
+      console.error('M-Pesa payment error:', err);
+      setError('Error initiating payment: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmitMaintenance = async (e) => {
@@ -643,6 +686,30 @@ const TenantDashboard = () => {
     } catch (err) {
       console.error('Maintenance submission error:', err);
       setError('Error submitting request: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckPaymentStatus = async (checkoutId) => {
+    try {
+      setLoading(true);
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/payment-status/${checkoutId}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        if (data.status === 'paid') {
+          setSuccess('Payment confirmed successfully!');
+        } else {
+          setSuccess(data.message || 'Payment status updated');
+        }
+        fetchAllData();
+      } else {
+        setError(data.error || 'Failed to check status');
+      }
+    } catch (err) {
+      console.error('Check status error:', err);
+      setError('Error checking status: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -874,7 +941,7 @@ const TenantDashboard = () => {
                       console.error('❌ Avatar photo failed to load:', profilePhotoUrl);
 
                       if (profileData?.photo_path && !profileData.photo_path.startsWith('http')) {
-                        e.target.src = `/${profileData.photo_path}`;
+                        e.target.src = `${config.apiBaseUrl}/${profileData.photo_path}`;
                       } else {
                         e.target.style.display = 'none';
                         e.target.parentElement.innerHTML = `<div class="avatar-placeholder">${(dashboardData.tenant_name?.charAt(0) || 'T').toUpperCase()}</div>`;
@@ -1123,6 +1190,7 @@ const TenantDashboard = () => {
                         <th>Amount</th>
                         <th>Status</th>
                         <th>Transaction ID</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1137,6 +1205,17 @@ const TenantDashboard = () => {
                               </span>
                             </td>
                             <td>{payment.transaction_id || 'N/A'}</td>
+                            <td>
+                              {payment.status === 'pending' && payment.checkout_request_id && (
+                                <button
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={() => handleCheckPaymentStatus(payment.checkout_request_id)}
+                                  disabled={loading}
+                                >
+                                  Check Status
+                                </button>
+                              )}
+                            </td>
                           </tr>
                         ))
                       ) : (
@@ -1179,16 +1258,8 @@ const TenantDashboard = () => {
                             className="profile-photo"
                             onError={(e) => {
                               console.error('❌ Failed to load profile photo from:', e.target.src);
-
                               if (profileData.photo_path && !profileData.photo_path.startsWith('http')) {
-                                e.target.src = `/${profileData.photo_path}`;
-                              } else {
-                                e.target.style.display = 'none';
-                                e.target.parentElement.innerHTML = `
-                                  <div class="profile-photo-placeholder">
-                                    ${(profileData.full_name?.charAt(0) || 'T').toUpperCase()}
-                                  </div>
-                                `;
+                                e.target.src = `${config.apiBaseUrl}/${profileData.photo_path}`;
                               }
                             }}
                             onLoad={() => { }}
@@ -1203,12 +1274,9 @@ const TenantDashboard = () => {
                             className="profile-photo"
                             onError={(e) => {
                               console.error('❌ Failed to load ID document from:', e.target.src);
-                              e.target.style.display = 'none';
-                              e.target.parentElement.innerHTML = `
-                                <div class="profile-photo-placeholder">
-                                  ${(profileData.full_name?.charAt(0) || 'T').toUpperCase()}
-                                </div>
-                              `;
+                              if (profileData.id_document_path && !profileData.id_document_path.startsWith('http')) {
+                                e.target.src = `${config.apiBaseUrl}/${profileData.id_document_path}`;
+                              }
                             }}
                             onLoad={() => { }}
                           />

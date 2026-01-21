@@ -14,7 +14,7 @@ const AdminDashboard = () => {
   const [activePage, setActivePage] = useState('dashboard');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleResize = () => {
@@ -29,7 +29,7 @@ const AdminDashboard = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  
+
   const [overview, setOverview] = useState(null);
   const [tenants, setTenants] = useState([]);
   const [contracts, setContracts] = useState([]);
@@ -40,7 +40,7 @@ const AdminDashboard = () => {
   const [vacateNotices, setVacateNotices] = useState([]);
   const [notifications, setNotifications] = useState([]);
 
-  
+
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [showTenantModal, setShowTenantModal] = useState(false);
   const [showCreateTenantModal, setShowCreateTenantModal] = useState(false);
@@ -54,18 +54,14 @@ const AdminDashboard = () => {
   const [selectedInquiry, setSelectedInquiry] = useState(null);
   const [showInquiryModal, setShowInquiryModal] = useState(false);
 
-  const token = localStorage.getItem('token') || localStorage.getItem('joyce-suites-token');
+  const getToken = () => {
+    return localStorage.getItem('token') || localStorage.getItem('joyce-suites-token');
+  };
 
-  useEffect(() => {
-    
-    
-  }, [token]);
 
-  
   const apiCall = async (endpoint, options = {}) => {
+    const token = getToken();
     try {
-      
-
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers: {
@@ -75,7 +71,7 @@ const AdminDashboard = () => {
         },
       });
 
-      
+
 
       if (response.status === 401 || response.status === 403) {
         console.error('Unauthorized - redirecting to login');
@@ -85,7 +81,7 @@ const AdminDashboard = () => {
       }
 
       const data = await response.json();
-      
+
 
       if (!response.ok) {
         throw new Error(data.error || data.message || `HTTP ${response.status}`);
@@ -110,7 +106,7 @@ const AdminDashboard = () => {
     }
   };
 
-  
+
   const markAsRead = async (id) => {
     try {
       await apiCall(`/api/auth/notifications/${id}/read`, { method: 'PUT' });
@@ -122,9 +118,8 @@ const AdminDashboard = () => {
     }
   };
 
-  
+
   const fetchOverview = async () => {
-    setLoading(true);
     try {
       const data = await apiCall('/api/admin/overview');
       if (data && data.success) {
@@ -132,8 +127,6 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       console.error('Failed to fetch overview:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -211,7 +204,7 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       console.error('Failed to fetch vacate notices:', err);
-      
+
       setVacateNotices([]);
     }
   };
@@ -231,7 +224,7 @@ const AdminDashboard = () => {
     }
   };
 
-  
+
   const handleDeleteTenant = async (tenantId) => {
     if (!window.confirm('Are you sure you want to delete this tenant?')) {
       return;
@@ -242,7 +235,7 @@ const AdminDashboard = () => {
       if (data && data.success) {
         setSuccessMessage('Tenant deleted successfully');
         setTenants(tenants.filter(t => t.id !== tenantId));
-        
+
         await fetchAvailableRooms();
         await fetchOverview();
         setTimeout(() => setSuccessMessage(''), 3000);
@@ -391,6 +384,7 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
+    const token = getToken();
     if (!token) {
       console.error('No token found - redirecting to login');
       window.location.href = '/admin-login';
@@ -398,7 +392,6 @@ const AdminDashboard = () => {
     }
 
     const fetchPageData = async () => {
-      
       setLoading(true);
       try {
         switch (activePage) {
@@ -409,12 +402,12 @@ const AdminDashboard = () => {
               fetchPaymentReport(),
               fetchOccupancyReport(),
               fetchVacateNotices(),
-              fetchMaintenanceRequests()
+              fetchMaintenanceRequests(),
+              fetchNotifications()
             ]);
             break;
           case 'contracts':
-            await fetchContracts();
-            await fetchTenants();
+            await Promise.all([fetchContracts(), fetchTenants()]);
             break;
           case 'reports':
             await Promise.all([fetchPaymentReport(), fetchOccupancyReport()]);
@@ -429,27 +422,23 @@ const AdminDashboard = () => {
             await fetchTenants();
             break;
           case 'vacate':
-            await fetchVacateNotices();
-            await fetchTenants();
+            await Promise.all([fetchVacateNotices(), fetchTenants()]);
             break;
           case 'messages':
-            await fetchNotifications(); 
+            await fetchNotifications();
             break;
           default:
             break;
         }
+      } catch (error) {
+        console.error("Error fetching page data:", error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchPageData();
-  }, [activePage, token]);
-
-  useEffect(() => {
-    fetchOverview();
-    fetchNotifications();
-  }, []);
+  }, [activePage]);
 
   const renderContent = () => {
     switch (activePage) {
@@ -876,22 +865,22 @@ const DashboardPage = ({
     return statusMatch && searchMatch;
   });
 
-  
+
   const activeTenantsCount = tenants.filter(function (t) {
     return t.is_active;
   }).length || 0;
 
-  
+
   const successRate = paymentReport && paymentReport.total_payments > 0
     ? Math.round((paymentReport.successful / paymentReport.total_payments) * 100)
     : 0;
 
-  
+
   const pendingVacate = vacateNotices ? vacateNotices.filter(function (n) {
     return n.status === 'pending';
   }) : [];
 
-  
+
   const recentMaintenance = maintenanceRequests ? maintenanceRequests.slice(0, 5) : [];
 
   return (
@@ -950,7 +939,7 @@ const DashboardPage = ({
       </div>
 
       <div style={styles.dashboardGrid}>
-        {}
+        { }
         <div style={styles.dashboardColumn}>
           {paymentReport && (
             <div style={styles.section}>
@@ -997,7 +986,7 @@ const DashboardPage = ({
           </div>
         </div>
 
-        {}
+        { }
         <div style={styles.dashboardColumn}>
           <div style={styles.section}>
             <div style={styles.sectionHeaderControls}>
@@ -1109,7 +1098,7 @@ const DashboardPage = ({
         </div>
       </div>
 
-      {}
+      { }
       <div style={styles.section}>
         <h3 style={styles.sectionTitle}>Recent Activities</h3>
         <div style={styles.activitiesGrid}>
@@ -1444,7 +1433,7 @@ const VacateNoticesPage = ({ notices, tenants, loading, onUpdateStatus, onViewDe
     );
   }
 
-  
+
   const noticesList = notices || [];
 
   const filtered = filterStatus === 'all'
@@ -1636,7 +1625,7 @@ const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
     );
   }
 
-  
+
   const occupancyStats = occupancyReport ? {
     total: occupancyReport.total_properties || 0,
     occupied: occupancyReport.occupied || 0,
@@ -1648,7 +1637,7 @@ const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
       : 0
   } : null;
 
-  
+
   const paymentStats = paymentReport ? {
     total: paymentReport.total_payments || 0,
     successful: paymentReport.successful || 0,
@@ -1735,7 +1724,7 @@ const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
         </div>
       )}
 
-      {}
+      { }
       <div style={styles.section}>
         <h3 style={styles.sectionTitle}>Financial Summary</h3>
         <div style={styles.financialSummary}>
@@ -1834,7 +1823,7 @@ const PropertiesPage = ({ availableRooms, loading }) => {
 const TenantDetailsModal = ({ tenant, onClose }) => {
   const [activeTab, setActiveTab] = useState('personal');
 
-  
+
   const tenantData = {
     personal: {
       'Full Name': tenant ? tenant.name : 'N/A',
@@ -2802,7 +2791,7 @@ const styles = {
     padding: '20px 0',
     overflowY: 'auto'
   },
-  
+
   navItem: {
     width: '100%',
     padding: '12px 20px',
@@ -2821,7 +2810,7 @@ const styles = {
     transition: 'all 0.2s',
     textAlign: 'left'
   },
-  
+
   navItemActive: {
     backgroundColor: '#374151',
     color: 'white',
@@ -2856,7 +2845,7 @@ const styles = {
     padding: '1rem',
     borderTop: '1px solid #374151',
     backgroundColor: '#111827',
-    display: 'none' 
+    display: 'none'
   },
   logoutBtnWrapperVisible: {
     display: 'block'
@@ -2906,14 +2895,14 @@ const styles = {
     gap: '12px'
   },
   menuBtn: {
-    display: 'flex', 
+    display: 'flex',
     background: 'transparent',
     border: 'none',
     cursor: 'pointer',
     padding: '8px',
     marginRight: '8px'
   },
-  
+
   mobileTopNav: {
     display: 'flex',
     overflowX: 'auto',
@@ -2923,8 +2912,8 @@ const styles = {
     borderBottom: '1px solid #374151',
     whiteSpace: 'nowrap',
     WebkitOverflowScrolling: 'touch',
-    scrollbarWidth: 'none', 
-    msOverflowStyle: 'none' 
+    scrollbarWidth: 'none',
+    msOverflowStyle: 'none'
   },
   mobileNavItem: {
     display: 'flex',
@@ -2945,7 +2934,7 @@ const styles = {
     color: 'white',
     boxShadow: '0 2px 5px rgba(59, 130, 246, 0.5)'
   },
-  
+
   inquiryCard: {
     backgroundColor: 'white',
     borderRadius: '12px',
@@ -3011,7 +3000,7 @@ const styles = {
     justifyContent: 'flex-end',
     gap: '8px'
   },
-  
+
   imagePreview: {
     width: '100%',
     height: '200px',
@@ -3173,7 +3162,7 @@ const styles = {
     fontWeight: '600',
     color: '#111827'
   },
-  
+
   actionButtonsContainer: {
     display: 'flex',
     gap: '12px',
@@ -3435,7 +3424,7 @@ const styles = {
     fontWeight: '500',
     whiteSpace: 'nowrap'
   },
-  
+
   buttonActions: {
     display: 'flex',
     gap: '8px',

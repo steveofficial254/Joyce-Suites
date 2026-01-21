@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 
-import heroBg from '../assets/image13.jpg'; 
+import heroBg from '../assets/image13.jpg';
 import logo from '../assets/image1.png';
 import gallery1 from '../assets/image11.jpg';
 import gallery2 from '../assets/image12.jpg';
@@ -28,13 +28,13 @@ const MenuPage = () => {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [availableRooms, setAvailableRooms] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isVisible, setIsVisible] = useState(false); 
+    const [isVisible, setIsVisible] = useState(false);
     const [activeTab, setActiveTab] = useState('all');
     const [nextAvailableDate, setNextAvailableDate] = useState(null);
     const [adClipIndex, setAdClipIndex] = useState(0);
     const scrollRef = useRef(null);
 
-    
+
     const [inquiryForm, setInquiryForm] = useState({
         name: '',
         email: '',
@@ -45,7 +45,9 @@ const MenuPage = () => {
     const [inquiryStatus, setInquiryStatus] = useState(null);
     const [fetchError, setFetchError] = useState(null);
 
-    
+
+    const [showAuthSelection, setShowAuthSelection] = useState(false);
+
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [bookingForm, setBookingForm] = useState({
         name: '',
@@ -57,19 +59,19 @@ const MenuPage = () => {
         message: ''
     });
 
-    
-    
+
+
     const isAuthenticated = () => {
         const token = localStorage.getItem('joyce-suites-token');
         return !!token;
     };
 
-    
+
     const handleAuthNavigation = () => {
-        navigate('/register-tenant');
+        setShowAuthSelection(true);
     };
 
-    
+
     const handleBookingAction = () => {
         if (isAuthenticated()) {
             navigate('/tenant-dashboard');
@@ -116,7 +118,7 @@ const MenuPage = () => {
                     name: '', email: '', phone: '', houseType: 'one_bedroom',
                     occupancy: 'Single', moveInDate: '', message: ''
                 });
-                
+
                 setTimeout(() => {
                     setShowBookingModal(false);
                     navigate('/register-tenant');
@@ -131,11 +133,11 @@ const MenuPage = () => {
         }
     };
 
-    
+
     useEffect(() => {
         const fetchRooms = async () => {
             try {
-                
+
                 const response = await fetch(`${API_BASE_URL}/api/caretaker/rooms/public`);
 
                 if (!response.ok) {
@@ -162,7 +164,7 @@ const MenuPage = () => {
 
         fetchRooms();
 
-        
+
         const toggleVisibility = () => {
             if (window.pageYOffset > 300) {
                 setIsVisible(true);
@@ -196,7 +198,7 @@ const MenuPage = () => {
         setSendingInquiry(true);
         setInquiryStatus(null);
         try {
-            const response = await fetch(`${API_BASE_URL} /api/auth / inquiry`, {
+            const response = await fetch(`${API_BASE_URL}/api/auth/inquiry`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -229,11 +231,11 @@ const MenuPage = () => {
         { src: gallery9, tag: 'exteriors', alt: 'Building Front' },
     ];
 
-    
+
     useEffect(() => {
         const interval = setInterval(() => {
             setAdClipIndex((prev) => (prev + 1) % galleryImages.length);
-        }, 4000); 
+        }, 4000);
         return () => clearInterval(interval);
     }, [galleryImages.length]);
 
@@ -243,7 +245,7 @@ const MenuPage = () => {
             color: '#1f2937',
             overflowX: 'hidden',
         },
-        
+
         nav: {
             position: 'fixed',
             top: 0,
@@ -298,7 +300,7 @@ const MenuPage = () => {
             transition: 'all 0.3s',
             boxShadow: '0 4px 14px 0 rgba(245, 158, 11, 0.39)',
         },
-        
+
         hero: {
             position: 'relative',
             height: '100vh',
@@ -333,7 +335,7 @@ const MenuPage = () => {
             color: '#f3f4f6',
             animation: 'slideUp 1s ease-out 0.3s backwards'
         },
-        
+
         adBanner: {
             position: 'absolute',
             top: '100px',
@@ -347,14 +349,14 @@ const MenuPage = () => {
             zIndex: 20,
             animation: 'float 3s ease-in-out infinite'
         },
-        
+
         sliderContainer: {
             display: 'flex',
             gap: '2rem',
             overflowX: 'auto',
             padding: '2rem 1rem',
-            scrollbarWidth: 'none', 
-            msOverflowStyle: 'none',  
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
             scrollBehavior: 'smooth',
             alignItems: 'stretch'
         },
@@ -414,7 +416,7 @@ const MenuPage = () => {
             justifyContent: 'center',
             margin: '0 auto 1.5rem',
         },
-        
+
         adClipContainer: {
             position: 'relative',
             height: '500px',
@@ -431,7 +433,7 @@ const MenuPage = () => {
             height: '100%',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            transition: 'opacity 1s ease-in-out, transform 8s ease-out', 
+            transition: 'opacity 1s ease-in-out, transform 8s ease-out',
         },
         adOverlay: {
             position: 'absolute',
@@ -467,7 +469,7 @@ const MenuPage = () => {
             backgroundColor: '#f59e0b',
             transition: 'width 4s linear'
         },
-        
+
         contactSection: {
             backgroundColor: '#f9fafb',
             borderRadius: '2rem',
@@ -495,7 +497,7 @@ const MenuPage = () => {
             marginTop: '0.5rem',
             minHeight: '120px'
         },
-        
+
         footer: {
             backgroundColor: '#111827',
             color: 'white',
@@ -541,7 +543,7 @@ const MenuPage = () => {
             alignItems: 'center',
             gap: '0.5rem',
         },
-        
+
         modalOverlay: {
             position: 'fixed',
             top: 0,
@@ -602,14 +604,14 @@ const MenuPage = () => {
 `}
             </style>
 
-            {}
+            { }
             <nav style={styles.nav} className="nav-padding">
                 <a href="#" style={styles.logoContainer}>
                     <img src={logo} alt="Joyce Suites" style={styles.logoImg} />
                     <span>JOYCE SUITES</span>
                 </a>
 
-                {}
+                { }
                 <div className="desktop-nav" style={{
                     display: window.innerWidth > 768 ? 'flex' : 'none',
                     gap: '2rem',
@@ -620,11 +622,11 @@ const MenuPage = () => {
                     <a href="#gallery" style={styles.link} className="nav-link">Gallery</a>
                     <a href="#contact" style={styles.link} className="nav-link">Contact</a>
                     <button style={styles.primaryBtn} onClick={handleAuthNavigation}>
-                        Sign In
+                        Signup
                     </button>
                 </div>
 
-                {}
+                { }
                 <button
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                     style={{
@@ -639,7 +641,7 @@ const MenuPage = () => {
                 </button>
             </nav>
 
-            {}
+            { }
             {mobileMenuOpen && (
                 <div style={{
                     position: 'fixed',
@@ -663,13 +665,13 @@ const MenuPage = () => {
                         handleAuthNavigation();
                         setMobileMenuOpen(false);
                     }}>
-                        Sign In
+                        Signup
                     </button>
                 </div>
             )}
 
 
-            {}
+            { }
             <header style={styles.hero}>
                 <div style={styles.adBanner}>Now Leasing!</div>
                 <div style={styles.heroContent}>
@@ -694,7 +696,7 @@ const MenuPage = () => {
                 </div>
             </header>
 
-            {}
+            { }
             <section id="rooms" style={styles.section} className="section-padding">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: '2rem' }}>
                     <div>
@@ -780,7 +782,7 @@ const MenuPage = () => {
                 )}
             </section>
 
-            {}
+            { }
             <section id="amenities" style={{ backgroundColor: '#f9fafb', padding: '5rem 2rem' }} className="section-padding">
                 <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                     <h2 style={styles.sectionTitle}>Why Choose Joyce Suites</h2>
@@ -807,7 +809,7 @@ const MenuPage = () => {
                 </div>
             </section>
 
-            {}
+            { }
             <section id="gallery" style={styles.section} className="section-padding">
                 <h2 style={styles.sectionTitle}>Experience Joyce Suites</h2>
                 <p style={styles.sectionSubtitle}>Take a virtual tour of our premium amenities and living spaces.</p>
@@ -848,7 +850,7 @@ const MenuPage = () => {
                 </div>
             </section>
 
-            {}
+            { }
             <section id="contact" style={styles.section} className="section-padding">
                 <div style={styles.contactSection} className="contact-grid">
                     <div>
@@ -952,7 +954,7 @@ const MenuPage = () => {
                 </div>
             </section>
 
-            {}
+            { }
             {showBookingModal && (
                 <div style={styles.modalOverlay} onClick={() => setShowBookingModal(false)}>
                     <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
@@ -1076,7 +1078,7 @@ const MenuPage = () => {
                 </div>
             )}
 
-            {}
+            { }
             <footer style={styles.footer}>
                 <div style={styles.footerContent} className="footer-content">
                     <div>
@@ -1115,7 +1117,7 @@ const MenuPage = () => {
                 </div>
             </footer>
 
-            {}
+            { }
             <button
                 style={styles.stickyCta}
                 onClick={handleBookingAction}
@@ -1124,6 +1126,79 @@ const MenuPage = () => {
                 <span>Book now</span>
             </button>
 
+            {showAuthSelection && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 2000,
+                    padding: '1rem'
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        padding: '2.5rem',
+                        borderRadius: '1rem',
+                        maxWidth: '450px',
+                        width: '100%',
+                        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+                        textAlign: 'center'
+                    }}>
+                        <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: '#111827' }}>Welcome to Joyce Suites</h3>
+                        <p style={{ color: '#4b5563', marginBottom: '2rem' }}>Do you already have an account with us?</p>
+
+                        <div style={{ display: 'grid', gap: '1rem' }}>
+                            <button
+                                style={{
+                                    ...styles.primaryBtn,
+                                    width: '100%',
+                                    margin: '0',
+                                    padding: '1rem',
+                                    fontSize: '1rem'
+                                }}
+                                onClick={() => navigate('/login')}
+                            >
+                                Yes, Log me in
+                            </button>
+                            <button
+                                style={{
+                                    ...styles.secondaryBtn,
+                                    width: '100%',
+                                    margin: '0',
+                                    padding: '1rem',
+                                    fontSize: '1rem',
+                                    backgroundColor: '#f3f4f6',
+                                    color: '#374151',
+                                    border: 'none',
+                                    borderRadius: '0.5rem',
+                                    cursor: 'pointer'
+                                }}
+                                onClick={() => navigate('/register-tenant')}
+                            >
+                                No, I'm new here
+                            </button>
+                            <button
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#6b7280',
+                                    marginTop: '1rem',
+                                    cursor: 'pointer',
+                                    fontSize: '0.875rem'
+                                }}
+                                onClick={() => setShowAuthSelection(false)}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -17,7 +17,7 @@ class MaintenanceRequest(BaseModel, SerializerMixin):
     priority = db.Column(db.String(20), default='normal', nullable=False)
     
     property_id = db.Column(db.Integer, db.ForeignKey('properties.id'), nullable=False)
-    reported_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    reported_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     assigned_to_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
     property = db.relationship('Property', back_populates='maintenance_requests')

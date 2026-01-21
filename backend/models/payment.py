@@ -15,8 +15,10 @@ class Payment(BaseModel, SerializerMixin):
     payment_method = db.Column(db.String(50))
     payment_date = db.Column(db.DateTime)
     reference_number = db.Column(db.String(100))
+    checkout_request_id = db.Column(db.String(100), unique=True, index=True)
     description = db.Column(db.Text)
     notes = db.Column(db.Text)
+    details = db.Column(db.JSON)
     
     tenant = db.relationship('User', back_populates='payments', foreign_keys=[tenant_id])
     lease = db.relationship('Lease', back_populates='payments', foreign_keys=[lease_id])
