@@ -607,8 +607,6 @@ def mark_payment_status():
         if not lease:
             return jsonify({"success": False, "error": "No active lease found for tenant"}), 404
         
-        print(f"Found lease {lease.id} for tenant {data['tenant_id']}")
-        
         today = datetime.now()
         if today.day < 5:
             current_month_start = (today.replace(day=1) - relativedelta(days=1)).replace(day=5, hour=0, minute=0, second=0, microsecond=0)
@@ -616,8 +614,6 @@ def mark_payment_status():
             current_month_start = today.replace(day=5, hour=0, minute=0, second=0, microsecond=0)
         
         next_month_start = current_month_start + relativedelta(months=1)
-        
-        print(f"Payment period: {current_month_start} to {next_month_start}")
         
         existing_payment = Payment.query.filter(
             Payment.lease_id == lease.id,
@@ -658,8 +654,6 @@ def mark_payment_status():
             db.session.add(new_payment)
             db.session.commit()
             payment_result = new_payment
-        
-        print(f"Payment marked as {data['status']} successfully")
         
         return jsonify({
             "success": True,

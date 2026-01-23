@@ -11222,3 +11222,18 @@ WHERE properties.status = ?]
 2026-01-23 09:53:47,982 - INFO - Application initialized
 2026-01-23 09:53:55,628 - INFO - GET /api/auth/rooms/available | IP: 127.0.0.1 | User-Agent: curl/8.5.0
 2026-01-23 09:54:02,630 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: curl/8.5.0
+2026-01-23 10:26:08,087 - INFO - Joyce Suites API started - Env: production
+2026-01-23 10:26:08,112 - INFO - Application initialized
+2026-01-23 10:26:08,113 - ERROR - Database connection failed
+2026-01-23 10:35:36,205 - INFO - Joyce Suites API started - Env: production
+2026-01-23 10:35:36,232 - INFO - Application initialized
+2026-01-23 10:35:36,234 - INFO - Joyce Suites API started - Env: production
+2026-01-23 10:35:36,234 - INFO - Joyce Suites API started - Env: production
+2026-01-23 10:35:36,267 - INFO - Application initialized
+2026-01-23 10:35:36,267 - INFO - Application initialized
+2026-01-23 10:35:46,895 - INFO - Joyce Suites API started - Env: production
+2026-01-23 10:35:46,921 - INFO - Application initialized
+2026-01-23 10:35:46,923 - INFO - Joyce Suites API started - Env: production
+2026-01-23 10:35:46,923 - INFO - Joyce Suites API started - Env: production
+2026-01-23 10:35:46,949 - INFO - Application initialized
+2026-01-23 10:35:46,949 - INFO - Application initialized
