@@ -1520,7 +1520,7 @@ const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading, onVi
                   <div style={styles.roomDetails}>
                     <div style={styles.roomDetail}>
                       <span>Type:</span>
-                      <span>{room.property_type}</span>
+                      <span>{room.property_type === 'bedsitter' ? 'Bedsitter' : 'One Bedroom'}</span>
                     </div>
                     <div style={styles.roomDetail}>
                       <span>Rent:</span>
@@ -3002,7 +3002,7 @@ const PropertyDetailsModal = ({ property, onClose }) => {
             </div>
             <div style={styles.detailItem}>
               <label style={styles.detailLabel}>Type</label>
-              <p style={styles.detailValue}>{property.property_type}</p>
+              <p style={styles.detailValue}>{property.property_type === 'bedsitter' ? 'Bedsitter' : 'One Bedroom'}</p>
             </div>
             <div style={styles.detailItem}>
               <label style={styles.detailLabel}>Status</label>
