@@ -48,6 +48,7 @@ const TenantDashboard = () => {
 
 
   const [mpesaPhone, setMpesaPhone] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [maintenanceForm, setMaintenanceForm] = useState({
     title: '',
     description: '',
@@ -866,8 +867,23 @@ const TenantDashboard = () => {
 
   return (
     <div className="tenant-dashboard">
+      {/* Mobile Menu Toggle */}
+      <button 
+        className="mobile-menu-toggle"
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        aria-label="Toggle mobile menu"
+      >
+        {mobileMenuOpen ? '✕' : '☰'}
+      </button>
+
+      {/* Mobile Overlay */}
+      <div 
+        className={`mobile-overlay ${mobileMenuOpen ? 'active' : ''}`}
+        onClick={() => setMobileMenuOpen(false)}
+      />
+
       <div className="dashboard-wrapper">
-        <aside className="sidebar">
+        <aside className={`sidebar ${mobileMenuOpen ? 'mobile-visible' : 'mobile-hidden'}`}>
           <div className="sidebar-header">
             <img src={logo} alt="Logo" className="sidebar-logo" />
             <h2>Joyce Suites</h2>
@@ -876,35 +892,50 @@ const TenantDashboard = () => {
           <nav className="sidebar-nav">
             <button
               className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-              onClick={() => setActiveTab('dashboard')}
+              onClick={() => {
+                setActiveTab('dashboard');
+                setMobileMenuOpen(false);
+              }}
             >
               <span className="nav-icon"></span>
               Dashboard
             </button>
             <button
               className={`nav-item ${activeTab === 'payments' ? 'active' : ''}`}
-              onClick={() => setActiveTab('payments')}
+              onClick={() => {
+                setActiveTab('payments');
+                setMobileMenuOpen(false);
+              }}
             >
               <span className="nav-icon"></span>
               Payments
             </button>
             <button
               className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
-              onClick={() => setActiveTab('profile')}
+              onClick={() => {
+                setActiveTab('profile');
+                setMobileMenuOpen(false);
+              }}
             >
               <span className="nav-icon"></span>
               Profile
             </button>
             <button
               className={`nav-item ${activeTab === 'lease' ? 'active' : ''}`}
-              onClick={() => setActiveTab('lease')}
+              onClick={() => {
+                setActiveTab('lease');
+                setMobileMenuOpen(false);
+              }}
             >
               <span className="nav-icon"></span>
               Lease
             </button>
             <button
               className={`nav-item ${activeTab === 'vacate' ? 'active' : ''}`}
-              onClick={() => setActiveTab('vacate')}
+              onClick={() => {
+                setActiveTab('vacate');
+                setMobileMenuOpen(false);
+              }}
             >
               <span className="nav-icon"></span>
               Vacate
@@ -923,7 +954,7 @@ const TenantDashboard = () => {
           </div>
         </aside>
 
-        <main className="main-content">
+        <main className={`main-content ${mobileMenuOpen ? 'mobile-sidebar-open' : ''}`}>
           <header className="topbar">
             <div className="topbar-left">
               <h1>Joyce Suites Apartments</h1>
@@ -1001,24 +1032,45 @@ const TenantDashboard = () => {
                 </div>
               </div>
 
-              <div className="quick-actions" style={{
-                backgroundImage: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${logo})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                color: 'white',
-                padding: '24px',
-                borderRadius: '12px',
-                marginBottom: '24px'
-              }}>
-                <h3 style={{ color: 'white', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '12px' }}>Quick Actions</h3>
+              <div className="quick-actions">
+                <h3 style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px', marginBottom: '20px' }}>Quick Actions</h3>
                 <div className="action-buttons">
                   <button
                     className="action-btn"
                     onClick={handleOpenPaymentModal}
                     disabled={!fullLeaseDetails || !fullLeaseDetails.signed_by_tenant}
+                    style={{
+                      backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${logo})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      margin: '8px',
+                      minWidth: '200px',
+                      minHeight: '120px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.3s ease',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'scale(1.05)';
+                      e.target.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'scale(1)';
+                      e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                    }}
                   >
                     <span className="action-icon"></span>
-                    <span>
+                    <span style={{ fontSize: '14px', fontWeight: '600', textAlign: 'center' }}>
                       {!fullLeaseDetails
                         ? 'Sign Lease First'
                         : !fullLeaseDetails.signed_by_tenant
@@ -1026,13 +1078,77 @@ const TenantDashboard = () => {
                           : 'Make Payment'}
                     </span>
                   </button>
-                  <button className="action-btn" onClick={() => setShowMaintenanceModal(true)}>
+                  <button 
+                    className="action-btn" 
+                    onClick={() => setShowMaintenanceModal(true)}
+                    style={{
+                      backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${logo})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      margin: '8px',
+                      minWidth: '200px',
+                      minHeight: '120px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.3s ease',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'scale(1.05)';
+                      e.target.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'scale(1)';
+                      e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                    }}
+                  >
                     <span className="action-icon"></span>
-                    <span>Request Maintenance</span>
+                    <span style={{ fontSize: '14px', fontWeight: '600', textAlign: 'center' }}>Request Maintenance</span>
                   </button>
-                  <button className="action-btn" onClick={handleOpenLeaseModal}>
+                  <button 
+                    className="action-btn" 
+                    onClick={handleOpenLeaseModal}
+                    style={{
+                      backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${logo})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      margin: '8px',
+                      minWidth: '200px',
+                      minHeight: '120px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.3s ease',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'scale(1.05)';
+                      e.target.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'scale(1)';
+                      e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                    }}
+                  >
                     <span className="action-icon"></span>
-                    <span>
+                    <span style={{ fontSize: '14px', fontWeight: '600', textAlign: 'center' }}>
                       {!fullLeaseDetails
                         ? 'Sign Lease'
                         : fullLeaseDetails.signed_by_tenant
@@ -1040,9 +1156,41 @@ const TenantDashboard = () => {
                           : 'Complete Signing'}
                     </span>
                   </button>
-                  <button className="action-btn" onClick={() => setActiveTab('profile')}>
+                  <button 
+                    className="action-btn" 
+                    onClick={() => setActiveTab('profile')}
+                    style={{
+                      backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${logo})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      margin: '8px',
+                      minWidth: '200px',
+                      minHeight: '120px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.3s ease',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'scale(1.05)';
+                      e.target.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'scale(1)';
+                      e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                    }}
+                  >
                     <span className="action-icon"></span>
-                    <span>Update Profile</span>
+                    <span style={{ fontSize: '14px', fontWeight: '600', textAlign: 'center' }}>Update Profile</span>
                   </button>
                 </div>
               </div>
