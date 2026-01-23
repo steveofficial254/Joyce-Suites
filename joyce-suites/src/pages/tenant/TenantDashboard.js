@@ -49,6 +49,12 @@ const TenantDashboard = () => {
 
   const [mpesaPhone, setMpesaPhone] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [rentRecords, setRentRecords] = useState([]);
+  const [depositRecords, setDepositRecords] = useState([]);
+  const [waterBillRecords, setWaterBillRecords] = useState([]);
+  const [currentMonthRent, setCurrentMonthRent] = useState(null);
+  const [currentDeposit, setCurrentDeposit] = useState(null);
+  const [currentMonthWaterBill, setCurrentMonthWaterBill] = useState(null);
   const [maintenanceForm, setMaintenanceForm] = useState({
     title: '',
     description: '',
@@ -343,6 +349,67 @@ const TenantDashboard = () => {
     }
   };
 
+  const fetchRentAndDepositRecords = async () => {
+    try {
+      const token = localStorage.getItem('joyce-suites-token');
+      const userId = localStorage.getItem('userId');
+      
+      // Fetch current month rent
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth() + 1;
+      const currentYear = currentDate.getFullYear();
+      
+      const rentResponse = await fetch(`/api/rent-deposit/rent/tenant/${userId}?month=${currentMonth}&year=${currentYear}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (rentResponse.ok) {
+        const rentData = await rentResponse.json();
+        setRentRecords(rentData.records);
+        if (rentData.records.length > 0) {
+          setCurrentMonthRent(rentData.records[0]);
+        }
+      }
+      
+      // Fetch deposit records
+      const depositResponse = await fetch(`/api/rent-deposit/deposit/tenant/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (depositResponse.ok) {
+        const depositData = await depositResponse.json();
+        setDepositRecords(depositData.records);
+        if (depositData.records.length > 0) {
+          setCurrentDeposit(depositData.records[0]);
+        }
+      }
+      
+      // Fetch water bill records
+      const waterBillResponse = await fetch(`/api/rent-deposit/water-bill/tenant/${userId}?month=${currentMonth}&year=${currentYear}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (waterBillResponse.ok) {
+        const waterBillData = await waterBillResponse.json();
+        setWaterBillRecords(waterBillData.records);
+        if (waterBillData.records.length > 0) {
+          setCurrentMonthWaterBill(waterBillData.records[0]);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching rent and deposit records:', err);
+    }
+  };
+
   const fetchAllData = async () => {
     try {
       setLoading(true);
@@ -399,6 +466,9 @@ const TenantDashboard = () => {
       } else {
         console.error(`Payments response error: ${paymentsRes ? paymentsRes.status : 'No response'}`);
       }
+
+      // Fetch rent and deposit records
+      await fetchRentAndDepositRecords();
 
 
 
@@ -867,15 +937,6 @@ const TenantDashboard = () => {
 
   return (
     <div className="tenant-dashboard">
-      {/* Mobile Menu Toggle */}
-      <button 
-        className="mobile-menu-toggle"
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        aria-label="Toggle mobile menu"
-      >
-        {mobileMenuOpen ? '✕' : '☰'}
-      </button>
-
       {/* Mobile Overlay */}
       <div 
         className={`mobile-overlay ${mobileMenuOpen ? 'active' : ''}`}
@@ -962,6 +1023,30 @@ const TenantDashboard = () => {
             </div>
 
             <div className="topbar-right">
+              {/* Mobile Menu Toggle */}
+              <button 
+                className="mobile-menu-toggle"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="Toggle mobile menu"
+                style={{
+                  position: 'static',
+                  background: 'var(--color-primary)',
+                  color: 'white',
+                  border: 'none',
+                  padding: 'var(--space-sm)',
+                  borderRadius: 'var(--space-sm)',
+                  cursor: 'pointer',
+                  fontSize: '1.2rem',
+                  minWidth: '44px',
+                  minHeight: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                {mobileMenuOpen ? '✕' : '☰'}
+              </button>
+
               <div className="user-avatar">
                 {profilePhotoUrl ? (
                   <img
@@ -996,7 +1081,6 @@ const TenantDashboard = () => {
             <div className="content">
               <div className="stats-grid">
                 <div className="stat-card primary">
-                  <div className="stat-icon"></div>
                   <div className="stat-content">
                     <h3>Room Details</h3>
                     <p className="stat-value">Room {roomNumber}</p>
@@ -1005,16 +1089,38 @@ const TenantDashboard = () => {
                 </div>
 
                 <div className="stat-card warning">
-                  <div className="stat-icon"></div>
                   <div className="stat-content">
-                    <h3>Outstanding Balance</h3>
-                    <p className="stat-value">KSh {outstandingBalance.toLocaleString()}</p>
-                    <p className="stat-label">Balance due</p>
+                    <h3>Total Outstanding Balance</h3>
+                    <p className="stat-value">
+                      {(() => {
+                        const rentBalance = currentMonthRent?.balance || 0;
+                        const waterBalance = currentMonthWaterBill?.balance || 0;
+                        const totalBalance = rentBalance + waterBalance;
+                        
+                        if (totalBalance === 0) {
+                          return 'PAID';
+                        } else {
+                          return `KSh ${totalBalance.toLocaleString()}`;
+                        }
+                      })()}
+                    </p>
+                    <p className="stat-label">
+                      {(() => {
+                        const rentBalance = currentMonthRent?.balance || 0;
+                        const waterBalance = currentMonthWaterBill?.balance || 0;
+                        const totalBalance = rentBalance + waterBalance;
+                        
+                        if (totalBalance === 0) {
+                          return 'All payments cleared';
+                        } else {
+                          return `Rent: KSh ${rentBalance.toLocaleString()} + Water: KSh ${waterBalance.toLocaleString()}`;
+                        }
+                      })()}
+                    </p>
                   </div>
                 </div>
 
                 <div className="stat-card success">
-                  <div className="stat-icon"></div>
                   <div className="stat-content">
                     <h3>Account Details</h3>
                     <p className="stat-value">{currentAccountDetails?.accountNumber || 'N/A'}</p>
@@ -1023,11 +1129,20 @@ const TenantDashboard = () => {
                 </div>
 
                 <div className="stat-card info">
-                  <div className="stat-icon"></div>
                   <div className="stat-content">
-                    <h3>Deposit Paid</h3>
-                    <p className="stat-value">KSh {currentAccountDetails?.depositAmount.toLocaleString()}</p>
-                    <p className="stat-label">Refundable deposit</p>
+                    <h3>Deposit Status</h3>
+                    <p className="stat-value">
+                      {currentDeposit?.status === 'paid' 
+                        ? 'PAID' 
+                        : `KSh ${currentDeposit?.balance?.toLocaleString() || currentAccountDetails?.depositAmount?.toLocaleString() || 0}`
+                      }
+                    </p>
+                    <p className="stat-label">
+                      {currentDeposit?.status === 'paid' 
+                        ? `Paid on ${currentDeposit?.payment_date ? new Date(currentDeposit.payment_date).toLocaleDateString() : 'N/A'}`
+                        : 'Refundable deposit'
+                      }
+                    </p>
                   </div>
                 </div>
               </div>

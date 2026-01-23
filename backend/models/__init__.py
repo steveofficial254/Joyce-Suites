@@ -10,6 +10,8 @@ from .notification import Notification, NOTIFICATION_TYPES
 from .reset_password import ResetPassword
 from .vacate_notice import VacateNotice, VACATE_STATUSES
 from .property_image import PropertyImage
+from .rent_deposit import RentRecord, DepositRecord, RentStatus, DepositStatus
+from .water_bill import WaterBill, WaterBillStatus
 
 __all__ = [
     'db',
@@ -26,6 +28,9 @@ __all__ = [
     'ResetPassword',
     'VacateNotice',
     'PropertyImage',
+    'RentRecord',
+    'DepositRecord',
+    'WaterBill',
 
     'USER_ROLES',
     'PROPERTY_TYPES',
@@ -37,4 +42,7 @@ __all__ = [
     'MAINTENANCE_PRIORITIES',
     'NOTIFICATION_TYPES',
     'VACATE_STATUSES',
+    'RentStatus',
+    'DepositStatus',
+    'WaterBillStatus',
 ]
