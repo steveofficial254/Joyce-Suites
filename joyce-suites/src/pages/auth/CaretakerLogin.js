@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import './Login.css';
 import logo from '../../assets/image1.png';
 import backgroundImage from '../../assets/image21.jpg';
 
 const CaretakerLogin = () => {
   const navigate = useNavigate();
+  const { login, loading: authLoading, error: authError, clearError, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
@@ -15,55 +17,26 @@ const CaretakerLogin = () => {
 
   
   useEffect(() => {
-    const token = localStorage.getItem('joyce-suites-token');
-    const userRole = localStorage.getItem('userRole');
-    
-    if (token && (userRole === 'caretaker' || userRole === 'admin')) {
-      
+    if (user && (user.role === 'caretaker' || user.role === 'admin')) {
       navigate('/caretaker/dashboard', { replace: true });
     }
-  }, [navigate]);
+  }, [user, navigate]);
+
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+    }
+  }, [authError]);
 
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
-    if (error) setError('');
-  };
-
-  const clearStoredAuth = () => {
-    const keysToRemove = [
-      'token',
-      'joyce-suites-token',
-      'joyce-suites-user',
-      'userRole',
-      'userId',
-      'userEmail',
-      'userFullName'
-    ];
-    keysToRemove.forEach(key => localStorage.removeItem(key));
-  };
-
-  const storeAuthData = (user, token) => {
-    const userData = {
-      id: user.user_id,
-      user_id: user.user_id,
-      email: user.email,
-      full_name: user.full_name,
-      role: user.role,
-      phone_number: user.phone || user.phone_number,
-      loginTime: new Date().toISOString()
-    };
-
-    localStorage.setItem('joyce-suites-token', token);
-    localStorage.setItem('userRole', user.role);
-    localStorage.setItem('userId', user.user_id);
-    localStorage.setItem('userEmail', user.email);
-    localStorage.setItem('userFullName', user.full_name);
-    localStorage.setItem('joyce-suites-user', JSON.stringify(userData));
-
-    
+    if (error) {
+      setError('');
+      clearError();
+    }
   };
 
   const getErrorMessage = (err, status = null, responseData = null) => {
@@ -116,10 +89,6 @@ const CaretakerLogin = () => {
     setLoading(true);
 
     try {
-      
-      clearStoredAuth();
-
-      
       if (!formData.email || !formData.password) {
         setError('Email and password are required');
         setLoading(false);
@@ -128,100 +97,23 @@ const CaretakerLogin = () => {
 
       const email = formData.email.trim().toLowerCase();
       
-
+      const result = await login(email, formData.password);
       
-      const API_BASE_URL = 'https://joyce-suites-xdkp.onrender.com';
-      const loginUrl = `${API_BASE_URL}/api/auth/login`;
-      
-
-      const response = await fetch(loginUrl, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: email,
-          password: formData.password
-        })
-      });
-
-      
-      const contentType = response.headers.get('content-type');
-      if (!contentType?.includes('application/json')) {
-        console.error('❌ Invalid response format from server');
-        setError('Server returned invalid data format. Please try again.');
-        setLoading(false);
-        return;
+      if (result.success) {
+        const validRoles = ['caretaker', 'admin'];
+        if (!validRoles.includes(result.user.role)) {
+          setError('Access denied. This portal is for caretakers only.');
+          setLoading(false);
+          return;
+        }
+        
+        // Navigation will happen automatically via useEffect when user state updates
+      } else {
+        setError(result.error || 'Login failed');
       }
-
-      const data = await response.json();
-      
-
-      
-      if (!response.ok) {
-        console.error('❌ Login failed with status:', response.status);
-        clearStoredAuth();
-        const errorMsg = getErrorMessage(null, response.status, data);
-        setError(errorMsg);
-        setLoading(false);
-        return;
-      }
-
-      
-      if (!data.success) {
-        console.error('❌ Response marked as not successful');
-        clearStoredAuth();
-        const errorMsg = getErrorMessage(null, null, data);
-        setError(errorMsg);
-        setLoading(false);
-        return;
-      }
-
-      
-      if (!data.user || !data.user.role) {
-        console.error('❌ Invalid response structure');
-        clearStoredAuth();
-        setError('Invalid server response. Please try again.');
-        setLoading(false);
-        return;
-      }
-
-      
-      const validRoles = ['caretaker', 'admin'];
-      if (!validRoles.includes(data.user.role)) {
-        console.error('❌ User role not authorized:', data.user.role);
-        clearStoredAuth();
-        setError('Access denied. This portal is for caretakers only.');
-        setLoading(false);
-        return;
-      }
-
-      
-      if (!data.token) {
-        console.error('❌ No token in response');
-        clearStoredAuth();
-        setError('Authentication failed. Please try again.');
-        setLoading(false);
-        return;
-      }
-
-      
-      
-      storeAuthData(data.user, data.token);
-
-      
-      const savedToken = localStorage.getItem('joyce-suites-token');
-      
-
-      
-      navigate('/caretaker/dashboard', { replace: true });
-
     } catch (err) {
-      console.error('❌ Login error:', err);
-      clearStoredAuth();
-      
-      const errorMsg = getErrorMessage(err);
-      setError(errorMsg);
+      setError('Login failed. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
@@ -319,9 +211,9 @@ const CaretakerLogin = () => {
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={loading}
+              disabled={loading || authLoading}
             >
-              {loading ? 'Verifying...' : 'Login to Caretaker Portal'}
+              {(loading || authLoading) ? 'Verifying...' : 'Login to Caretaker Portal'}
             </button>
           </form>
 
@@ -349,14 +241,14 @@ const CaretakerLogin = () => {
           <button
             onClick={() => navigate('/login')}
             className="nav-btn tenant-btn"
-            disabled={loading}
+            disabled={loading || authLoading}
           >
             ← Tenant Login
           </button>
           <button
             onClick={() => navigate('/admin-login')}
             className="nav-btn admin-btn"
-            disabled={loading}
+            disabled={loading || authLoading}
           >
             Admin Login →
           </button>

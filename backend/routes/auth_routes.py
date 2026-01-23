@@ -143,17 +143,11 @@ def register():
     Register a new user (tenant, caretaker, or admin).
     Handles both JSON and FormData (multipart/form-data with file uploads).
     """
-    limiter = getattr(current_app, 'limiter', None)
-    if limiter:
-        limiter.limit("5 per hour")(lambda: None)()
-    
     try:
         if request.form:
             data = request.form.to_dict()
         else:
             data = request.get_json()
-        
-        print(f"[DEBUG] Received registration data keys: {list(data.keys())}")  # Debug log
         
         photo = request.files.get('photo')
         id_document = request.files.get('idDocument') or request.files.get('id_document')
@@ -167,7 +161,6 @@ def register():
         
         id_number = data.get("id_number") or data.get("idNumber")
         if not id_number:
-            print(f"[ERROR] ID number is missing. Available keys: {list(data.keys())}")
             return jsonify({
                 "success": False,
                 "error": "National ID is required"
@@ -187,8 +180,6 @@ def register():
         password = data["password"]
         phone = data["phone"].strip()
         role = data["role"].lower()
-        
-        print(f"[DEBUG] Processing registration - Email: {email}, ID: {id_number}, Room: {room_number}")
         
         if not validate_email(email):
             return jsonify({"success": False, "error": "Invalid email format"}), 400
@@ -227,7 +218,6 @@ def register():
             os.makedirs(photo_save_path, exist_ok=True)
             photo.save(os.path.join(photo_save_path, filename))
             photo_path = f"uploads/photos/{filename}"
-            print(f"[DEBUG] Photo saved: {photo_path}")
             
         if id_document and allowed_file(id_document.filename):
             filename = secure_filename(f"{email}_doc_{id_document.filename}")
@@ -235,7 +225,6 @@ def register():
             os.makedirs(doc_save_path, exist_ok=True)
             id_document.save(os.path.join(doc_save_path, filename))
             id_document_path = f"uploads/documents/{filename}"
-            print(f"[DEBUG] ID document saved: {id_document_path}")
 
         names = full_name.split(' ', 1)
         first_name = names[0]
@@ -262,8 +251,6 @@ def register():
         db.session.add(new_user)
         db.session.commit()
         
-        print(f"[SUCCESS] User registered: ID={new_user.id}, Email={email}, Room={room_number}")
-        
         token = generate_jwt_token(new_user.id, role)
         
         return jsonify({
@@ -283,9 +270,6 @@ def register():
     
     except Exception as e:
         db.session.rollback()
-        print(f"[ERROR] Registration failed: {str(e)}")
-        import traceback
-        traceback.print_exc()
         return jsonify({
             "success": False,
             "error": f"Registration failed: {str(e)}"
