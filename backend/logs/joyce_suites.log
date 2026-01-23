@@ -11208,3 +11208,17 @@ WHERE properties.status = ?]
 2026-01-23 09:43:43,424 - INFO - GET /api/auth/rooms/available | IP: 127.0.0.1 | User-Agent: curl/8.5.0
 2026-01-23 09:43:50,622 - INFO - GET /api/caretaker/rooms/available | IP: 127.0.0.1 | User-Agent: curl/8.5.0
 2026-01-23 09:44:01,168 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: curl/8.5.0
+2026-01-23 09:53:34,686 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:53:34,708 - INFO - Application initialized
+2026-01-23 09:53:34,709 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:53:34,709 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:53:34,732 - INFO - Application initialized
+2026-01-23 09:53:34,732 - INFO - Application initialized
+2026-01-23 09:53:47,933 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:53:47,956 - INFO - Application initialized
+2026-01-23 09:53:47,958 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:53:47,958 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:53:47,982 - INFO - Application initialized
+2026-01-23 09:53:47,982 - INFO - Application initialized
+2026-01-23 09:53:55,628 - INFO - GET /api/auth/rooms/available | IP: 127.0.0.1 | User-Agent: curl/8.5.0
+2026-01-23 09:54:02,630 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: curl/8.5.0
