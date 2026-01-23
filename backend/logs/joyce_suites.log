@@ -11130,3 +11130,81 @@ WHERE leases.tenant_id = ? AND leases.status = ?
 2026-01-21 12:57:26,822 - INFO - Joyce Suites API started - Env: production
 2026-01-21 12:57:26,850 - INFO - Application initialized
 2026-01-21 12:57:26,850 - INFO - Application initialized
+2026-01-23 09:33:31,840 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:33:31,864 - INFO - Application initialized
+2026-01-23 09:33:31,866 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:33:31,866 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:33:31,889 - INFO - Application initialized
+2026-01-23 09:33:31,889 - INFO - Application initialized
+2026-01-23 09:33:38,311 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:33:38,332 - INFO - Application initialized
+2026-01-23 09:33:38,334 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:33:38,334 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:33:38,357 - INFO - Application initialized
+2026-01-23 09:33:38,357 - INFO - Application initialized
+2026-01-23 09:33:50,119 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:33:50,141 - INFO - Application initialized
+2026-01-23 09:33:56,481 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:33:56,503 - INFO - Application initialized
+2026-01-23 09:33:56,505 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:33:56,505 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:33:56,528 - INFO - Application initialized
+2026-01-23 09:33:56,528 - INFO - Application initialized
+2026-01-23 09:34:06,721 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:34:06,747 - INFO - Application initialized
+2026-01-23 09:34:15,204 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:34:15,225 - INFO - Application initialized
+2026-01-23 09:34:40,679 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:34:40,701 - INFO - Application initialized
+2026-01-23 09:34:47,910 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:34:47,931 - INFO - Application initialized
+2026-01-23 09:35:00,908 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:35:00,932 - INFO - Application initialized
+2026-01-23 09:35:00,934 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:35:00,934 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:35:00,958 - INFO - Application initialized
+2026-01-23 09:35:00,958 - INFO - Application initialized
+2026-01-23 09:35:11,764 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:35:11,785 - INFO - Application initialized
+2026-01-23 09:35:11,787 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:35:11,787 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:35:11,810 - INFO - Application initialized
+2026-01-23 09:35:11,810 - INFO - Application initialized
+2026-01-23 09:35:20,313 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:35:20,335 - INFO - Application initialized
+2026-01-23 09:35:20,338 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:35:20,338 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:35:20,360 - INFO - Application initialized
+2026-01-23 09:35:20,360 - INFO - Application initialized
+2026-01-23 09:35:29,700 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:35:29,721 - INFO - Application initialized
+2026-01-23 09:35:29,723 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:35:29,723 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:35:29,746 - INFO - Application initialized
+2026-01-23 09:35:29,746 - INFO - Application initialized
+2026-01-23 09:37:36,438 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:37:36,460 - INFO - Application initialized
+2026-01-23 09:37:36,462 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:37:36,462 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:37:36,486 - INFO - Application initialized
+2026-01-23 09:37:36,486 - INFO - Application initialized
+2026-01-23 09:37:43,909 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:37:43,938 - INFO - Application initialized
+2026-01-23 09:37:43,938 - ERROR - Database connection failed
+2026-01-23 09:38:17,435 - INFO - GET /api/properties/available | IP: 127.0.0.1 | User-Agent: curl/8.5.0
+2026-01-23 09:38:39,995 - INFO - GET /api/auth/rooms/available | IP: 127.0.0.1 | User-Agent: curl/8.5.0
+2026-01-23 09:38:40,030 - ERROR - Error fetching available rooms: (sqlite3.OperationalError) no such column: properties.reserved_until
+[SQL: SELECT properties.name AS properties_name, properties.property_type AS properties_property_type, properties.description AS properties_description, properties.rent_amount AS properties_rent_amount, properties.deposit_amount AS properties_deposit_amount, properties.landlord_id AS properties_landlord_id, properties.status AS properties_status, properties.paybill_number AS properties_paybill_number, properties.account_number AS properties_account_number, properties.reserved_until AS properties_reserved_until, properties.reservation_user_id AS properties_reservation_user_id, properties.id AS properties_id, properties.created_at AS properties_created_at, properties.updated_at AS properties_updated_at 
+FROM properties 
+WHERE properties.status = ?]
+[parameters: ('vacant',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-01-23 09:39:44,579 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:39:44,602 - INFO - Application initialized
+2026-01-23 09:39:44,603 - ERROR - Database connection failed
+2026-01-23 09:43:34,100 - INFO - Joyce Suites API started - Env: production
+2026-01-23 09:43:34,129 - INFO - Application initialized
+2026-01-23 09:43:34,129 - ERROR - Database connection failed
+2026-01-23 09:43:43,424 - INFO - GET /api/auth/rooms/available | IP: 127.0.0.1 | User-Agent: curl/8.5.0
+2026-01-23 09:43:50,622 - INFO - GET /api/caretaker/rooms/available | IP: 127.0.0.1 | User-Agent: curl/8.5.0
+2026-01-23 09:44:01,168 - INFO - GET /api/caretaker/rooms/public | IP: 127.0.0.1 | User-Agent: curl/8.5.0
