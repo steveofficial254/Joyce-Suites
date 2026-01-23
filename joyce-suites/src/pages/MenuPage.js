@@ -740,6 +740,9 @@ const MenuPage = () => {
                                 </div>
                                 <div style={{ padding: '1.5rem' }}>
                                     <h3 style={{ fontSize: '1.25rem', fontWeight: '700', margin: 0 }}>{room.name}</h3>
+                                    <p style={{ color: '#059669', fontSize: '0.875rem', fontWeight: '600', margin: '0.25rem 0' }}>
+                                        {room.property_type === 'bedsitter' ? 'Bedsitter' : 'One Bedroom'}
+                                    </p>
                                     <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: '0.5rem 0 1rem' }}>
                                         {room.description || 'Modern suite with all amenities included.'}
                                     </p>

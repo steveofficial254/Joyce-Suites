@@ -13,7 +13,7 @@ const RoomsPage = ({ availableRooms, occupiedRooms, loading }) => {
       room.room_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (room.tenant_name && room.tenant_name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchType = roomTypeFilter === 'all' || room.room_type === roomTypeFilter;
+    const matchType = roomTypeFilter === 'all' || room.property_type === roomTypeFilter;
 
     return matchSearch && matchType;
   });
@@ -100,9 +100,8 @@ const RoomsPage = ({ availableRooms, occupiedRooms, loading }) => {
             className="filter-select"
           >
             <option value="all">All Types</option>
-            <option value="single">Single</option>
-            <option value="double">Double</option>
-            <option value="suite">Suite</option>
+            <option value="bedsitter">Bedsitter</option>
+            <option value="one_bedroom">One Bedroom</option>
           </select>
         </div>
       </div>
@@ -123,7 +122,7 @@ const RoomsPage = ({ availableRooms, occupiedRooms, loading }) => {
               <div key={room.room_id} className="room-card">
                 <div className="room-header">
                   <h4 className="room-number">Room #{room.room_number}</h4>
-                  <span className="room-type">{room.room_type}</span>
+                  <span className="room-type">{room.property_type === 'bedsitter' ? 'Bedsitter' : 'One Bedroom'}</span>
                 </div>
 
                 <div className="room-details">

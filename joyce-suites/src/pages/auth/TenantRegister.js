@@ -70,7 +70,7 @@ const TenantRegister = () => {
           id: room.id,
           name: room.name,
           room_number: room.name.replace('Room ', ''), 
-          property_type: room.type, 
+          property_type: room.property_type, 
           rent_amount: room.rent_amount,
           rent: room.rent_amount, 
           description: room.description,
