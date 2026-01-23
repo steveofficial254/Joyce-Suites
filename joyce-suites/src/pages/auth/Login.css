@@ -14,7 +14,7 @@
   --shadow: 0 4px 24px rgba(125, 31, 63, 0.1);
 }
 
-/* Login Container */
+/* Login Container - Mobile Responsive */
 .login-container {
   min-height: 100vh;
   background-size: cover;
@@ -24,7 +24,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  padding: var(--space-xl) var(--space-md);
 }
 
 .login-overlay {
@@ -45,11 +45,33 @@
   max-width: 450px;
 }
 
-/* Login Card */
+/* Mobile Login Adjustments */
+@media (max-width: 768px) {
+  .login-container {
+    padding: var(--space-lg) var(--space-md);
+    background-attachment: scroll;
+  }
+  
+  .login-content {
+    max-width: 400px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: var(--space-md) var(--space-sm);
+  }
+  
+  .login-content {
+    max-width: 100%;
+  }
+}
+
+/* Login Card - Mobile Responsive */
 .login-card {
   background: var(--white);
   border-radius: 20px;
-  padding: 48px 40px;
+  padding: var(--space-3xl) var(--space-xl);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   text-align: center;
   animation: fadeInUp 0.6s ease-out;
@@ -70,21 +92,66 @@
   width: 80px;
   height: 80px;
   object-fit: contain;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-lg);
 }
 
 .login-card h1 {
-  font-size: 1.8rem;
+  font-size: var(--text-2xl);
   color: var(--maroon-primary);
   font-weight: 700;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 .login-card h2 {
-  font-size: 1.3rem;
+  font-size: var(--text-xl);
   color: var(--text-dark);
   font-weight: 600;
-  margin-bottom: 32px;
+  margin-bottom: var(--space-2xl);
+}
+
+/* Mobile Login Card */
+@media (max-width: 768px) {
+  .login-card {
+    padding: var(--space-2xl) var(--space-xl);
+    border-radius: 16px;
+  }
+  
+  .login-logo {
+    width: 60px;
+    height: 60px;
+    margin-bottom: var(--space-md);
+  }
+  
+  .login-card h1 {
+    font-size: var(--text-xl);
+  }
+  
+  .login-card h2 {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-xl);
+  }
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: var(--space-xl) var(--space-lg);
+    border-radius: 12px;
+  }
+  
+  .login-logo {
+    width: 50px;
+    height: 50px;
+    margin-bottom: var(--space-md);
+  }
+  
+  .login-card h1 {
+    font-size: var(--text-lg);
+  }
+  
+  .login-card h2 {
+    font-size: var(--text-base);
+    margin-bottom: var(--space-lg);
+  }
 }
 
 /* Admin Card Styling */
@@ -111,9 +178,9 @@
   margin: 0;
 }
 
-/* Form Styles */
+/* Form Styles - Mobile Responsive */
 .form-group {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-xl);
   text-align: left;
 }
 
@@ -121,19 +188,20 @@
   display: block;
   font-weight: 600;
   color: var(--text-dark);
-  margin-bottom: 8px;
-  font-size: 0.95rem;
+  margin-bottom: var(--space-sm);
+  font-size: var(--text-sm);
 }
 
 .form-group input {
   width: 100%;
-  padding: 14px 16px;
+  padding: var(--space-md) var(--space-lg);
   border: 2px solid var(--border);
   border-radius: 10px;
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-family: 'Inter', sans-serif;
   transition: all 0.3s ease;
   background: var(--white);
+  min-height: 44px; /* Touch-friendly target */
 }
 
 .form-group input:focus {
@@ -144,6 +212,39 @@
 
 .form-group input::placeholder {
   color: #BDBDBD;
+}
+
+/* Mobile Form Adjustments */
+@media (max-width: 768px) {
+  .form-group {
+    margin-bottom: var(--space-lg);
+  }
+  
+  .form-group label {
+    font-size: var(--text-xs);
+    margin-bottom: var(--space-xs);
+  }
+  
+  .form-group input {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .form-group {
+    margin-bottom: var(--space-md);
+  }
+  
+  .form-group label {
+    font-size: var(--text-xs);
+    margin-bottom: var(--space-xs);
+  }
+  
+  .form-group input {
+    padding: var(--space-sm);
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
 }
 
 /* Form Actions */

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import logo from '../../assets/image1.png';
 import backgroundImage from '../../assets/image21.jpg';
+import config from '../../config';
 
 const TenantLogin = () => {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ const TenantLogin = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${config.apiBaseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
