@@ -45,7 +45,8 @@ def create_app():
     if db_uri and db_uri.startswith('sqlite:///'):
         db_path = db_uri.replace('sqlite:///', '')
         if not os.path.isabs(db_path):
-            db_path = os.path.join(app.root_path, db_path)
+            base_dir = app.instance_path if hasattr(app, 'instance_path') else app.root_path
+            db_path = os.path.abspath(os.path.join(base_dir, '..', db_path) if 'instance' in db_path and not base_dir.endswith('instance') else os.path.join(base_dir, db_path))
             
         db_dir = os.path.dirname(db_path)
         if db_dir and not os.path.exists(db_dir):
