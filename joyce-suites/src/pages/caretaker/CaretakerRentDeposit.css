@@ -1,0 +1,495 @@
+/* Caretaker Rent & Deposit Management Styles */
+.caretaker-rent-deposit {
+  padding: var(--space-xl);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.caretaker-header {
+  margin-bottom: var(--space-2xl);
+  text-align: center;
+}
+
+.caretaker-header h1 {
+  font-size: var(--text-3xl);
+  color: var(--color-text-dark);
+  margin-bottom: var(--space-sm);
+}
+
+.caretaker-header p {
+  font-size: var(--text-base);
+  color: var(--color-secondary);
+}
+
+/* Summary Grid */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: var(--space-xl);
+  margin-bottom: var(--space-2xl);
+}
+
+.summary-card {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-xl);
+  border-left: 4px solid #3b82f6;
+}
+
+.summary-card h3 {
+  font-size: var(--text-xl);
+  color: var(--color-text-dark);
+  margin-bottom: var(--space-lg);
+  text-align: center;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-md);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-md);
+  background: var(--color-background-light);
+  border-radius: var(--border-radius);
+}
+
+.stat .label {
+  font-size: var(--text-xs);
+  color: var(--color-secondary);
+  margin-bottom: var(--space-xs);
+  text-align: center;
+}
+
+.stat .value {
+  font-size: var(--text-lg);
+  font-weight: bold;
+  color: var(--color-text-dark);
+}
+
+.stat .value.paid { color: var(--color-success); }
+.stat .value.unpaid { color: var(--color-danger); }
+.stat .value.overdue { color: var(--color-warning); }
+.stat .value.collected { color: var(--color-success); }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  margin-bottom: var(--space-xl);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  padding: var(--space-md) var(--space-xl);
+  font-size: var(--text-base);
+  color: var(--color-secondary);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+  color: #3b82f6;
+  background: var(--color-background-light);
+}
+
+.tab-button.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+  font-weight: 600;
+}
+
+/* Filters */
+.filters-section {
+  background: white;
+  padding: var(--space-lg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-xl);
+}
+
+.filters {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filters input,
+.filters select {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: var(--text-sm);
+  min-width: 150px;
+}
+
+.filter-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: background 0.3s ease;
+}
+
+.filter-btn:hover {
+  background: #2563eb;
+}
+
+/* Records Table */
+.records-table {
+  background: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  margin-bottom: var(--space-xl);
+}
+
+.records-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.records-table th {
+  background: #3b82f6;
+  color: white;
+  padding: var(--space-md);
+  text-align: left;
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.records-table td {
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+}
+
+.records-table tr:hover {
+  background: var(--color-background-light);
+}
+
+/* Status Badges */
+.status-badge {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-paid {
+  background: var(--color-success);
+  color: white;
+}
+
+.status-unpaid {
+  background: var(--color-danger);
+  color: white;
+}
+
+.status-partial {
+  background: var(--color-warning);
+  color: white;
+}
+
+.status-overdue {
+  background: #dc2626;
+  color: white;
+}
+
+.status-default {
+  background: var(--color-secondary);
+  color: white;
+}
+
+/* Buttons */
+.mark-payment-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  transition: background 0.3s ease;
+}
+
+.mark-payment-btn:hover {
+  background: #059669;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: var(--color-text-dark);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: var(--text-2xl);
+  cursor: pointer;
+  color: var(--color-secondary);
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  color: var(--color-danger);
+}
+
+.modal-body {
+  padding: var(--space-lg);
+}
+
+.record-info {
+  background: var(--color-background-light);
+  padding: var(--space-md);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--space-lg);
+}
+
+.record-info p {
+  margin: var(--space-xs) 0;
+  font-size: var(--text-sm);
+}
+
+.form-group {
+  margin-bottom: var(--space-md);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-weight: 600;
+  color: var(--color-text-dark);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: var(--text-sm);
+}
+
+.form-group textarea {
+  resize: vertical;
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: flex-end;
+  margin-top: var(--space-lg);
+}
+
+.submit-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: background 0.3s ease;
+}
+
+.submit-btn:hover {
+  background: #059669;
+}
+
+.cancel-btn {
+  background: var(--color-secondary);
+  color: white;
+  border: none;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: background 0.3s ease;
+}
+
+.cancel-btn:hover {
+  background: #6b7280;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.pagination button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: background 0.3s ease;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.pagination button:disabled {
+  background: var(--color-secondary);
+  cursor: not-allowed;
+}
+
+.pagination span {
+  font-size: var(--text-sm);
+  color: var(--color-secondary);
+}
+
+/* Loading and Alerts */
+.loading {
+  text-align: center;
+  padding: var(--space-2xl);
+  font-size: var(--text-lg);
+  color: var(--color-secondary);
+}
+
+.alert {
+  padding: var(--space-md);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--space-lg);
+  font-size: var(--text-sm);
+}
+
+.alert-error {
+  background: var(--color-error-light);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
+.alert-success {
+  background: var(--color-success-light);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .caretaker-rent-deposit {
+    padding: var(--space-lg);
+  }
+  
+  .summary-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+  
+  .summary-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filters input,
+  .filters select {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .records-table {
+    overflow-x: auto;
+  }
+  
+  .records-table table {
+    min-width: 800px;
+  }
+  
+  .tabs {
+    overflow-x: auto;
+  }
+  
+  .modal {
+    width: 95%;
+    margin: var(--space-md);
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .caretaker-rent-deposit {
+    padding: var(--space-md);
+  }
+  
+  .summary-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .tab-button {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
+    min-width: 120px;
+  }
+  
+  .modal-header {
+    padding: var(--space-md);
+  }
+  
+  .modal-body {
+    padding: var(--space-md);
+  }
+}

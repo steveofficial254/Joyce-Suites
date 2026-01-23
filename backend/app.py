@@ -15,6 +15,7 @@ from routes.tenant_routes import tenant_bp
 from routes.admin_routes import admin_bp
 from routes.caretaker_routes import caretaker_bp
 from routes.payment_routes import payment_bp
+from routes.rent_deposit import rent_deposit_bp
 
 from config import Config
 from models.base import db
@@ -117,6 +118,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(caretaker_bp, url_prefix="/api/caretaker")
     app.register_blueprint(tenant_bp, url_prefix="/api/tenant")
     app.register_blueprint(payment_bp, url_prefix="/api/payments")
+    app.register_blueprint(rent_deposit_bp, url_prefix="/api/rent-deposit")
 
     @app.route("/", methods=["GET"])
     def root():

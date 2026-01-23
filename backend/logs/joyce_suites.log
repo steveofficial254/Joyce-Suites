@@ -11239,3 +11239,7 @@ WHERE properties.status = ?]
 2026-01-23 10:35:46,949 - INFO - Application initialized
 2026-01-23 11:05:50,189 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: curl/8.5.0
 2026-01-23 11:06:19,522 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: curl/8.5.0
+2026-01-23 12:07:32,772 - INFO - Joyce Suites API started - Env: production
+2026-01-23 12:07:32,814 - INFO - Application initialized
+2026-01-23 12:21:53,086 - INFO - Joyce Suites API started - Env: production
+2026-01-23 12:21:53,121 - INFO - Application initialized

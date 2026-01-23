@@ -74,10 +74,7 @@ body {
 /* Mobile Menu Toggle */
 .mobile-menu-toggle {
     display: none;
-    position: fixed;
-    top: var(--space-lg);
-    left: var(--space-md);
-    z-index: 1001;
+    position: static;
     background: var(--color-primary);
     color: white;
     border: none;
@@ -86,6 +83,10 @@ body {
     cursor: pointer;
     box-shadow: var(--shadow-md);
     font-size: 1.2rem;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
 }
 
 .mobile-menu-toggle:hover {
@@ -129,7 +130,7 @@ body {
     }
     
     .mobile-menu-toggle {
-        display: block;
+        display: flex;
     }
     
     .sidebar-header {
@@ -324,7 +325,7 @@ body {
     box-shadow: var(--shadow-light);
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 10;
 }
 
 /* Mobile Main Content Adjustments */
@@ -341,12 +342,30 @@ body {
     .topbar {
         padding: var(--space-lg);
         margin: calc(-1 * var(--space-lg)) calc(-1 * var(--space-lg)) var(--space-lg) calc(-1 * var(--space-lg));
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        overflow-x: auto;
         gap: var(--space-md);
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-primary) #f1f1f1;
+    }
+    
+    .topbar::-webkit-scrollbar {
+        height: 4px;
+    }
+    
+    .topbar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 2px;
+    }
+    
+    .topbar::-webkit-scrollbar-thumb {
+        background: var(--color-primary);
+        border-radius: 2px;
     }
     
     .topbar-left {
-        flex: 1;
+        flex-shrink: 0;
         min-width: 0;
     }
     
@@ -362,6 +381,7 @@ body {
     
     .topbar-right {
         gap: var(--space-md);
+        flex-shrink: 0;
     }
 }
 
@@ -373,9 +393,11 @@ body {
     .topbar {
         padding: var(--space-md);
         margin: calc(-1 * var(--space-md)) calc(-1 * var(--space-md)) var(--space-md) calc(-1 * var(--space-md));
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row;
+        align-items: center;
         gap: var(--space-sm);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
     
     .topbar-left h1 {
@@ -387,9 +409,8 @@ body {
     }
     
     .topbar-right {
-        width: 100%;
-        justify-content: flex-end;
         gap: var(--space-sm);
+        flex-shrink: 0;
     }
 }
 
@@ -530,7 +551,7 @@ body {
     color: white;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     border: 2px solid rgba(255, 255, 255, 0.9);
     transition: all 0.3s ease;
     overflow: hidden;
@@ -538,7 +559,7 @@ body {
 
 .user-avatar:hover {
     transform: scale(1.05);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
     border-color: var(--color-primary);
 }
 
