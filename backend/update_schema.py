@@ -8,30 +8,38 @@ def update_schema():
     """Update database schema with all model changes"""
     with app.app_context():
         try:
-            print("🔄 Starting database schema update...")
+            print("🔄 Starting database schema update...", flush=True)
             
             # Ensure database directory exists for SQLite
             db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
-            print(f"📡 Database URI: {db_uri}")
+            print(f"📡 Database URI: {db_uri}", flush=True)
             
-            if db_uri.startswith('sqlite:///'):
+            if db_uri and db_uri.startswith('sqlite:///'):
                 db_path = db_uri.replace('sqlite:///', '')
-                # If it's a relative path, make it absolute relative to the app root
-                if not os.path.isabs(db_path):
-                    db_path = os.path.join(app.root_path, db_path)
                 
-                print(f"📂 Resolved Database Path: {db_path}")
+                # Robust absolute path resolution
+                if not os.path.isabs(db_path):
+                    # Try instance_path first as it's common for SQLite
+                    base_dir = app.instance_path if hasattr(app, 'instance_path') else app.root_path
+                    db_path = os.path.abspath(os.path.join(base_dir, '..', db_path) if 'instance' in db_path and not base_dir.endswith('instance') else os.path.join(base_dir, db_path))
+                
+                print(f"📂 Resolved Database Path: {db_path}", flush=True)
                 db_dir = os.path.dirname(db_path)
                 
-                if db_dir and not os.path.exists(db_dir):
-                    print(f"📁 Creating database directory: {db_dir}")
-                    os.makedirs(db_dir, exist_ok=True)
-                elif db_dir:
-                    print(f"✅ Database directory exists: {db_dir}")
+                if db_dir:
+                    if not os.path.exists(db_dir):
+                        print(f"📁 Creating database directory: {db_dir}", flush=True)
+                        os.makedirs(db_dir, exist_ok=True)
+                    else:
+                        print(f"✅ Database directory exists: {db_dir}", flush=True)
+                    
+                    # Ensure directory is writable
+                    if not os.access(db_dir, os.W_OK):
+                        print(f"⚠️ Warning: Directory {db_dir} is NOT writable!", flush=True)
             
             db.create_all()
-            print("✅ Database schema updated successfully!")
-            print("📊 All tables and columns are now in sync with models.")
+            print("✅ Database schema updated successfully!", flush=True)
+            print("📊 All tables and columns are now in sync with models.", flush=True)
             
         except Exception as e:
             print(f"❌ Error updating schema: {e}")
