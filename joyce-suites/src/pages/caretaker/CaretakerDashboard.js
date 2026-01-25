@@ -8,8 +8,10 @@ import {
   TrendingUp, PieChart, FileSpreadsheet, DoorOpen, List, CreditCard as PaymentIcon,
   FileCheck, AlertOctagon, Home as RoomIcon, CalendarDays, UserCheck,
   Receipt, FileWarning, ShieldCheck, ShieldX, CalendarCheck, CalendarX,
-  BedDouble, Bath, Square, Layers, MapPin
+  BedDouble, Bath, Square, Layers, MapPin, Droplet
 } from 'lucide-react';
+
+import CaretakerWaterBill from './CaretakerWaterBill';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
 
@@ -704,6 +706,8 @@ const CaretakerDashboard = () => {
             )}
           </div>
         );
+      case 'water-bill':
+        return <CaretakerWaterBill />;
       default:
         return null;
     }
@@ -731,6 +735,7 @@ const CaretakerDashboard = () => {
             { id: 'properties', label: 'Properties', icon: Building },
             { id: 'tenants', label: 'Tenants', icon: Users },
             { id: 'payments', label: 'Payments', icon: PaymentIcon },
+            { id: 'water-bill', label: 'Water Bills', icon: Droplet },
             { id: 'vacate', label: 'Vacate Notices', icon: DoorOpen },
             { id: 'inquiries', label: 'Inquiries', icon: MessageSquare },
             { id: 'notifications', label: 'Notifications', icon: Bell }
@@ -815,6 +820,7 @@ const CaretakerDashboard = () => {
               { id: 'properties', label: 'Rooms', icon: Building },
               { id: 'tenants', label: 'Tenants', icon: Users },
               { id: 'payments', label: 'Payments', icon: PaymentIcon },
+              { id: 'water-bill', label: 'Water', icon: Droplet },
               { id: 'vacate', label: 'Vacate', icon: DoorOpen },
               { id: 'inquiries', label: 'Messages', icon: MessageSquare },
             ].map(item => (
