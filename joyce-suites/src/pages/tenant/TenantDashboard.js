@@ -946,70 +946,11 @@ const TenantDashboard = () => {
       <div className="dashboard-wrapper">
         <aside className={`sidebar ${mobileMenuOpen ? 'mobile-visible' : 'mobile-hidden'}`}>
           <div className="sidebar-header">
-            <img src={logo} alt="Logo" className="sidebar-logo" />
             <h2>Joyce Suites</h2>
           </div>
 
-          <nav className="sidebar-nav">
-            <button
-              className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('dashboard');
-                setMobileMenuOpen(false);
-              }}
-            >
-              <span className="nav-icon"></span>
-              Dashboard
-            </button>
-            <button
-              className={`nav-item ${activeTab === 'payments' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('payments');
-                setMobileMenuOpen(false);
-              }}
-            >
-              <span className="nav-icon"></span>
-              Payments
-            </button>
-            <button
-              className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('profile');
-                setMobileMenuOpen(false);
-              }}
-            >
-              <span className="nav-icon"></span>
-              Profile
-            </button>
-            <button
-              className={`nav-item ${activeTab === 'lease' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('lease');
-                setMobileMenuOpen(false);
-              }}
-            >
-              <span className="nav-icon"></span>
-              Lease
-            </button>
-            <button
-              className={`nav-item ${activeTab === 'vacate' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('vacate');
-                setMobileMenuOpen(false);
-              }}
-            >
-              <span className="nav-icon"></span>
-              Vacate
-            </button>
-          </nav>
-
           <div className="sidebar-footer">
-            <button onClick={() => window.location.href = '/'} className="logout-btn" style={{ marginBottom: '10px', backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.2)' }}>
-              <span className="nav-icon" style={{ backgroundImage: 'none' }}>🏠</span>
-              Main Menu
-            </button>
-            <button onClick={handleLogout} className="logout-btn">
-              <span className="nav-icon"></span>
+            <button className="logout-btn" onClick={handleLogout}>
               Logout
             </button>
           </div>
@@ -1023,29 +964,44 @@ const TenantDashboard = () => {
             </div>
 
             <div className="topbar-right">
-              {/* Mobile Menu Toggle */}
-              <button 
-                className="mobile-menu-toggle"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                aria-label="Toggle mobile menu"
-                style={{
-                  position: 'static',
-                  background: 'var(--color-primary)',
-                  color: 'white',
-                  border: 'none',
-                  padding: 'var(--space-sm)',
-                  borderRadius: 'var(--space-sm)',
-                  cursor: 'pointer',
-                  fontSize: '1.2rem',
-                  minWidth: '44px',
-                  minHeight: '44px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                {mobileMenuOpen ? '✕' : '☰'}
-              </button>
+              {/* Horizontal Navigation */}
+              <nav className="topbar-nav">
+                <button
+                  className={`topbar-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('dashboard')}
+                >
+                  <span className="nav-icon">📊</span>
+                  Dashboard
+                </button>
+                <button
+                  className={`topbar-nav-item ${activeTab === 'payments' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('payments')}
+                >
+                  <span className="nav-icon">💳</span>
+                  Payments
+                </button>
+                <button
+                  className={`topbar-nav-item ${activeTab === 'lease' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('lease')}
+                >
+                  <span className="nav-icon">📄</span>
+                  Lease
+                </button>
+                <button
+                  className={`topbar-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('profile')}
+                >
+                  <span className="nav-icon">👤</span>
+                  Profile
+                </button>
+                <button
+                  className={`topbar-nav-item ${activeTab === 'vacate' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('vacate')}
+                >
+                  <span className="nav-icon">🚪</span>
+                  Vacate
+                </button>
+              </nav>
 
               <div className="user-avatar">
                 {profilePhotoUrl ? (
@@ -1058,19 +1014,23 @@ const TenantDashboard = () => {
 
                       if (profileData?.photo_path && !profileData.photo_path.startsWith('http')) {
                         e.target.src = `${config.apiBaseUrl}/${profileData.photo_path}`;
-                      } else {
-                        e.target.style.display = 'none';
-                        e.target.parentElement.innerHTML = `<div class="avatar-placeholder">${(dashboardData.tenant_name?.charAt(0) || 'T').toUpperCase()}</div>`;
                       }
                     }}
-                    onLoad={() => { }}
                   />
                 ) : (
                   <div className="avatar-placeholder">
-                    {(dashboardData.tenant_name?.charAt(0) || 'T').toUpperCase()}
+                    {(profileData?.full_name?.charAt(0) || 'T').toUpperCase()}
                   </div>
                 )}
               </div>
+
+              <button
+                className="icon-btn"
+                onClick={handleLogout}
+                title="Logout"
+              >
+                <LogOut size={20} />
+              </button>
             </div>
           </header>
 
