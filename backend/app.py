@@ -68,6 +68,19 @@ def create_app():
         "https://joyce-suites-xdkp.onrender.com",
     ])
     
+    # Always ensure critical domains are included
+    required_origins = [
+        "https://joyce-suites.vercel.app",
+        "https://joyce-suites-jcfw.vercel.app",
+        "https://joyce-suites.onrender.com",
+        "https://joyce-suites-xdkp.onrender.com"
+    ]
+    
+    for origin in required_origins:
+        if origin not in cors_origins:
+            cors_origins.append(origin)
+            app.logger.info(f"Added required CORS origin: {origin}")
+    
     # Ensure all render.com URLs are included
     render_urls = ["https://joyce-suites.onrender.com", "https://joyce-suites-xdkp.onrender.com"]
     for url in render_urls:
