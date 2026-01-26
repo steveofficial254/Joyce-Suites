@@ -397,6 +397,81 @@ def get_all_rooms():
         }), 500
 
 
+@caretaker_bp.route("/rooms/create-test", methods=["GET"])
+def create_test_properties():
+    """Create test properties for debugging."""
+    try:
+        # Check if properties already exist
+        existing_props = Property.query.count()
+        if existing_props > 0:
+            return jsonify({
+                "success": True,
+                "message": f"Properties already exist: {existing_props}",
+                "existing_count": existing_props
+            }), 200
+        
+        # Create test properties
+        test_properties = [
+            {
+                "name": "Cozy Bedsitter A1",
+                "property_type": "bedsitter",
+                "description": "Modern bedsitter with all amenities",
+                "rent_amount": 8000,
+                "deposit_amount": 8000,
+                "status": "vacant"
+            },
+            {
+                "name": "Spacious One Bedroom B2",
+                "property_type": "one_bedroom",
+                "description": "Large one bedroom with separate living area",
+                "rent_amount": 15000,
+                "deposit_amount": 15000,
+                "status": "vacant"
+            },
+            {
+                "name": "Deluxe One Bedroom C3",
+                "property_type": "one_bedroom",
+                "description": "Premium one bedroom with modern finishes",
+                "rent_amount": 18000,
+                "deposit_amount": 18000,
+                "status": "vacant"
+            }
+        ]
+        
+        created_props = []
+        for prop_data in test_properties:
+            prop = Property(
+                name=prop_data["name"],
+                property_type=prop_data["property_type"],
+                description=prop_data["description"],
+                rent_amount=prop_data["rent_amount"],
+                deposit_amount=prop_data["deposit_amount"],
+                status=prop_data["status"]
+            )
+            db.session.add(prop)
+            created_props.append(prop)
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": f"Created {len(created_props)} test properties",
+            "properties": [
+                {
+                    "id": prop.id,
+                    "name": prop.name,
+                    "type": prop.property_type,
+                    "status": prop.status,
+                    "rent": prop.rent_amount
+                } for prop in created_props
+            ]
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @caretaker_bp.route("/rooms/debug", methods=["GET"])
 def debug_rooms():
     """Debug endpoint to see database state."""
