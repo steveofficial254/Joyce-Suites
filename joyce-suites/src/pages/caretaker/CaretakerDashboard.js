@@ -10,12 +10,11 @@ import {
   Receipt, FileWarning, ShieldCheck, ShieldX, CalendarCheck, CalendarX,
   BedDouble, Bath, Square, Layers, MapPin, Droplet
 } from 'lucide-react';
-
+import PageTransition from '../../components/PageTransition';
 import MaintenancePage from './MaintenancePage';
 import PaymentsPage from './PaymentsPage';
 import CaretakerWaterBill from './CaretakerWaterBill';
 import CaretakerDeposits from './CaretakerDeposits';
-import PageTransition from '../../components/PageTransition';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites.onrender.com';
 
@@ -482,132 +481,56 @@ const CaretakerDashboard = () => {
   }, [activePage]);
 
   const renderContent = () => {
-    return (
-      <PageTransition>
-        {(() => {
-          switch (activePage) {
-            case 'dashboard':
-              return (
-                <DashboardPage
-                  overview={overview}
-                  maintenanceRequests={maintenanceRequests}
-                  availableRooms={availableRooms}
-                  pendingPayments={pendingPayments}
-                  vacateNotices={vacateNotices}
-                  loading={loading}
-                  onUpdateStatus={handleUpdateMaintenanceStatus}
-                  onViewDetails={(request) => {
-                    setSelectedMaintenanceRequest(request);
-                    setShowMaintenanceModal(true);
-                  }}
-                  onCreateMaintenance={() => setShowCreateMaintenanceModal(true)}
-                  onViewAllMaintenance={() => handlePageChange('maintenance')}
-                  onMarkPayment={(tenant) => {
-                    setSelectedTenantForPayment(tenant);
-                    setShowMarkPaymentModal(true);
-                  }}
-                  onViewVacateNotice={(notice) => {
-                    setSelectedVacateNotice(notice);
-                    setShowVacateNoticeModal(true);
-                  }}
-                />
-              );
-            case 'maintenance':
-              return (
-                <MaintenancePage
-                  requests={maintenanceRequests}
-                  loading={loading}
-                  onUpdateStatus={handleUpdateMaintenanceStatus}
-                  onViewDetails={(request) => {
-                    setSelectedMaintenanceRequest(request);
-                    setShowMaintenanceModal(true);
-                  }}
-                  onCreateMaintenance={() => setShowCreateMaintenanceModal(true)}
-                />
-              );
-            case 'properties':
-              return (
-                <PropertiesPage
-                  availableRooms={availableRooms}
-                  occupiedRooms={occupiedRooms}
-                  allRooms={allRooms}
-                  loading={loading}
-                  onViewDetails={(property) => {
-                    setSelectedProperty(property);
-                    setShowPropertyDetailsModal(true);
-                  }}
-                />
-              );
-            case 'tenants':
-              return (
-                <TenantsPage
-                  tenants={tenants}
-                  paymentStatus={allTenantsPaymentStatus}
-                  loading={loading}
-                  onMarkPayment={(tenant) => {
-                    setSelectedTenantForPayment(tenant);
-                    setShowMarkPaymentModal(true);
-                  }}
-                  onSendNotification={() => setShowSendNotificationModal(true)}
-                  onViewDetails={(tenant) => {
-                    setSelectedTenant(tenant);
-                    setShowTenantDetailsModal(true);
-                  }}
-                  onCreateVacateNotice={(leaseId) => {
-                    const tenant = tenants.find(t => t.id === leaseId);
-                    if (tenant) {
-                      setSelectedLeaseForVacate({
-                        lease_id: leaseId,
-                        tenant_name: tenant.name,
-                        room_number: tenant.room_number
-                      });
-                      setShowCreateVacateNoticeModal(true);
-                    }
-                  }}
-                />
-              );
-            case 'payments':
-              return (
-                <PaymentsPage
-                  pendingPayments={pendingPayments}
-                  allPayments={allTenantsPaymentStatus}
-                  loading={loading}
-                  onMarkPayment={(tenant) => {
-                    setSelectedTenantForPayment(tenant);
-                    setShowMarkPaymentModal(true);
-                  }}
-                />
-              );
-            case 'vacate':
-              return (
-                <VacatePage
-                  notices={vacateNotices}
-                  loading={loading}
-                  onViewDetails={(notice) => {
-                    setSelectedVacateNotice(notice);
-                    setShowVacateNoticeModal(true);
-                  }}
-                  onUpdateStatus={handleUpdateVacateNoticeStatus}
-                  onDelete={handleDeleteVacateNotice}
-                  onCreateNotice={() => setShowCreateVacateNoticeModal(true)}
-                />
-              );
-            case 'notifications':
-              return (
-                <div className="p-6">
-                  <h2 className="text-2xl font-bold mb-6">Inquiries & Notifications</h2>
-                  {loading && !notifications.length ? (
-                    <div style={{ textAlign: 'center', padding: '2rem' }}>Loading notifications...</div>
-                  ) : notifications.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280', backgroundColor: 'white', borderRadius: '0.5rem' }}>
-                      <MessageSquare size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-                      <p>No new notifications.</p>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'grid', gap: '1rem' }}>
-                      {notifications.map(note => (
-                        <div
-                          key={note.id}
+    switch (activePage) {
+      case 'dashboard':
+        return (
+          <DashboardPage
+            overview={overview}
+            maintenanceRequests={maintenanceRequests}
+            availableRooms={availableRooms}
+            pendingPayments={pendingPayments}
+            vacateNotices={vacateNotices}
+            loading={loading}
+            onUpdateStatus={handleUpdateMaintenanceStatus}
+            onViewDetails={(request) => {
+              setSelectedMaintenanceRequest(request);
+              setShowMaintenanceModal(true);
+            }}
+            onCreateMaintenance={() => setShowCreateMaintenanceModal(true)}
+            onViewAllMaintenance={() => handlePageChange('maintenance')}
+            onMarkPayment={(tenant) => {
+              setSelectedTenantForPayment(tenant);
+              setShowMarkPaymentModal(true);
+            }}
+            onViewVacateNotice={(notice) => {
+              setSelectedVacateNotice(notice);
+              setShowVacateNoticeModal(true);
+            }}
+          />
+        );
+      case 'maintenance':
+        return (
+          <MaintenancePage
+            requests={maintenanceRequests}
+            loading={loading}
+            onUpdateStatus={handleUpdateMaintenanceStatus}
+            onViewDetails={(request) => {
+              setSelectedMaintenanceRequest(request);
+              setShowMaintenanceModal(true);
+            }}
+            onCreateMaintenance={() => setShowCreateMaintenanceModal(true)}
+          />
+        );
+      case 'properties':
+        return (
+          <PropertiesPage
+            availableRooms={availableRooms}
+            occupiedRooms={occupiedRooms}
+            allRooms={allRooms}
+            loading={loading}
+            onViewDetails={(property) => {
+              setSelectedProperty(property);
+              setShowPropertyDetailsModal(true);
             }}
           />
         );
@@ -947,7 +870,9 @@ const CaretakerDashboard = () => {
         )}
 
         <section style={styles.content}>
-          {renderContent()}
+          <PageTransition>
+            {renderContent()}
+          </PageTransition>
         </section>
       </main>
 
