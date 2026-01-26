@@ -89,26 +89,37 @@ def create_app():
         app.logger.info(f"CORS origins list: {cors_origins}")
         app.logger.info(f"Origin in cors_origins: {origin in cors_origins}")
         
-        # Handle all CORS manually
+        # Handle all CORS manually with multiple approaches
         if origin in cors_origins:
+            response.headers['Access-Control-Allow-Origin'] = origin
             response.headers.set('Access-Control-Allow-Origin', origin)
             app.logger.info(f"CORS allowed for origin: {origin}")
         elif origin is None:
+            response.headers['Access-Control-Allow-Origin'] = '*'
             response.headers.set('Access-Control-Allow-Origin', '*')
             app.logger.info("CORS allowed for requests with no Origin header")
         else:
             app.logger.warning(f"CORS blocked for origin: {origin}")
             # For now, allow the specific frontend origin as fallback
             if origin == "https://joyce-suites.vercel.app":
+                response.headers['Access-Control-Allow-Origin'] = origin
                 response.headers.set('Access-Control-Allow-Origin', origin)
                 app.logger.info(f"CORS allowed as fallback for origin: {origin}")
         
         # Set all other CORS headers manually
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
         response.headers.set('Access-Control-Allow-Credentials', 'true')
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
         response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept, Origin'
         response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
+        response.headers['Access-Control-Expose-Headers'] = 'Content-Type, Authorization'
         response.headers.set('Access-Control-Expose-Headers', 'Content-Type, Authorization')
+        response.headers['Access-Control-Max-Age'] = '3600'
         response.headers.set('Access-Control-Max-Age', '3600')
+        
+        # Debug: Log all headers being set
+        app.logger.info(f"Response headers: {dict(response.headers)}")
         
         return response
     
