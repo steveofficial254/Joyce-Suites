@@ -76,8 +76,14 @@ def create_app():
     
     app.logger.info(f"CORS origins: {cors_origins}")
     
-    # CORS configuration - explicit handler for all routes
-    CORS(app, origins=cors_origins, supports_credentials=True)
+    # CORS configuration - apply to all routes with explicit configuration
+    CORS(app, 
+         origins=cors_origins, 
+         supports_credentials=True,
+         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+         allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+         expose_headers=['Content-Type', 'Authorization'],
+         max_age=3600)
     
     @app.after_request
     def after_request(response):
@@ -86,49 +92,18 @@ def create_app():
         # Debug logging
         app.logger.info(f"After request - Method: {request.method}, Origin: {origin}, Path: {request.path}")
         
-        # Only allow whitelisted origins
-        if origin in cors_origins:
-            response.headers.add('Access-Control-Allow-Origin', origin)
-            app.logger.info(f"CORS allowed for origin: {origin}")
-        elif origin is None:
-            # Allow requests with no Origin header (like mobile apps, curl, etc.)
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            app.logger.info("CORS allowed for requests with no Origin header")
-        else:
-            app.logger.warning(f"CORS blocked for origin: {origin}")
-        
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
-        response.headers.add('Access-Control-Expose-Headers', 'Content-Type, Authorization')
-        response.headers.add('Access-Control-Max-Age', '3600')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        return response
-    
-    @app.before_request
-    def handle_preflight():
-        if request.method == 'OPTIONS':
-            response = app.make_default_options_response()
-            origin = request.headers.get('Origin')
-            
-            # Debug logging
-            app.logger.info(f"Preflight request - Origin: {origin}, Path: {request.path}")
-            
-            # Only allow whitelisted origins
+        # Only add CORS headers if not already present (Flask-CORS should handle this)
+        if not response.headers.get('Access-Control-Allow-Origin'):
             if origin in cors_origins:
                 response.headers.add('Access-Control-Allow-Origin', origin)
-                app.logger.info(f"CORS preflight allowed for origin: {origin}")
+                app.logger.info(f"CORS allowed for origin: {origin}")
             elif origin is None:
-                # Allow requests with no Origin header
                 response.headers.add('Access-Control-Allow-Origin', '*')
-                app.logger.info("CORS preflight allowed for requests with no Origin header")
+                app.logger.info("CORS allowed for requests with no Origin header")
             else:
-                app.logger.warning(f"CORS preflight blocked for origin: {origin}")
-            
-            response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
-            response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
-            response.headers.add('Access-Control-Max-Age', '3600')
-            response.headers.add('Access-Control-Allow-Credentials', 'true')
-            return response
+                app.logger.warning(f"CORS blocked for origin: {origin}")
+        
+        return response
     
     is_development = os.getenv("FLASK_ENV", "development") == "development"
     
