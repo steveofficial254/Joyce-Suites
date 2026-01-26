@@ -397,6 +397,45 @@ def get_all_rooms():
         }), 500
 
 
+@caretaker_bp.route("/rooms/debug", methods=["GET"])
+def debug_rooms():
+    """Debug endpoint to see database state."""
+    try:
+        # Get all properties
+        all_properties = Property.query.all()
+        properties_data = []
+        for prop in all_properties:
+            properties_data.append({
+                "id": prop.id,
+                "name": prop.name,
+                "status": prop.status,
+                "property_type": prop.property_type,
+                "rent_amount": float(prop.rent_amount) if prop.rent_amount else 0.0
+            })
+        
+        # Get active leases
+        active_leases = Lease.query.filter_by(status="active").all()
+        leases_data = []
+        for lease in active_leases:
+            leases_data.append({
+                "id": lease.id,
+                "property_id": lease.property_id,
+                "status": lease.status,
+                "end_date": lease.end_date.strftime("%Y-%m-%d") if lease.end_date else None
+            })
+        
+        return jsonify({
+            "success": True,
+            "total_properties": len(properties_data),
+            "properties": properties_data,
+            "active_leases": len(leases_data),
+            "leases": leases_data
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @caretaker_bp.route("/rooms/public", methods=["GET"])
 def get_public_rooms():
     """Public endpoint for tenant registration."""
