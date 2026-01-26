@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LogOut } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import './TenantDashboard.css';
 import logo from '../../assets/image1.png';
@@ -351,21 +352,15 @@ const TenantDashboard = () => {
 
   const fetchRentAndDepositRecords = async () => {
     try {
-      const token = localStorage.getItem('joyce-suites-token');
       const userId = localStorage.getItem('userId');
-      
+
       // Fetch current month rent
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth() + 1;
       const currentYear = currentDate.getFullYear();
-      
-      const rentResponse = await fetch(`/api/rent-deposit/rent/tenant/${userId}?month=${currentMonth}&year=${currentYear}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
+
+      const rentResponse = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/rent/tenant/${userId}?month=${currentMonth}&year=${currentYear}`);
+
       if (rentResponse.ok) {
         const rentData = await rentResponse.json();
         setRentRecords(rentData.records);
@@ -373,15 +368,10 @@ const TenantDashboard = () => {
           setCurrentMonthRent(rentData.records[0]);
         }
       }
-      
+
       // Fetch deposit records
-      const depositResponse = await fetch(`/api/rent-deposit/deposit/tenant/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
+      const depositResponse = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/deposit/tenant/${userId}`);
+
       if (depositResponse.ok) {
         const depositData = await depositResponse.json();
         setDepositRecords(depositData.records);
@@ -389,15 +379,10 @@ const TenantDashboard = () => {
           setCurrentDeposit(depositData.records[0]);
         }
       }
-      
+
       // Fetch water bill records
-      const waterBillResponse = await fetch(`/api/rent-deposit/water-bill/tenant/${userId}?month=${currentMonth}&year=${currentYear}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
+      const waterBillResponse = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/water-bill/tenant/${userId}?month=${currentMonth}&year=${currentYear}`);
+
       if (waterBillResponse.ok) {
         const waterBillData = await waterBillResponse.json();
         setWaterBillRecords(waterBillData.records);
@@ -938,7 +923,7 @@ const TenantDashboard = () => {
   return (
     <div className="tenant-dashboard">
       {/* Mobile Overlay */}
-      <div 
+      <div
         className={`mobile-overlay ${mobileMenuOpen ? 'active' : ''}`}
         onClick={() => setMobileMenuOpen(false)}
       />
@@ -1056,7 +1041,7 @@ const TenantDashboard = () => {
                         const rentBalance = currentMonthRent?.balance || 0;
                         const waterBalance = currentMonthWaterBill?.balance || 0;
                         const totalBalance = rentBalance + waterBalance;
-                        
+
                         if (totalBalance === 0) {
                           return 'PAID';
                         } else {
@@ -1069,7 +1054,7 @@ const TenantDashboard = () => {
                         const rentBalance = currentMonthRent?.balance || 0;
                         const waterBalance = currentMonthWaterBill?.balance || 0;
                         const totalBalance = rentBalance + waterBalance;
-                        
+
                         if (totalBalance === 0) {
                           return 'All payments cleared';
                         } else {
@@ -1092,13 +1077,13 @@ const TenantDashboard = () => {
                   <div className="stat-content">
                     <h3>Deposit Status</h3>
                     <p className="stat-value">
-                      {currentDeposit?.status === 'paid' 
-                        ? 'PAID' 
+                      {currentDeposit?.status === 'paid'
+                        ? 'PAID'
                         : `KSh ${currentDeposit?.balance?.toLocaleString() || currentAccountDetails?.depositAmount?.toLocaleString() || 0}`
                       }
                     </p>
                     <p className="stat-label">
-                      {currentDeposit?.status === 'paid' 
+                      {currentDeposit?.status === 'paid'
                         ? `Paid on ${currentDeposit?.payment_date ? new Date(currentDeposit.payment_date).toLocaleDateString() : 'N/A'}`
                         : 'Refundable deposit'
                       }
@@ -1153,8 +1138,8 @@ const TenantDashboard = () => {
                           : 'Make Payment'}
                     </span>
                   </button>
-                  <button 
-                    className="action-btn" 
+                  <button
+                    className="action-btn"
                     onClick={() => setShowMaintenanceModal(true)}
                     style={{
                       backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${logo})`,
@@ -1189,8 +1174,8 @@ const TenantDashboard = () => {
                     <span className="action-icon"></span>
                     <span style={{ fontSize: '14px', fontWeight: '600', textAlign: 'center' }}>Request Maintenance</span>
                   </button>
-                  <button 
-                    className="action-btn" 
+                  <button
+                    className="action-btn"
                     onClick={handleOpenLeaseModal}
                     style={{
                       backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${logo})`,
@@ -1231,8 +1216,8 @@ const TenantDashboard = () => {
                           : 'Complete Signing'}
                     </span>
                   </button>
-                  <button 
-                    className="action-btn" 
+                  <button
+                    className="action-btn"
                     onClick={() => setActiveTab('profile')}
                     style={{
                       backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${logo})`,
