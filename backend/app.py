@@ -92,16 +92,18 @@ def create_app():
         # Debug logging
         app.logger.info(f"After request - Method: {request.method}, Origin: {origin}, Path: {request.path}")
         
-        # Only add CORS headers if not already present (Flask-CORS should handle this)
-        if not response.headers.get('Access-Control-Allow-Origin'):
-            if origin in cors_origins:
-                response.headers.add('Access-Control-Allow-Origin', origin)
-                app.logger.info(f"CORS allowed for origin: {origin}")
-            elif origin is None:
-                response.headers.add('Access-Control-Allow-Origin', '*')
-                app.logger.info("CORS allowed for requests with no Origin header")
-            else:
-                app.logger.warning(f"CORS blocked for origin: {origin}")
+        # Force add CORS headers as fallback
+        if origin in cors_origins:
+            response.headers['Access-Control-Allow-Origin'] = origin
+            app.logger.info(f"CORS allowed for origin: {origin}")
+        elif origin is None:
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            app.logger.info("CORS allowed for requests with no Origin header")
+        else:
+            app.logger.warning(f"CORS blocked for origin: {origin}")
+        
+        # Ensure credentials header is set
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
         
         return response
     
