@@ -1,4 +1,6 @@
 from flask import Blueprint, request, jsonify
+import traceback
+import traceback
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_
 from models import db, RentRecord, DepositRecord, WaterBill, RentStatus, DepositStatus, WaterBillStatus, User, Property, Lease
@@ -10,8 +12,9 @@ rent_deposit_bp = Blueprint('rent_deposit', __name__)
 @rent_deposit_bp.route('/rent/records', methods=['GET'])
 @token_required
 @role_required(['admin', 'caretaker'])
-def get_rent_records(current_user):
+def get_rent_records():
     """Get all rent records with optional filters"""
+    current_user = User.query.get(request.user_id)
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
@@ -55,8 +58,9 @@ def get_rent_records(current_user):
 
 @rent_deposit_bp.route('/rent/tenant/<int:tenant_id>', methods=['GET'])
 @token_required
-def get_tenant_rent_records(current_user, tenant_id):
+def get_tenant_rent_records(tenant_id):
     """Get rent records for a specific tenant"""
+    current_user = User.query.get(request.user_id)
     try:
         # Check if user is admin, caretaker, or the tenant themselves
         if current_user.role not in ['admin', 'caretaker'] and current_user.id != tenant_id:
@@ -79,14 +83,16 @@ def get_tenant_rent_records(current_user, tenant_id):
         }), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        traceback.print_exc()
+        return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
 
 
 @rent_deposit_bp.route('/rent/mark-payment', methods=['POST'])
 @token_required
 @role_required(['caretaker'])
-def mark_rent_payment(current_user):
+def mark_rent_payment():
     """Mark rent payment by caretaker"""
+    current_user = User.query.get(request.user_id)
     try:
         data = request.get_json()
         
@@ -127,8 +133,9 @@ def mark_rent_payment(current_user):
 @rent_deposit_bp.route('/rent/generate-monthly', methods=['POST'])
 @token_required
 @role_required(['admin', 'caretaker'])
-def generate_monthly_rent(current_user):
+def generate_monthly_rent():
     """Generate rent records for all active tenants for a specific month"""
+    current_user = User.query.get(request.user_id)
     try:
         data = request.get_json()
         month = data.get('month')
@@ -187,8 +194,9 @@ def generate_monthly_rent(current_user):
 @rent_deposit_bp.route('/deposit/records', methods=['GET'])
 @token_required
 @role_required(['admin', 'caretaker'])
-def get_deposit_records(current_user):
+def get_deposit_records():
     """Get all deposit records with optional filters"""
+    current_user = User.query.get(request.user_id)
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
@@ -226,8 +234,9 @@ def get_deposit_records(current_user):
 
 @rent_deposit_bp.route('/deposit/tenant/<int:tenant_id>', methods=['GET'])
 @token_required
-def get_tenant_deposit_records(current_user, tenant_id):
+def get_tenant_deposit_records(tenant_id):
     """Get deposit records for a specific tenant"""
+    current_user = User.query.get(request.user_id)
     try:
         # Check if user is admin, caretaker, or the tenant themselves
         if current_user.role not in ['admin', 'caretaker'] and current_user.id != tenant_id:
@@ -242,14 +251,16 @@ def get_tenant_deposit_records(current_user, tenant_id):
         }), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        traceback.print_exc()
+        return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
 
 
 @rent_deposit_bp.route('/deposit/mark-payment', methods=['POST'])
 @token_required
 @role_required(['caretaker'])
-def mark_deposit_payment(current_user):
+def mark_deposit_payment():
     """Mark deposit payment by caretaker"""
+    current_user = User.query.get(request.user_id)
     try:
         data = request.get_json()
         
@@ -290,8 +301,9 @@ def mark_deposit_payment(current_user):
 @rent_deposit_bp.route('/deposit/mark-refund', methods=['POST'])
 @token_required
 @role_required(['admin'])
-def mark_deposit_refund(current_user):
+def mark_deposit_refund():
     """Mark deposit refund by admin"""
+    current_user = User.query.get(request.user_id)
     try:
         data = request.get_json()
         
@@ -332,8 +344,9 @@ def mark_deposit_refund(current_user):
 @rent_deposit_bp.route('/deposit/create', methods=['POST'])
 @token_required
 @role_required(['admin', 'caretaker'])
-def create_deposit_record(current_user):
+def create_deposit_record():
     """Create deposit record for a tenant"""
+    current_user = User.query.get(request.user_id)
     try:
         data = request.get_json()
         
@@ -384,8 +397,9 @@ def create_deposit_record(current_user):
 @rent_deposit_bp.route('/dashboard/summary', methods=['GET'])
 @token_required
 @role_required(['admin', 'caretaker'])
-def get_dashboard_summary(current_user):
+def get_dashboard_summary():
     """Get dashboard summary for rent and deposits"""
+    current_user = User.query.get(request.user_id)
     try:
         # Get current month and year
         now = datetime.now()
@@ -479,8 +493,9 @@ def get_dashboard_summary(current_user):
 @rent_deposit_bp.route('/water-bill/records', methods=['GET'])
 @token_required
 @role_required(['admin', 'caretaker'])
-def get_water_bill_records(current_user):
+def get_water_bill_records():
     """Get all water bill records with optional filters"""
+    current_user = User.query.get(request.user_id)
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
@@ -524,8 +539,9 @@ def get_water_bill_records(current_user):
 
 @rent_deposit_bp.route('/water-bill/tenant/<int:tenant_id>', methods=['GET'])
 @token_required
-def get_tenant_water_bills(current_user, tenant_id):
+def get_tenant_water_bills(tenant_id):
     """Get water bills for a specific tenant"""
+    current_user = User.query.get(request.user_id)
     try:
         # Check if user is admin, caretaker, or the tenant themselves
         if current_user.role not in ['admin', 'caretaker'] and current_user.id != tenant_id:
@@ -548,14 +564,16 @@ def get_tenant_water_bills(current_user, tenant_id):
         }), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        traceback.print_exc()
+        return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
 
 
 @rent_deposit_bp.route('/water-bill/create', methods=['POST'])
 @token_required
 @role_required(['caretaker'])
-def create_water_bill(current_user):
+def create_water_bill():
     """Create water bill for tenant"""
+    current_user = User.query.get(request.user_id)
     try:
         data = request.get_json()
         
@@ -621,8 +639,9 @@ def create_water_bill(current_user):
 @rent_deposit_bp.route('/water-bill/mark-payment', methods=['POST'])
 @token_required
 @role_required(['caretaker'])
-def mark_water_bill_payment(current_user):
+def mark_water_bill_payment():
     """Mark water bill payment by caretaker"""
+    current_user = User.query.get(request.user_id)
     try:
         data = request.get_json()
         
@@ -663,8 +682,9 @@ def mark_water_bill_payment(current_user):
 @rent_deposit_bp.route('/water-bill/bulk-create', methods=['POST'])
 @token_required
 @role_required(['caretaker'])
-def bulk_create_water_bills(current_user):
+def bulk_create_water_bills():
     """Bulk create water bills for all active tenants for a specific month"""
+    current_user = User.query.get(request.user_id)
     try:
         data = request.get_json()
         
@@ -739,6 +759,111 @@ def bulk_create_water_bills(current_user):
             'errors': errors
         }), 201
         
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+# Automated Checks Route
+@rent_deposit_bp.route('/run-checks', methods=['POST'])
+@token_required
+@role_required(['admin', 'caretaker'])
+def run_overdue_checks():
+    """
+    Manually trigger checks for overdue payments (Rent & Water).
+    Updates status to 'overdue' and sends notifications.
+    Typically run after the 5th of the month.
+    """
+    current_user = User.query.get(request.user_id)
+    try:
+        from models import Notification
+        
+        now = datetime.now()
+        current_date = now.date()
+        
+        # 1. Check Overdue Rent
+        # Find unpaid/pending rent records where due_date < current_date
+        overdue_rent = RentRecord.query.filter(
+            and_(
+                RentRecord.status.in_([RentStatus.UNPAID, RentStatus.PENDING]),
+                RentRecord.due_date < current_date
+            )
+        ).all()
+        
+        rent_updates = 0
+        rent_notifications = 0
+        
+        for record in overdue_rent:
+            # Update status
+            record.status = RentStatus.OVERDUE
+            rent_updates += 1
+            
+            # Check if notification already sent today to avoid spamming
+            existing_notif = Notification.query.filter(
+                and_(
+                    Notification.user_id == record.tenant_id,
+                    Notification.type == 'payment_overdue',
+                    Notification.created_at >= datetime(now.year, now.month, now.day)
+                )
+            ).first()
+            
+            if not existing_notif:
+                # Create notification
+                notif = Notification(
+                    user_id=record.tenant_id,
+                    title="Rent Payment Overdue",
+                    message=f"Your rent payment of KES {record.balance:,.2f} for {record.month}/{record.year} is overdue. Please pay immediately.",
+                    type="payment_overdue",
+                    is_read=False
+                )
+                db.session.add(notif)
+                rent_notifications += 1
+
+        # 2. Check Overdue Water Bills
+        overdue_water = WaterBill.query.filter(
+            and_(
+                WaterBill.status.in_([WaterBillStatus.UNPAID, WaterBillStatus.PENDING]),
+                WaterBill.due_date < current_date
+            )
+        ).all()
+        
+        water_updates = 0
+        
+        for bill in overdue_water:
+            bill.status = WaterBillStatus.OVERDUE
+            water_updates += 1
+            
+            # Check existing notification
+            existing_notif = Notification.query.filter(
+                and_(
+                    Notification.user_id == bill.tenant_id,
+                    Notification.type == 'payment_overdue',
+                    Notification.message.like('%water bill%'),
+                    Notification.created_at >= datetime(now.year, now.month, now.day)
+                )
+            ).first()
+            
+            if not existing_notif:
+                notif = Notification(
+                    user_id=bill.tenant_id,
+                    title="Water Bill Overdue",
+                    message=f"Your water bill of KES {bill.balance:,.2f} for {bill.month}/{bill.year} is overdue.",
+                    type="payment_overdue",
+                    is_read=False
+                )
+                db.session.add(notif)
+
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Overdue checks completed successfully',
+            'summary': {
+                'rent_records_updated': rent_updates,
+                'rent_notifications_sent': rent_notifications,
+                'water_bills_updated': water_updates
+            }
+        }), 200
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500

@@ -106,7 +106,7 @@ const AdminLogin = () => {
           return;
         }
         
-        // Navigation will happen automatically via useEffect when user state updates
+        
       } else {
         setError(result.error || 'Login failed');
       }

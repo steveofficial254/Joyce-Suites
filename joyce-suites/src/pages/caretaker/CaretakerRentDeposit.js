@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import config from '../../config';
 import './CaretakerRentDeposit.css';
 
 const CaretakerRentDeposit = () => {
@@ -9,34 +9,34 @@ const CaretakerRentDeposit = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [summary, setSummary] = useState(null);
+
   
-  // Payment modals
   const [showRentPaymentModal, setShowRentPaymentModal] = useState(false);
   const [showDepositPaymentModal, setShowDepositPaymentModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
+
   
-  // Form data
   const [paymentForm, setPaymentForm] = useState({
     amount_paid: '',
     payment_method: 'Cash',
     payment_reference: '',
     notes: ''
   });
+
   
-  // Filters
   const [rentFilters, setRentFilters] = useState({
     status: '',
     tenant_id: '',
     month: '',
     year: ''
   });
-  
+
   const [depositFilters, setDepositFilters] = useState({
     status: '',
     tenant_id: ''
   });
 
-  // Pagination
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -52,7 +52,7 @@ const CaretakerRentDeposit = () => {
   const fetchSummary = async () => {
     try {
       const token = localStorage.getItem('joyce-suites-token');
-      const response = await fetch('/api/rent-deposit/dashboard/summary', {
+      const response = await fetch(`${config.apiBaseUrl}/api/rent-deposit/dashboard/summary`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -77,7 +77,7 @@ const CaretakerRentDeposit = () => {
         ...rentFilters
       });
 
-      const response = await fetch(`/api/rent-deposit/rent/records?${params}`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/rent-deposit/rent/records?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -107,7 +107,7 @@ const CaretakerRentDeposit = () => {
         ...depositFilters
       });
 
-      const response = await fetch(`/api/rent-deposit/deposit/records?${params}`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/rent-deposit/deposit/records?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -131,7 +131,7 @@ const CaretakerRentDeposit = () => {
   const handleMarkRentPayment = async () => {
     try {
       const token = localStorage.getItem('joyce-suites-token');
-      const response = await fetch('/api/rent-deposit/rent/mark-payment', {
+      const response = await fetch(`${config.apiBaseUrl}/api/rent-deposit/rent/mark-payment`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -166,7 +166,7 @@ const CaretakerRentDeposit = () => {
   const handleMarkDepositPayment = async () => {
     try {
       const token = localStorage.getItem('joyce-suites-token');
-      const response = await fetch('/api/rent-deposit/deposit/mark-payment', {
+      const response = await fetch(`${config.apiBaseUrl}/api/rent-deposit/deposit/mark-payment`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -303,13 +303,13 @@ const CaretakerRentDeposit = () => {
 
       {/* Tabs */}
       <div className="tabs">
-        <button 
+        <button
           className={`tab-button ${activeTab === 'rent' ? 'active' : ''}`}
           onClick={() => setActiveTab('rent')}
         >
           Rent Records
         </button>
-        <button 
+        <button
           className={`tab-button ${activeTab === 'deposit' ? 'active' : ''}`}
           onClick={() => setActiveTab('deposit')}
         >
@@ -321,9 +321,9 @@ const CaretakerRentDeposit = () => {
       <div className="filters-section">
         {activeTab === 'rent' ? (
           <div className="filters">
-            <select 
-              value={rentFilters.status} 
-              onChange={(e) => setRentFilters({...rentFilters, status: e.target.value})}
+            <select
+              value={rentFilters.status}
+              onChange={(e) => setRentFilters({ ...rentFilters, status: e.target.value })}
             >
               <option value="">All Statuses</option>
               <option value="paid">Paid</option>
@@ -331,43 +331,43 @@ const CaretakerRentDeposit = () => {
               <option value="partially_paid">Partially Paid</option>
               <option value="overdue">Overdue</option>
             </select>
-            <input 
-              type="number" 
+            <input
+              type="number"
               placeholder="Tenant ID"
               value={rentFilters.tenant_id}
-              onChange={(e) => setRentFilters({...rentFilters, tenant_id: e.target.value})}
+              onChange={(e) => setRentFilters({ ...rentFilters, tenant_id: e.target.value })}
             />
-            <input 
-              type="number" 
+            <input
+              type="number"
               placeholder="Month (1-12)"
-              min="1" 
+              min="1"
               max="12"
               value={rentFilters.month}
-              onChange={(e) => setRentFilters({...rentFilters, month: e.target.value})}
+              onChange={(e) => setRentFilters({ ...rentFilters, month: e.target.value })}
             />
-            <input 
-              type="number" 
+            <input
+              type="number"
               placeholder="Year"
               value={rentFilters.year}
-              onChange={(e) => setRentFilters({...rentFilters, year: e.target.value})}
+              onChange={(e) => setRentFilters({ ...rentFilters, year: e.target.value })}
             />
             <button onClick={fetchRentRecords} className="filter-btn">Apply Filters</button>
           </div>
         ) : (
           <div className="filters">
-            <select 
-              value={depositFilters.status} 
-              onChange={(e) => setDepositFilters({...depositFilters, status: e.target.value})}
+            <select
+              value={depositFilters.status}
+              onChange={(e) => setDepositFilters({ ...depositFilters, status: e.target.value })}
             >
               <option value="">All Statuses</option>
               <option value="paid">Paid</option>
               <option value="unpaid">Unpaid</option>
             </select>
-            <input 
-              type="number" 
+            <input
+              type="number"
               placeholder="Tenant ID"
               value={depositFilters.tenant_id}
-              onChange={(e) => setDepositFilters({...depositFilters, tenant_id: e.target.value})}
+              onChange={(e) => setDepositFilters({ ...depositFilters, tenant_id: e.target.value })}
             />
             <button onClick={fetchDepositRecords} className="filter-btn">Apply Filters</button>
           </div>
@@ -434,7 +434,7 @@ const CaretakerRentDeposit = () => {
                   </td>
                   <td>
                     {record.status !== 'paid' && (
-                      <button 
+                      <button
                         className="mark-payment-btn"
                         onClick={() => activeTab === 'rent' ? openRentPaymentModal(record) : openDepositPaymentModal(record)}
                       >
@@ -452,14 +452,14 @@ const CaretakerRentDeposit = () => {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="pagination">
-          <button 
+          <button
             disabled={currentPage === 1}
             onClick={() => setCurrentPage(currentPage - 1)}
           >
             Previous
           </button>
           <span>Page {currentPage} of {totalPages}</span>
-          <button 
+          <button
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage(currentPage + 1)}
           >
@@ -487,19 +487,19 @@ const CaretakerRentDeposit = () => {
               <form onSubmit={(e) => { e.preventDefault(); handleMarkRentPayment(); }}>
                 <div className="form-group">
                   <label>Amount Paid:</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     step="0.01"
                     value={paymentForm.amount_paid}
-                    onChange={(e) => setPaymentForm({...paymentForm, amount_paid: e.target.value})}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, amount_paid: e.target.value })}
                     required
                   />
                 </div>
                 <div className="form-group">
                   <label>Payment Method:</label>
-                  <select 
+                  <select
                     value={paymentForm.payment_method}
-                    onChange={(e) => setPaymentForm({...paymentForm, payment_method: e.target.value})}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
                   >
                     <option value="Cash">Cash</option>
                     <option value="M-Pesa">M-Pesa</option>
@@ -509,17 +509,17 @@ const CaretakerRentDeposit = () => {
                 </div>
                 <div className="form-group">
                   <label>Payment Reference:</label>
-                  <input 
+                  <input
                     type="text"
                     value={paymentForm.payment_reference}
-                    onChange={(e) => setPaymentForm({...paymentForm, payment_reference: e.target.value})}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, payment_reference: e.target.value })}
                   />
                 </div>
                 <div className="form-group">
                   <label>Notes:</label>
-                  <textarea 
+                  <textarea
                     value={paymentForm.notes}
-                    onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
                     rows="3"
                   />
                 </div>
@@ -551,19 +551,19 @@ const CaretakerRentDeposit = () => {
               <form onSubmit={(e) => { e.preventDefault(); handleMarkDepositPayment(); }}>
                 <div className="form-group">
                   <label>Amount Paid:</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     step="0.01"
                     value={paymentForm.amount_paid}
-                    onChange={(e) => setPaymentForm({...paymentForm, amount_paid: e.target.value})}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, amount_paid: e.target.value })}
                     required
                   />
                 </div>
                 <div className="form-group">
                   <label>Payment Method:</label>
-                  <select 
+                  <select
                     value={paymentForm.payment_method}
-                    onChange={(e) => setPaymentForm({...paymentForm, payment_method: e.target.value})}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
                   >
                     <option value="Cash">Cash</option>
                     <option value="M-Pesa">M-Pesa</option>
@@ -573,17 +573,17 @@ const CaretakerRentDeposit = () => {
                 </div>
                 <div className="form-group">
                   <label>Payment Reference:</label>
-                  <input 
+                  <input
                     type="text"
                     value={paymentForm.payment_reference}
-                    onChange={(e) => setPaymentForm({...paymentForm, payment_reference: e.target.value})}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, payment_reference: e.target.value })}
                   />
                 </div>
                 <div className="form-group">
                   <label>Notes:</label>
-                  <textarea 
+                  <textarea
                     value={paymentForm.notes}
-                    onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
                     rows="3"
                   />
                 </div>

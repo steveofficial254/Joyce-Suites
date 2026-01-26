@@ -3,7 +3,7 @@
 const getConfig = () => {
   return {
     
-    apiBaseUrl: 'https://joyce-suites-xdkp.onrender.com',
+    apiBaseUrl: 'https:
 
     
     appName: 'Joyce Suites',

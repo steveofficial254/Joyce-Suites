@@ -5,7 +5,7 @@ import './TenantRegister.css';
 import logo from '../../assets/image1.png';
 import backgroundImage from '../../assets/image21.jpg';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https:
 
 const TenantRegister = () => {
   const navigate = useNavigate();
@@ -14,7 +14,7 @@ const TenantRegister = () => {
   const [success, setSuccess] = useState('');
   const [photoPreview, setPhotoPreview] = useState(null);
   const [idPreview, setIdPreview] = useState(null);
-  
+
   const [rooms, setRooms] = useState([]);
   const [roomData, setRoomData] = useState(null);
   const [loadingRooms, setLoadingRooms] = useState(false);
@@ -34,14 +34,14 @@ const TenantRegister = () => {
   });
 
   useEffect(() => {
-    
+
     fetchRooms();
   }, []);
 
   useEffect(() => {
-    
+
     if (rooms.length > 0) {
-      
+
     }
   }, [rooms]);
 
@@ -49,7 +49,7 @@ const TenantRegister = () => {
     setLoadingRooms(true);
     setError('');
     try {
-      
+
 
       const response = await fetch(`${API_BASE_URL}/api/caretaker/rooms/public`);
 
@@ -58,29 +58,29 @@ const TenantRegister = () => {
       }
 
       const data = await response.json();
-      
 
-      
+
+
       if (data.success && Array.isArray(data.rooms)) {
-        
-        
 
-        
+
+
+
         const processedRooms = data.rooms.map(room => ({
           id: room.id,
           name: room.name,
-          room_number: room.name.replace('Room ', ''), 
-          property_type: room.property_type, 
+          room_number: room.name.replace('Room ', ''),
+          property_type: room.property_type,
           rent_amount: room.rent_amount,
-          rent: room.rent_amount, 
+          rent: room.rent_amount,
           description: room.description,
-          status: 'vacant' 
+          status: 'vacant'
         }));
 
-        
+
         setRooms(processedRooms);
       } else {
-        console.error('Invalid response structure:', data);
+
         setError('Failed to load rooms: Invalid response format');
         setRooms([]);
       }
@@ -97,22 +97,22 @@ const TenantRegister = () => {
     const { name, value, type, checked } = e.target;
 
     if (name === 'roomNumber' && value) {
-      
 
-      
+
+
       const selectedRoom = rooms.find(room => {
         const roomNumber = room.room_number || room.name.replace('Room ', '').trim();
         return roomNumber === value.trim();
       });
 
-      
+
 
       if (selectedRoom) {
-        
+
         const rentAmount = selectedRoom.rent_amount || selectedRoom.rent || 0;
         const depositAmount = rentAmount * 0.07;
 
-        
+
         let roomType = 'Room';
         const propType = selectedRoom.property_type;
         if (propType === 'bedsitter') {
@@ -133,16 +133,16 @@ const TenantRegister = () => {
           deposit: depositAmount,
           totalAmount: rentAmount + depositAmount,
           property_type: propType,
-          
-          
-          paybill: selectedRoom.paybill_number || '222111', 
-          account: selectedRoom.account_number || 'JOYCE001', 
-          landlord: selectedRoom.landlord_name || 'Joyce Muthoni' 
+
+
+          paybill: selectedRoom.paybill_number || '222111',
+          account: selectedRoom.account_number || 'JOYCE001',
+          landlord: selectedRoom.landlord_name || 'Joyce Muthoni'
         });
 
-        
+
       } else {
-        
+
         setRoomData(null);
       }
     }
@@ -181,25 +181,25 @@ const TenantRegister = () => {
     }
   };
 
-  
+
 
   const validateForm = () => {
     setError('');
 
-    
+
     if (!formData.fullName.trim()) {
       setError('Full name is required');
       return false;
     }
 
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setError('Valid email address is required');
       return false;
     }
 
-    
+
     const phoneRegex = /^(\+254|0)[1-9]\d{8}$/;
     const cleanPhone = formData.phone.replace(/\s/g, '');
     if (!phoneRegex.test(cleanPhone)) {
@@ -207,19 +207,19 @@ const TenantRegister = () => {
       return false;
     }
 
-    
+
     if (!formData.idNumber.trim()) {
       setError('National ID number is required');
       return false;
     }
 
-    
+
     if (!formData.roomNumber.trim()) {
       setError('Please select a room');
       return false;
     }
 
-    
+
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters');
       return false;
@@ -237,7 +237,7 @@ const TenantRegister = () => {
       return false;
     }
 
-    
+
     if (!formData.photo) {
       setError('Profile photo is required');
       return false;
@@ -247,7 +247,7 @@ const TenantRegister = () => {
       return false;
     }
 
-    
+
     if (!formData.terms) {
       setError('You must agree to the terms and conditions');
       return false;
@@ -283,9 +283,9 @@ const TenantRegister = () => {
       uploadData.append('id_document', formData.idDocument);
       uploadData.append('role', 'tenant');
 
-      
 
-      
+
+
       if (roomData) {
         uploadData.append('room_id', roomData.id);
         uploadData.append('room_type', roomData.property_type);
@@ -314,7 +314,7 @@ const TenantRegister = () => {
         data = { error: `Server error: ${response.status} ${response.statusText}` };
       }
 
-      
+
 
       if (!response.ok) {
         const message = data.error || data.message || `Registration failed with status ${response.status}`;
@@ -323,7 +323,7 @@ const TenantRegister = () => {
       }
 
       if (data.success && data.token) {
-        
+
         localStorage.setItem('joyce-suites-token', data.token);
         localStorage.setItem('joyce-suites-user', JSON.stringify({
           ...data.user,
@@ -485,6 +485,7 @@ const TenantRegister = () => {
                     onChange={handleInputChange}
                     placeholder="Enter your national ID"
                     required
+                    maxLength={9}
                   />
                 </div>
                 <div className="form-group">
@@ -502,11 +503,11 @@ const TenantRegister = () => {
                     </option>
                     {rooms.length > 0 ? (
                       rooms.map(room => {
-                        
+
                         const roomNumber = room.room_number || room.name.replace('Room ', '').trim();
                         const roomName = room.name;
 
-                        
+
                         let roomType = 'Room';
                         const propType = room.property_type;
                         if (propType === 'bedsitter') {
@@ -519,7 +520,7 @@ const TenantRegister = () => {
                           roomType = propType.replace('_', ' ').toUpperCase();
                         }
 
-                        
+
                         const rentAmount = room.rent_amount || room.rent || 0;
 
                         return (

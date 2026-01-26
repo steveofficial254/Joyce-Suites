@@ -203,6 +203,8 @@ def register():
 
         try:
             id_number = int(id_number)
+            if len(str(id_number)) > 9:
+                return jsonify({"success": False, "error": "National ID cannot exceed 9 digits"}), 400
         except (ValueError, TypeError):
             return jsonify({"success": False, "error": "National ID must be a valid number"}), 400
 

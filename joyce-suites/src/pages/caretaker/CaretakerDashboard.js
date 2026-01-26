@@ -13,7 +13,7 @@ import {
 
 import CaretakerWaterBill from './CaretakerWaterBill';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https:
 
 const CaretakerDashboard = () => {
   const [activePage, setActivePage] = useState('dashboard');
@@ -2203,8 +2203,9 @@ const TenantDetailsModal = ({ tenant, onClose }) => {
                       <img
                         src={`${API_BASE_URL}/${tenantData.images.photo}`}
                         alt="Tenant Profile"
+                        loading="lazy"
                         style={styles.imagePreview}
-                        onError={(e) => { e.target.src = 'https://via.placeholder.com/200?text=No+Image'; }}
+                        onError={(e) => { e.target.src = 'https:
                       />
                     </div>
                   )}
@@ -2286,9 +2287,46 @@ const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
           <div style={{ marginTop: '16px' }}>
             <label style={styles.detailLabel}>Description</label>
             <p style={{ ...styles.detailValue, lineHeight: '1.6', margin: '8px 0' }}>
-              {request.description}
             </p>
           </div>
+
+          {request.images && request.images.length > 0 && (
+            <div style={{ marginTop: '20px' }}>
+              <label style={styles.detailLabel}>Uploaded Images</label>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '12px',
+                marginTop: '12px'
+              }}>
+                {request.images.map((img, index) => (
+                  <div key={index} style={{
+                    aspectRatio: '1/1',
+                    width: '100%',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    border: '1px solid #e5e7eb',
+                    cursor: 'pointer'
+                  }}
+                    onClick={() => window.open(`${API_BASE_URL}/${img}`, '_blank')}
+                  >
+                    <img
+                      src={`${API_BASE_URL}/${img}`}
+                      alt={`Maintenance ${index + 1}`}
+                      loading="lazy"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block'
+                      }}
+                      onError={(e) => { e.target.src = 'https:
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div style={styles.modalFooter}>
