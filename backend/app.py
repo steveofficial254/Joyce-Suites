@@ -65,13 +65,29 @@ def create_app():
         "https://joyce-suites-jcfw.vercel.app",
     ]
     
-    # CORS configuration - allow all origins for debugging
-    CORS(app, 
-         resources={r"/*": {"origins": "*"}},
-         allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
-         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-         expose_headers=["Content-Type", "Authorization"],
-         max_age=3600)
+    # CORS configuration - explicit handler for all routes
+    CORS(app)
+    
+    @app.after_request
+    def after_request(response):
+        origin = request.headers.get('Origin', '*')
+        response.headers.add('Access-Control-Allow-Origin', origin)
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+        response.headers.add('Access-Control-Expose-Headers', 'Content-Type, Authorization')
+        response.headers.add('Access-Control-Max-Age', '3600')
+        return response
+    
+    @app.before_request
+    def handle_preflight():
+        if request.method == 'OPTIONS':
+            response = app.make_default_options_response()
+            origin = request.headers.get('Origin', '*')
+            response.headers.add('Access-Control-Allow-Origin', origin)
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
+            response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+            response.headers.add('Access-Control-Max-Age', '3600')
+            return response
     
     is_development = os.getenv("FLASK_ENV", "development") == "development"
     
