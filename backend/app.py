@@ -75,16 +75,10 @@ def create_app():
         cors_origins.append("https://joyce-suites-xdkp.onrender.com")
     
     app.logger.info(f"CORS origins: {cors_origins}")
-    app.logger.info("CORS fix deployed - v2.0")
+    app.logger.info("CORS fix deployed - v3.0 - Manual CORS")
     
-    # CORS configuration - apply to all routes with explicit configuration
-    CORS(app, 
-         origins=cors_origins, 
-         supports_credentials=True,
-         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-         allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-         expose_headers=['Content-Type', 'Authorization'],
-         max_age=3600)
+    # Disable Flask-CORS and handle manually
+    # CORS(app, origins=cors_origins, supports_credentials=True)
     
     @app.after_request
     def after_request(response):
@@ -95,7 +89,7 @@ def create_app():
         app.logger.info(f"CORS origins list: {cors_origins}")
         app.logger.info(f"Origin in cors_origins: {origin in cors_origins}")
         
-        # Force add CORS headers as fallback using different methods
+        # Handle all CORS manually
         if origin in cors_origins:
             response.headers.set('Access-Control-Allow-Origin', origin)
             app.logger.info(f"CORS allowed for origin: {origin}")
@@ -109,8 +103,12 @@ def create_app():
                 response.headers.set('Access-Control-Allow-Origin', origin)
                 app.logger.info(f"CORS allowed as fallback for origin: {origin}")
         
-        # Ensure credentials header is set
+        # Set all other CORS headers manually
         response.headers.set('Access-Control-Allow-Credentials', 'true')
+        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
+        response.headers.set('Access-Control-Expose-Headers', 'Content-Type, Authorization')
+        response.headers.set('Access-Control-Max-Age', '3600')
         
         return response
     
