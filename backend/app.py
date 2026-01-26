@@ -72,6 +72,7 @@ def create_app():
     required_origins = [
         "https://joyce-suites.vercel.app",
         "https://joyce-suites-jcfw.vercel.app",
+        "https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app",
         "https://joyce-suites.onrender.com",
         "https://joyce-suites-xdkp.onrender.com"
     ]
