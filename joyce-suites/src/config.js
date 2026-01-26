@@ -1,9 +1,11 @@
 
-
 const getConfig = () => {
-  return {
+  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const apiBaseUrl = process.env.REACT_APP_API_BASE_URL ||
+    (isDevelopment ? 'http://localhost:5000' : 'https://joyce-suites-xdkp.onrender.com');
 
-    apiBaseUrl: 'https://joyce-suites-xdkp.onrender.com',
+  return {
+    apiBaseUrl,
 
 
     appName: 'Joyce Suites',

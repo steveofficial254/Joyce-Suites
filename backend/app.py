@@ -339,6 +339,56 @@ def register_cli_commands(app: Flask) -> None:
             db.session.commit()
             print("Seeded admin, caretaker, and tenant users.")
 
+    @app.cli.command("seed-properties")
+    def seed_properties():
+        if os.getenv("FLASK_ENV") == "production":
+            print("Cannot seed properties in production!")
+            return
+            
+        with app.app_context():
+            admin = User.query.filter_by(role="admin").first()
+            if not admin:
+                print("Error: Seed users first with 'flask seed-db'")
+                return
+            
+            if Property.query.first():
+                print("Properties already exist.")
+                return
+
+            properties = [
+                Property(
+                    name="Room 101",
+                    property_type="bedsitter",
+                    description="Cozy bedsitter near the main entrance.",
+                    rent_amount=8000,
+                    deposit_amount=8000,
+                    status="vacant",
+                    landlord_id=admin.id
+                ),
+                Property(
+                    name="Room 202",
+                    property_type="one_bedroom",
+                    description="Spacious one bedroom with balcony.",
+                    rent_amount=15000,
+                    deposit_amount=15000,
+                    status="vacant",
+                    landlord_id=admin.id
+                ),
+                Property(
+                    name="Room 303",
+                    property_type="bedsitter",
+                    description="Quiet bedsitter on the third floor.",
+                    rent_amount=8500,
+                    deposit_amount=8500,
+                    status="vacant",
+                    landlord_id=admin.id
+                )
+            ]
+            
+            db.session.add_all(properties)
+            db.session.commit()
+            print(f"Seeded {len(properties)} properties.")
+
 
 def configure_logging(app: Flask) -> None:
     """Configure rotating log file output."""
