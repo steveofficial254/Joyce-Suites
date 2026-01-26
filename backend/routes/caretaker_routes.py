@@ -445,13 +445,32 @@ def get_public_rooms():
         # Get all properties first
         all_properties = Property.query.all()
         print(f"📊 Debug: Total properties in DB: {len(all_properties)}")
+        
+        properties_debug = []
         for prop in all_properties:
+            prop_data = {
+                "id": prop.id,
+                "name": prop.name,
+                "status": prop.status,
+                "property_type": prop.property_type,
+                "rent_amount": float(prop.rent_amount) if prop.rent_amount else 0.0
+            }
+            properties_debug.append(prop_data)
             print(f"  - ID: {prop.id}, Name: {prop.name}, Status: {prop.status}")
         
         # Get active leases
         active_leases = Lease.query.filter_by(status="active").all()
         print(f"📋 Debug: Active leases: {len(active_leases)}")
+        
+        leases_debug = []
         for lease in active_leases:
+            lease_data = {
+                "id": lease.id,
+                "property_id": lease.property_id,
+                "status": lease.status,
+                "end_date": lease.end_date.strftime("%Y-%m-%d") if lease.end_date else None
+            }
+            leases_debug.append(lease_data)
             print(f"  - Property ID: {lease.property_id}, Status: {lease.status}")
         
         occupied_property_ids = [lease.property_id for lease in Lease.query.filter_by(status="active").all()]
@@ -489,7 +508,15 @@ def get_public_rooms():
             "success": True,
             "rooms": rooms,
             "total": len(rooms),
-            "next_available_date": next_available_date
+            "next_available_date": next_available_date,
+            "debug": {
+                "total_properties": len(all_properties),
+                "properties": properties_debug,
+                "active_leases": len(active_leases),
+                "leases": leases_debug,
+                "occupied_property_ids": occupied_property_ids,
+                "vacant_properties_count": len(vacant_properties)
+            }
         }
         print(f"🎯 Debug: Final result: {result}")
         return jsonify(result), 200
