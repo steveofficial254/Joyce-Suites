@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
+import { LogOut, Menu, X } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import './TenantDashboard.css';
 import logo from '../../assets/image1.png';
@@ -88,7 +88,7 @@ const TenantDashboard = () => {
       try {
         const tokenParts = token.split('.');
         if (tokenParts.length !== 3) {
-          console.error('Invalid token structure');
+
           localStorage.removeItem('joyce-suites-token');
           navigate('/login');
           return false;
@@ -354,7 +354,7 @@ const TenantDashboard = () => {
     try {
       const userId = localStorage.getItem('userId');
 
-      // Fetch current month rent
+
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth() + 1;
       const currentYear = currentDate.getFullYear();
@@ -369,7 +369,7 @@ const TenantDashboard = () => {
         }
       }
 
-      // Fetch deposit records
+
       const depositResponse = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/deposit/tenant/${userId}`);
 
       if (depositResponse.ok) {
@@ -380,7 +380,7 @@ const TenantDashboard = () => {
         }
       }
 
-      // Fetch water bill records
+
       const waterBillResponse = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/water-bill/tenant/${userId}?month=${currentMonth}&year=${currentYear}`);
 
       if (waterBillResponse.ok) {
@@ -452,7 +452,7 @@ const TenantDashboard = () => {
         console.error(`Payments response error: ${paymentsRes ? paymentsRes.status : 'No response'}`);
       }
 
-      // Fetch rent and deposit records
+
       await fetchRentAndDepositRecords();
 
 
@@ -664,7 +664,7 @@ const TenantDashboard = () => {
       return;
     }
 
-    // Validate phone number format (basic)
+
     if (!/^(07|01|254)\d{8}$/.test(mpesaPhone)) {
       setError('Please enter a valid M-Pesa phone number');
       return;
@@ -689,7 +689,7 @@ const TenantDashboard = () => {
         setSuccess(data.message || 'STK Push initiated! Please check your phone.');
         setMpesaPhone('');
 
-        // Wait for a bit and then refresh data to see if payment was processed
+
         setTimeout(() => {
           fetchAllData();
           setSuccess('');
@@ -929,19 +929,7 @@ const TenantDashboard = () => {
       />
 
       <div className="dashboard-wrapper">
-        <aside className={`sidebar ${mobileMenuOpen ? 'mobile-visible' : 'mobile-hidden'}`}>
-          <div className="sidebar-header">
-            <h2>Joyce Suites</h2>
-          </div>
-
-          <div className="sidebar-footer">
-            <button className="logout-btn" onClick={handleLogout}>
-              Logout
-            </button>
-          </div>
-        </aside>
-
-        <main className={`main-content ${mobileMenuOpen ? 'mobile-sidebar-open' : ''}`}>
+        <main className="main-content full-width">
           <header className="topbar">
             <div className="topbar-left">
               <h1>Joyce Suites Apartments</h1>
@@ -949,8 +937,8 @@ const TenantDashboard = () => {
             </div>
 
             <div className="topbar-right">
-              {/* Horizontal Navigation */}
-              <nav className="topbar-nav">
+              {/* Desktop Navigation */}
+              <nav className="topbar-nav desktop-only">
                 <button
                   className={`topbar-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
                   onClick={() => setActiveTab('dashboard')}
@@ -988,11 +976,12 @@ const TenantDashboard = () => {
                 </button>
               </nav>
 
-              <div className="user-avatar">
+              <div className="user-avatar desktop-only">
                 {profilePhotoUrl ? (
                   <img
                     src={profilePhotoUrl}
                     alt="Profile"
+                    loading="lazy"
                     className="avatar-image"
                     onError={(e) => {
                       console.error('❌ Avatar photo failed to load:', profilePhotoUrl);
@@ -1010,14 +999,87 @@ const TenantDashboard = () => {
               </div>
 
               <button
-                className="icon-btn"
+                className="icon-btn desktop-only"
                 onClick={handleLogout}
                 title="Logout"
               >
                 <LogOut size={20} />
               </button>
+
+              {/* Mobile Menu Toggle */}
+              <button
+                className="icon-btn mobile-menu-toggle"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
             </div>
           </header>
+
+          {/* Mobile Menu Dropdown */}
+          {mobileMenuOpen && (
+            <div className="mobile-menu-dropdown">
+              <div className="mobile-user-info">
+                <div className="user-avatar">
+                  {profilePhotoUrl ? (
+                    <img
+                      src={profilePhotoUrl}
+                      alt="Profile"
+                      loading="lazy"
+                      className="avatar-image"
+                      onError={(e) => {
+                        if (profileData?.photo_path && !profileData.photo_path.startsWith('http')) {
+                          e.target.src = `${config.apiBaseUrl}/${profileData.photo_path}`;
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="avatar-placeholder">
+                      {(profileData?.full_name?.charAt(0) || 'T').toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <span>{dashboardData.tenant_name || 'Tenant'}</span>
+              </div>
+
+              <button
+                className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }}
+              >
+                <span className="nav-icon">📊</span> Dashboard
+              </button>
+              <button
+                className={`mobile-nav-item ${activeTab === 'payments' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('payments'); setMobileMenuOpen(false); }}
+              >
+                <span className="nav-icon">💳</span> Payments
+              </button>
+              <button
+                className={`mobile-nav-item ${activeTab === 'lease' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('lease'); setMobileMenuOpen(false); }}
+              >
+                <span className="nav-icon">📄</span> Lease
+              </button>
+              <button
+                className={`mobile-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('profile'); setMobileMenuOpen(false); }}
+              >
+                <span className="nav-icon">👤</span> Profile
+              </button>
+              <button
+                className={`mobile-nav-item ${activeTab === 'vacate' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('vacate'); setMobileMenuOpen(false); }}
+              >
+                <span className="nav-icon">🚪</span> Vacate
+              </button>
+
+              <div className="mobile-menu-divider"></div>
+
+              <button className="mobile-nav-item logout" onClick={handleLogout}>
+                <LogOut size={18} /> Logout
+              </button>
+            </div>
+          )}
 
           {error && <div className="alert alert-error">{error}</div>}
           {success && <div className="alert alert-success">{success}</div>}
@@ -1038,27 +1100,32 @@ const TenantDashboard = () => {
                     <h3>Total Outstanding Balance</h3>
                     <p className="stat-value">
                       {(() => {
-                        const rentBalance = currentMonthRent?.balance || 0;
-                        const waterBalance = currentMonthWaterBill?.balance || 0;
+                        const rentBalance = currentMonthRent?.balance !== undefined ? parseFloat(currentMonthRent.balance) : 0;
+                        const waterBalance = currentMonthWaterBill?.balance !== undefined ? parseFloat(currentMonthWaterBill.balance) : 0;
                         const totalBalance = rentBalance + waterBalance;
 
-                        if (totalBalance === 0) {
+
+                        const outstanding = dashboardData?.outstanding_balance || 0;
+
+
+                        const finalBalance = Math.max(totalBalance, outstanding);
+
+                        if (finalBalance <= 0) {
                           return 'PAID';
                         } else {
-                          return `KSh ${totalBalance.toLocaleString()}`;
+                          return `KSh ${finalBalance.toLocaleString()}`;
                         }
                       })()}
                     </p>
                     <p className="stat-label">
                       {(() => {
-                        const rentBalance = currentMonthRent?.balance || 0;
-                        const waterBalance = currentMonthWaterBill?.balance || 0;
-                        const totalBalance = rentBalance + waterBalance;
+                        const rentBalance = currentMonthRent?.balance !== undefined ? parseFloat(currentMonthRent.balance) : 0;
+                        const waterBalance = currentMonthWaterBill?.balance !== undefined ? parseFloat(currentMonthWaterBill.balance) : 0;
 
-                        if (totalBalance === 0) {
+                        if (rentBalance <= 0 && waterBalance <= 0) {
                           return 'All payments cleared';
                         } else {
-                          return `Rent: KSh ${rentBalance.toLocaleString()} + Water: KSh ${waterBalance.toLocaleString()}`;
+                          return `Rent: ${rentBalance.toLocaleString()} + Water: ${waterBalance.toLocaleString()}`;
                         }
                       })()}
                     </p>
@@ -1262,6 +1329,7 @@ const TenantDashboard = () => {
                     <img
                       src={apartmentImages[currentImageIndex]}
                       alt="Apartment"
+                      loading="lazy"
                       className="gallery-image"
                     />
                     <div className="gallery-controls">
@@ -1298,6 +1366,7 @@ const TenantDashboard = () => {
                         key={index}
                         src={img}
                         alt={`Apartment ${index + 1}`}
+                        loading="lazy"
                         className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
                         onClick={() => setCurrentImageIndex(index)}
                       />
@@ -1463,6 +1532,7 @@ const TenantDashboard = () => {
                           <img
                             src={`${config.apiBaseUrl}/${profileData.photo_path}`}
                             alt="Profile"
+                            loading="lazy"
                             className="profile-photo"
                             onError={(e) => {
                               console.error('❌ Failed to load profile photo from:', e.target.src);
@@ -1479,6 +1549,7 @@ const TenantDashboard = () => {
                           <img
                             src={`${config.apiBaseUrl}/${profileData.id_document_path}`}
                             alt="ID Document"
+                            loading="lazy"
                             className="profile-photo"
                             onError={(e) => {
                               console.error('❌ Failed to load ID document from:', e.target.src);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import config from '../../config';
 import './AdminRentDeposit.css';
 
 const AdminRentDeposit = () => {
@@ -10,15 +10,15 @@ const AdminRentDeposit = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [summary, setSummary] = useState(null);
+
   
-  // Filters
   const [rentFilters, setRentFilters] = useState({
     status: '',
     tenant_id: '',
     month: '',
     year: ''
   });
-  
+
   const [depositFilters, setDepositFilters] = useState({
     status: '',
     tenant_id: ''
@@ -31,7 +31,7 @@ const AdminRentDeposit = () => {
     year: ''
   });
 
-  // Pagination
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -49,7 +49,7 @@ const AdminRentDeposit = () => {
   const fetchSummary = async () => {
     try {
       const token = localStorage.getItem('joyce-suites-token');
-      const response = await fetch('/api/rent-deposit/dashboard/summary', {
+      const response = await fetch(`${config.apiBaseUrl}/api/rent-deposit/dashboard/summary`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -74,7 +74,7 @@ const AdminRentDeposit = () => {
         ...rentFilters
       });
 
-      const response = await fetch(`/api/rent-deposit/rent/records?${params}`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/rent-deposit/rent/records?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -104,7 +104,7 @@ const AdminRentDeposit = () => {
         ...depositFilters
       });
 
-      const response = await fetch(`/api/rent-deposit/deposit/records?${params}`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/rent-deposit/deposit/records?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -134,7 +134,7 @@ const AdminRentDeposit = () => {
         ...waterBillFilters
       });
 
-      const response = await fetch(`/api/rent-deposit/water-bill/records?${params}`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/rent-deposit/water-bill/records?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -158,7 +158,7 @@ const AdminRentDeposit = () => {
   const handleRefundDeposit = async (depositId, refundAmount) => {
     try {
       const token = localStorage.getItem('joyce-suites-token');
-      const response = await fetch('/api/rent-deposit/deposit/mark-refund', {
+      const response = await fetch(`${config.apiBaseUrl}/api/rent-deposit/deposit/mark-refund`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -324,19 +324,19 @@ const AdminRentDeposit = () => {
 
       {/* Tabs */}
       <div className="tabs">
-        <button 
+        <button
           className={`tab-button ${activeTab === 'rent' ? 'active' : ''}`}
           onClick={() => setActiveTab('rent')}
         >
           Rent Records
         </button>
-        <button 
+        <button
           className={`tab-button ${activeTab === 'deposit' ? 'active' : ''}`}
           onClick={() => setActiveTab('deposit')}
         >
           Deposit Records
         </button>
-        <button 
+        <button
           className={`tab-button ${activeTab === 'water' ? 'active' : ''}`}
           onClick={() => setActiveTab('water')}
         >
@@ -348,9 +348,9 @@ const AdminRentDeposit = () => {
       <div className="filters-section">
         {activeTab === 'rent' ? (
           <div className="filters">
-            <select 
-              value={rentFilters.status} 
-              onChange={(e) => setRentFilters({...rentFilters, status: e.target.value})}
+            <select
+              value={rentFilters.status}
+              onChange={(e) => setRentFilters({ ...rentFilters, status: e.target.value })}
             >
               <option value="">All Statuses</option>
               <option value="paid">Paid</option>
@@ -358,33 +358,33 @@ const AdminRentDeposit = () => {
               <option value="partially_paid">Partially Paid</option>
               <option value="overdue">Overdue</option>
             </select>
-            <input 
-              type="number" 
+            <input
+              type="number"
               placeholder="Tenant ID"
               value={rentFilters.tenant_id}
-              onChange={(e) => setRentFilters({...rentFilters, tenant_id: e.target.value})}
+              onChange={(e) => setRentFilters({ ...rentFilters, tenant_id: e.target.value })}
             />
-            <input 
-              type="number" 
+            <input
+              type="number"
               placeholder="Month (1-12)"
-              min="1" 
+              min="1"
               max="12"
               value={rentFilters.month}
-              onChange={(e) => setRentFilters({...rentFilters, month: e.target.value})}
+              onChange={(e) => setRentFilters({ ...rentFilters, month: e.target.value })}
             />
-            <input 
-              type="number" 
+            <input
+              type="number"
               placeholder="Year"
               value={rentFilters.year}
-              onChange={(e) => setRentFilters({...rentFilters, year: e.target.value})}
+              onChange={(e) => setRentFilters({ ...rentFilters, year: e.target.value })}
             />
             <button onClick={fetchRentRecords} className="filter-btn">Apply Filters</button>
           </div>
         ) : activeTab === 'deposit' ? (
           <div className="filters">
-            <select 
-              value={depositFilters.status} 
-              onChange={(e) => setDepositFilters({...depositFilters, status: e.target.value})}
+            <select
+              value={depositFilters.status}
+              onChange={(e) => setDepositFilters({ ...depositFilters, status: e.target.value })}
             >
               <option value="">All Statuses</option>
               <option value="paid">Paid</option>
@@ -392,19 +392,19 @@ const AdminRentDeposit = () => {
               <option value="refunded">Refunded</option>
               <option value="partially_refunded">Partially Refunded</option>
             </select>
-            <input 
-              type="number" 
+            <input
+              type="number"
               placeholder="Tenant ID"
               value={depositFilters.tenant_id}
-              onChange={(e) => setDepositFilters({...depositFilters, tenant_id: e.target.value})}
+              onChange={(e) => setDepositFilters({ ...depositFilters, tenant_id: e.target.value })}
             />
             <button onClick={fetchDepositRecords} className="filter-btn">Apply Filters</button>
           </div>
         ) : (
           <div className="filters">
-            <select 
-              value={waterBillFilters.status} 
-              onChange={(e) => setWaterBillFilters({...waterBillFilters, status: e.target.value})}
+            <select
+              value={waterBillFilters.status}
+              onChange={(e) => setWaterBillFilters({ ...waterBillFilters, status: e.target.value })}
             >
               <option value="">All Statuses</option>
               <option value="paid">Paid</option>
@@ -412,25 +412,25 @@ const AdminRentDeposit = () => {
               <option value="partially_paid">Partially Paid</option>
               <option value="overdue">Overdue</option>
             </select>
-            <input 
-              type="number" 
+            <input
+              type="number"
               placeholder="Tenant ID"
               value={waterBillFilters.tenant_id}
-              onChange={(e) => setWaterBillFilters({...waterBillFilters, tenant_id: e.target.value})}
+              onChange={(e) => setWaterBillFilters({ ...waterBillFilters, tenant_id: e.target.value })}
             />
-            <input 
-              type="number" 
+            <input
+              type="number"
               placeholder="Month (1-12)"
-              min="1" 
+              min="1"
               max="12"
               value={waterBillFilters.month}
-              onChange={(e) => setWaterBillFilters({...waterBillFilters, month: e.target.value})}
+              onChange={(e) => setWaterBillFilters({ ...waterBillFilters, month: e.target.value })}
             />
-            <input 
-              type="number" 
+            <input
+              type="number"
               placeholder="Year"
               value={waterBillFilters.year}
-              onChange={(e) => setWaterBillFilters({...waterBillFilters, year: e.target.value})}
+              onChange={(e) => setWaterBillFilters({ ...waterBillFilters, year: e.target.value })}
             />
             <button onClick={fetchWaterBillRecords} className="filter-btn">Apply Filters</button>
           </div>
@@ -523,7 +523,7 @@ const AdminRentDeposit = () => {
                   </td>
                   <td>
                     {activeTab === 'deposit' && record.status === 'paid' && (
-                      <button 
+                      <button
                         className="refund-btn"
                         onClick={() => {
                           const amount = prompt('Enter refund amount:');
@@ -546,14 +546,14 @@ const AdminRentDeposit = () => {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="pagination">
-          <button 
+          <button
             disabled={currentPage === 1}
             onClick={() => setCurrentPage(currentPage - 1)}
           >
             Previous
           </button>
           <span>Page {currentPage} of {totalPages}</span>
-          <button 
+          <button
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage(currentPage + 1)}
           >

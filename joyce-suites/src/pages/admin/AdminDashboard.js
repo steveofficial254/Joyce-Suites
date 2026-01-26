@@ -8,7 +8,7 @@ import {
   TrendingUp, PieChart, FileSpreadsheet, DoorOpen, List
 } from 'lucide-react';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https:
 
 const AdminDashboard = () => {
   const [activePage, setActivePage] = useState('dashboard');
@@ -1929,20 +1929,26 @@ const TenantDetailsModal = ({ tenant, onClose }) => {
                       <img
                         src={`${API_BASE_URL}/${tenantData.images.photo}`}
                         alt="Tenant Profile"
+                        loading="lazy"
                         style={styles.imagePreview}
-                        onError={(e) => { e.target.src = 'https://via.placeholder.com/200?text=No+Image'; }}
+                        onError={(e) => { e.target.src = 'https:
                       />
                     </div>
                   )}
-                  {tenantData.images && tenantData.images.id_doc && (
-                    <div>
-                      <p style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>National ID Document</p>
-                      <div style={{ ...styles.imagePreview, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}>
-                        <FileText size={48} color="#9ca3af" />
-                        <span style={{ fontSize: '14px', color: '#6b7280', marginLeft: '8px' }}>{tenantData.images.id_doc}</span>
-                      </div>
+                  <div>
+                    <p style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>National ID Document</p>
+                    <img
+                      src={`${API_BASE_URL}/${tenantData.images.id_doc}`}
+                      alt="ID Document"
+                      loading="lazy"
+                      style={{ ...styles.imagePreview, objectFit: 'contain', backgroundColor: '#f3f4f6' }}
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                    />
+                    <div style={{ ...styles.imagePreview, display: 'none', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}>
+                      <FileText size={48} color="#9ca3af" />
+                      <span style={{ fontSize: '14px', color: '#6b7280', marginLeft: '8px' }}>Image Load Failed</span>
                     </div>
-                  )}
+                  </div>
                   {(!tenantData.images || (!tenantData.images.photo && !tenantData.images.id_doc)) && (
                     <p style={{ color: '#9ca3af', fontStyle: 'italic' }}>No documents uploaded.</p>
                   )}
@@ -2150,6 +2156,7 @@ const CreateTenantModal = ({ onClose, onSubmit, loading }) => {
                 value={formData.national_id}
                 onChange={handleChange}
                 placeholder="12345678"
+                maxLength={9}
                 style={{ ...styles.formInput, ...(errors.national_id ? styles.inputError : {}) }}
               />
               {errors.national_id && <span style={styles.errorText}>{errors.national_id}</span>}

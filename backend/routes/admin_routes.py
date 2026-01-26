@@ -437,6 +437,12 @@ def create_tenant():
                     "error": f"{field} is required"
                 }), 400
         
+        if len(str(data['national_id'])) > 9:
+            return jsonify({
+                "success": False, 
+                "error": "National ID cannot exceed 9 digits"
+            }), 400
+        
         if User.query.filter_by(email=data['email']).first():
             return jsonify({
                 "success": False, 

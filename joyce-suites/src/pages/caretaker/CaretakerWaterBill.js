@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import config from '../../config';
 import './CaretakerWaterBill.css';
 
 const CaretakerWaterBill = () => {
@@ -7,13 +7,13 @@ const CaretakerWaterBill = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [tenants, setTenants] = useState([]);
+
   
-  // Form states
   const [showBulkCreateModal, setShowBulkCreateModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
+
   
-  // Bulk create form
   const [bulkForm, setBulkForm] = useState({
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
@@ -21,16 +21,16 @@ const CaretakerWaterBill = () => {
     unit_rate: 50.0,
     bills: []
   });
+
   
-  // Payment form
   const [paymentForm, setPaymentForm] = useState({
     amount_paid: '',
     payment_method: 'Cash',
     payment_reference: '',
     notes: ''
   });
+
   
-  // Filters
   const [filters, setFilters] = useState({
     status: '',
     tenant_id: '',
@@ -38,7 +38,7 @@ const CaretakerWaterBill = () => {
     year: ''
   });
 
-  // Pagination
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -56,7 +56,7 @@ const CaretakerWaterBill = () => {
         ...filters
       });
 
-      const response = await fetch(`/api/rent-deposit/water-bill/records?${params}`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/rent-deposit/water-bill/records?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -80,7 +80,7 @@ const CaretakerWaterBill = () => {
   const fetchTenants = async () => {
     try {
       const token = localStorage.getItem('joyce-suites-token');
-      const response = await fetch('/api/admin/users?role=tenant', {
+      const response = await fetch(`${config.apiBaseUrl}/api/caretaker/tenants?per_page=100`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -89,7 +89,7 @@ const CaretakerWaterBill = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setTenants(data.users || []);
+        setTenants(data.tenants || []);
       }
     } catch (err) {
       console.error('Error fetching tenants:', err);
@@ -99,7 +99,7 @@ const CaretakerWaterBill = () => {
   const handleBulkCreate = async () => {
     try {
       const token = localStorage.getItem('joyce-suites-token');
-      const response = await fetch('/api/rent-deposit/water-bill/bulk-create', {
+      const response = await fetch(`${config.apiBaseUrl}/api/rent-deposit/water-bill/bulk-create`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -131,7 +131,7 @@ const CaretakerWaterBill = () => {
   const handleMarkPayment = async () => {
     try {
       const token = localStorage.getItem('joyce-suites-token');
-      const response = await fetch('/api/rent-deposit/water-bill/mark-payment', {
+      const response = await fetch(`${config.apiBaseUrl}/api/rent-deposit/water-bill/mark-payment`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -174,8 +174,8 @@ const CaretakerWaterBill = () => {
   const initializeBulkBills = () => {
     const bills = tenants.map(tenant => ({
       tenant_id: tenant.id,
-      property_id: tenant.property_id || 1, // You might need to adjust this
-      lease_id: tenant.lease_id || 1, // You might need to adjust this
+      property_id: tenant.property_id || 1, 
+      lease_id: tenant.lease_id || 1, 
       previous_reading: 0,
       current_reading: 0
     }));
@@ -225,7 +225,7 @@ const CaretakerWaterBill = () => {
 
       {/* Action Buttons */}
       <div className="action-buttons">
-        <button 
+        <button
           className="bulk-create-btn"
           onClick={() => {
             initializeBulkBills();
@@ -239,9 +239,9 @@ const CaretakerWaterBill = () => {
       {/* Filters */}
       <div className="filters-section">
         <div className="filters">
-          <select 
-            value={filters.status} 
-            onChange={(e) => setFilters({...filters, status: e.target.value})}
+          <select
+            value={filters.status}
+            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           >
             <option value="">All Statuses</option>
             <option value="paid">Paid</option>
@@ -249,25 +249,25 @@ const CaretakerWaterBill = () => {
             <option value="partially_paid">Partially Paid</option>
             <option value="overdue">Overdue</option>
           </select>
-          <input 
-            type="number" 
+          <input
+            type="number"
             placeholder="Tenant ID"
             value={filters.tenant_id}
-            onChange={(e) => setFilters({...filters, tenant_id: e.target.value})}
+            onChange={(e) => setFilters({ ...filters, tenant_id: e.target.value })}
           />
-          <input 
-            type="number" 
+          <input
+            type="number"
             placeholder="Month (1-12)"
-            min="1" 
+            min="1"
             max="12"
             value={filters.month}
-            onChange={(e) => setFilters({...filters, month: e.target.value})}
+            onChange={(e) => setFilters({ ...filters, month: e.target.value })}
           />
-          <input 
-            type="number" 
+          <input
+            type="number"
             placeholder="Year"
             value={filters.year}
-            onChange={(e) => setFilters({...filters, year: e.target.value})}
+            onChange={(e) => setFilters({ ...filters, year: e.target.value })}
           />
           <button onClick={fetchWaterBillRecords} className="filter-btn">Apply Filters</button>
         </div>
@@ -317,7 +317,7 @@ const CaretakerWaterBill = () => {
                   </td>
                   <td>
                     {record.status !== 'paid' && (
-                      <button 
+                      <button
                         className="mark-payment-btn"
                         onClick={() => openPaymentModal(record)}
                       >
@@ -335,14 +335,14 @@ const CaretakerWaterBill = () => {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="pagination">
-          <button 
+          <button
             disabled={currentPage === 1}
             onClick={() => setCurrentPage(currentPage - 1)}
           >
             Previous
           </button>
           <span>Page {currentPage} of {totalPages}</span>
-          <button 
+          <button
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage(currentPage + 1)}
           >
@@ -364,11 +364,11 @@ const CaretakerWaterBill = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label>Month:</label>
-                    <select 
+                    <select
                       value={bulkForm.month}
-                      onChange={(e) => setBulkForm({...bulkForm, month: parseInt(e.target.value)})}
+                      onChange={(e) => setBulkForm({ ...bulkForm, month: parseInt(e.target.value) })}
                     >
-                      {Array.from({length: 12}, (_, i) => (
+                      {Array.from({ length: 12 }, (_, i) => (
                         <option key={i + 1} value={i + 1}>
                           {new Date(2000, i).toLocaleString('default', { month: 'long' })}
                         </option>
@@ -377,31 +377,31 @@ const CaretakerWaterBill = () => {
                   </div>
                   <div className="form-group">
                     <label>Year:</label>
-                    <input 
+                    <input
                       type="number"
                       value={bulkForm.year}
-                      onChange={(e) => setBulkForm({...bulkForm, year: parseInt(e.target.value)})}
+                      onChange={(e) => setBulkForm({ ...bulkForm, year: parseInt(e.target.value) })}
                     />
                   </div>
                   <div className="form-group">
                     <label>Reading Date:</label>
-                    <input 
+                    <input
                       type="date"
                       value={bulkForm.reading_date}
-                      onChange={(e) => setBulkForm({...bulkForm, reading_date: e.target.value})}
+                      onChange={(e) => setBulkForm({ ...bulkForm, reading_date: e.target.value })}
                     />
                   </div>
                   <div className="form-group">
                     <label>Unit Rate (KSh):</label>
-                    <input 
+                    <input
                       type="number"
                       step="0.01"
                       value={bulkForm.unit_rate}
-                      onChange={(e) => setBulkForm({...bulkForm, unit_rate: parseFloat(e.target.value)})}
+                      onChange={(e) => setBulkForm({ ...bulkForm, unit_rate: parseFloat(e.target.value) })}
                     />
                   </div>
                 </div>
-                
+
                 <div className="bills-table">
                   <h4>Tenant Readings</h4>
                   <div className="table-container">
@@ -423,7 +423,7 @@ const CaretakerWaterBill = () => {
                             <tr key={index}>
                               <td>{tenants.find(t => t.id === bill.tenant_id)?.full_name || `Tenant ${bill.tenant_id}`}</td>
                               <td>
-                                <input 
+                                <input
                                   type="number"
                                   step="0.01"
                                   value={bill.previous_reading}
@@ -431,7 +431,7 @@ const CaretakerWaterBill = () => {
                                 />
                               </td>
                               <td>
-                                <input 
+                                <input
                                   type="number"
                                   step="0.01"
                                   value={bill.current_reading}
@@ -476,19 +476,19 @@ const CaretakerWaterBill = () => {
               <form onSubmit={(e) => { e.preventDefault(); handleMarkPayment(); }}>
                 <div className="form-group">
                   <label>Amount Paid:</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     step="0.01"
                     value={paymentForm.amount_paid}
-                    onChange={(e) => setPaymentForm({...paymentForm, amount_paid: e.target.value})}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, amount_paid: e.target.value })}
                     required
                   />
                 </div>
                 <div className="form-group">
                   <label>Payment Method:</label>
-                  <select 
+                  <select
                     value={paymentForm.payment_method}
-                    onChange={(e) => setPaymentForm({...paymentForm, payment_method: e.target.value})}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
                   >
                     <option value="Cash">Cash</option>
                     <option value="M-Pesa">M-Pesa</option>
@@ -498,17 +498,17 @@ const CaretakerWaterBill = () => {
                 </div>
                 <div className="form-group">
                   <label>Payment Reference:</label>
-                  <input 
+                  <input
                     type="text"
                     value={paymentForm.payment_reference}
-                    onChange={(e) => setPaymentForm({...paymentForm, payment_reference: e.target.value})}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, payment_reference: e.target.value })}
                   />
                 </div>
                 <div className="form-group">
                   <label>Notes:</label>
-                  <textarea 
+                  <textarea
                     value={paymentForm.notes}
-                    onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
                     rows="3"
                   />
                 </div>
