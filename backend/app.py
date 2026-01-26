@@ -112,6 +112,26 @@ def create_app():
         
         return response
     
+    # Add a simple test endpoint for CORS debugging
+    @app.route('/test-cors', methods=['GET', 'OPTIONS'])
+    def test_cors():
+        origin = request.headers.get('Origin')
+        app.logger.info(f"Test CORS - Method: {request.method}, Origin: {origin}")
+        
+        if request.method == 'OPTIONS':
+            response = app.make_default_options_response()
+            response.headers.set('Access-Control-Allow-Origin', origin or '*')
+            response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+            response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+            return response
+        
+        return jsonify({
+            'message': 'CORS test endpoint',
+            'origin': origin,
+            'cors_origins': cors_origins,
+            'origin_allowed': origin in cors_origins if origin else True
+        })
+    
     is_development = os.getenv("FLASK_ENV", "development") == "development"
     
     limiter = Limiter(
