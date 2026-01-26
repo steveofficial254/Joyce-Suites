@@ -410,6 +410,21 @@ def create_test_properties():
                 "existing_count": existing_props
             }), 200
         
+        # Get or create a default landlord (admin user)
+        from models.user import User
+        admin_user = User.query.filter_by(role="admin").first()
+        if not admin_user:
+            # Create a default admin user if none exists
+            admin_user = User(
+                email="admin@joycesuites.com",
+                full_name="Admin User",
+                role="admin",
+                is_active=True
+            )
+            admin_user.set_password("admin123")
+            db.session.add(admin_user)
+            db.session.commit()
+        
         # Create test properties
         test_properties = [
             {
@@ -446,7 +461,8 @@ def create_test_properties():
                 description=prop_data["description"],
                 rent_amount=prop_data["rent_amount"],
                 deposit_amount=prop_data["deposit_amount"],
-                status=prop_data["status"]
+                status=prop_data["status"],
+                landlord_id=admin_user.id
             )
             db.session.add(prop)
             created_props.append(prop)
@@ -462,7 +478,8 @@ def create_test_properties():
                     "name": prop.name,
                     "type": prop.property_type,
                     "status": prop.status,
-                    "rent": prop.rent_amount
+                    "rent": prop.rent_amount,
+                    "landlord_id": prop.landlord_id
                 } for prop in created_props
             ]
         }), 201
