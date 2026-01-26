@@ -91,6 +91,8 @@ def create_app():
         
         # Debug logging
         app.logger.info(f"After request - Method: {request.method}, Origin: {origin}, Path: {request.path}")
+        app.logger.info(f"CORS origins list: {cors_origins}")
+        app.logger.info(f"Origin in cors_origins: {origin in cors_origins}")
         
         # Force add CORS headers as fallback
         if origin in cors_origins:
@@ -101,6 +103,10 @@ def create_app():
             app.logger.info("CORS allowed for requests with no Origin header")
         else:
             app.logger.warning(f"CORS blocked for origin: {origin}")
+            # For now, allow the specific frontend origin as fallback
+            if origin == "https://joyce-suites.vercel.app":
+                response.headers['Access-Control-Allow-Origin'] = origin
+                app.logger.info(f"CORS allowed as fallback for origin: {origin}")
         
         # Ensure credentials header is set
         response.headers['Access-Control-Allow-Credentials'] = 'true'
