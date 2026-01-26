@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, DollarSign, Calendar, User, AlertCircle, CheckCircle, Clock, X, Plus } from 'lucide-react';
-import { fetchWithAuth } from '../../api';
-import { config } from '../../config';
+import apiService from '../../services/api';
+import config from '../../config';
+
+const fetchWithAuth = async (url, options = {}) => {
+  const token = localStorage.getItem('joyce-suites-token');
+  const defaultOptions = {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    },
+    ...options,
+  };
+
+  return fetch(url, defaultOptions);
+};
 
 const CaretakerDeposits = () => {
   const [depositRecords, setDepositRecords] = useState([]);

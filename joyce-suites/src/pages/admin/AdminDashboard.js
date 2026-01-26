@@ -8,7 +8,7 @@ import {
   TrendingUp, PieChart, FileSpreadsheet, DoorOpen, List
 } from 'lucide-react';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites.onrender.com';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
 
 const AdminDashboard = () => {
   const [activePage, setActivePage] = useState('dashboard');

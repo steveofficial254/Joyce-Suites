@@ -11,11 +11,10 @@ import {
   BedDouble, Bath, Square, Layers, MapPin, Droplet
 } from 'lucide-react';
 import MaintenancePage from './MaintenancePage';
-import PaymentsPage from './PaymentsPage';
 import CaretakerWaterBill from './CaretakerWaterBill';
 import CaretakerDeposits from './CaretakerDeposits';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites.onrender.com';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
 
 const CaretakerDashboard = () => {
   const [activePage, setActivePage] = useState('dashboard');
