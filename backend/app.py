@@ -143,6 +143,29 @@ def create_app():
             'origin_allowed': origin in cors_origins if origin else True
         })
     
+    # Add explicit OPTIONS handler for CORS preflight
+    @app.before_request
+    def handle_options():
+        if request.method == 'OPTIONS':
+            origin = request.headers.get('Origin')
+            app.logger.info(f"OPTIONS request - Origin: {origin}, Path: {request.path}")
+            
+            response = app.make_default_options_response()
+            
+            # Set CORS headers for OPTIONS
+            if origin in cors_origins or origin == "https://joyce-suites.vercel.app":
+                response.headers['Access-Control-Allow-Origin'] = origin
+                app.logger.info(f"CORS OPTIONS allowed for origin: {origin}")
+            else:
+                response.headers['Access-Control-Allow-Origin'] = '*'
+            
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept, Origin'
+            response.headers['Access-Control-Max-Age'] = '3600'
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            
+            return response
+    
     is_development = os.getenv("FLASK_ENV", "development") == "development"
     
     limiter = Limiter(
