@@ -11,7 +11,10 @@ import {
   BedDouble, Bath, Square, Layers, MapPin, Droplet
 } from 'lucide-react';
 
+import MaintenancePage from './MaintenancePage';
+import PaymentsPage from './PaymentsPage';
 import CaretakerWaterBill from './CaretakerWaterBill';
+import CaretakerDeposits from './CaretakerDeposits';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites.onrender.com';
 
@@ -708,6 +711,8 @@ const CaretakerDashboard = () => {
         );
       case 'water-bill':
         return <CaretakerWaterBill />;
+      case 'deposits':
+        return <CaretakerDeposits />;
       default:
         return null;
     }
@@ -735,6 +740,7 @@ const CaretakerDashboard = () => {
             { id: 'properties', label: 'Properties', icon: Building },
             { id: 'tenants', label: 'Tenants', icon: Users },
             { id: 'payments', label: 'Payments', icon: PaymentIcon },
+            { id: 'deposits', label: 'Deposits', icon: DollarSign },
             { id: 'water-bill', label: 'Water Bills', icon: Droplet },
             { id: 'vacate', label: 'Vacate Notices', icon: DoorOpen },
             { id: 'inquiries', label: 'Inquiries', icon: MessageSquare },
@@ -820,6 +826,7 @@ const CaretakerDashboard = () => {
               { id: 'properties', label: 'Rooms', icon: Building },
               { id: 'tenants', label: 'Tenants', icon: Users },
               { id: 'payments', label: 'Payments', icon: PaymentIcon },
+              { id: 'deposits', label: 'Deposits', icon: DollarSign },
               { id: 'water-bill', label: 'Water', icon: Droplet },
               { id: 'vacate', label: 'Vacate', icon: DoorOpen },
               { id: 'inquiries', label: 'Messages', icon: MessageSquare },
