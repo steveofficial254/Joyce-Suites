@@ -1,0 +1,455 @@
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, DollarSign, Calendar, User, AlertCircle, CheckCircle, Clock, X, Plus } from 'lucide-react';
+import { fetchWithAuth } from '../../api';
+import { config } from '../../config';
+
+const CaretakerDeposits = () => {
+  const [depositRecords, setDepositRecords] = useState([]);
+  const [tenants, setTenants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [createForm, setCreateForm] = useState({
+    tenant_id: '',
+    property_id: '',
+    lease_id: '',
+    amount_required: ''
+  });
+  const [paymentForm, setPaymentForm] = useState({
+    amount_paid: '',
+    payment_method: 'cash',
+    payment_reference: '',
+    notes: ''
+  });
+  const [filters, setFilters] = useState({
+    status: '',
+    tenant_id: '',
+    search: ''
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    fetchDepositRecords();
+    fetchTenants();
+  }, [filters, currentPage]);
+
+  const fetchDepositRecords = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      
+      if (filters.status) params.append('status', filters.status);
+      if (filters.tenant_id) params.append('tenant_id', filters.tenant_id);
+      params.append('page', currentPage);
+
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/deposit/records?${params}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setDepositRecords(data.records || []);
+        setTotalPages(data.total_pages || 1);
+      } else {
+        throw new Error('Failed to fetch deposit records');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTenants = async () => {
+    try {
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/users/tenants`);
+      if (response.ok) {
+        const data = await response.json();
+        setTenants(data.tenants || []);
+      }
+    } catch (err) {
+      console.error('Error fetching tenants:', err);
+    }
+  };
+
+  const handleCreateDeposit = async () => {
+    try {
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/deposit/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(createForm)
+      });
+
+      if (response.ok) {
+        setSuccess('Deposit record created successfully');
+        setShowCreateModal(false);
+        setCreateForm({ tenant_id: '', property_id: '', lease_id: '', amount_required: '' });
+        fetchDepositRecords();
+      } else {
+        const error = await response.json();
+        setError(error.error || 'Failed to create deposit record');
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleMarkPayment = async () => {
+    try {
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/deposit/mark-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deposit_id: selectedRecord.id,
+          ...paymentForm
+        })
+      });
+
+      if (response.ok) {
+        setSuccess('Payment marked successfully');
+        setShowPaymentModal(false);
+        setPaymentForm({ amount_paid: '', payment_method: 'cash', payment_reference: '', notes: '' });
+        setSelectedRecord(null);
+        fetchDepositRecords();
+      } else {
+        const error = await response.json();
+        setError(error.error || 'Failed to mark payment');
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'paid': return '#10b981';
+      case 'unpaid': return '#ef4444';
+      case 'partially_paid': return '#f59e0b';
+      case 'refunded': return '#6366f1';
+      default: return '#6b7280';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'paid': return <CheckCircle size={16} color="#10b981" />;
+      case 'unpaid': return <AlertCircle size={16} color="#ef4444" />;
+      case 'partially_paid': return <Clock size={16} color="#f59e0b" />;
+      case 'refunded': return <DollarSign size={16} color="#6366f1" />;
+      default: return <Clock size={16} color="#6b7280" />;
+    }
+  };
+
+  const filteredRecords = depositRecords.filter(record => {
+    const matchesSearch = !filters.search || 
+      record.tenant_name?.toLowerCase().includes(filters.search.toLowerCase()) ||
+      record.property_name?.toLowerCase().includes(filters.search.toLowerCase());
+    return matchesSearch;
+  });
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Loading deposit records...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="caretaker-deposits">
+      <div className="page-header">
+        <h2>Deposit Management</h2>
+        <button 
+          className="btn-primary"
+          onClick={() => setShowCreateModal(true)}
+        >
+          <Plus size={18} />
+          Create Deposit Record
+        </button>
+      </div>
+
+      {error && (
+        <div className="alert alert-error">
+          <AlertCircle size={18} />
+          {error}
+          <button onClick={() => setError('')} className="alert-close">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {success && (
+        <div className="alert alert-success">
+          <CheckCircle size={18} />
+          {success}
+          <button onClick={() => setSuccess('')} className="alert-close">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Summary Cards */}
+      <div className="summary-cards">
+        <div className="summary-card">
+          <h3>Total Records</h3>
+          <p className="summary-value">{depositRecords.length}</p>
+        </div>
+        <div className="summary-card">
+          <h3>Paid</h3>
+          <p className="summary-value paid">
+            {depositRecords.filter(r => r.status === 'paid').length}
+          </p>
+        </div>
+        <div className="summary-card">
+          <h3>Unpaid</h3>
+          <p className="summary-value unpaid">
+            {depositRecords.filter(r => r.status === 'unpaid').length}
+          </p>
+        </div>
+        <div className="summary-card">
+          <h3>Total Amount</h3>
+          <p className="summary-value">
+            KSh {depositRecords.reduce((sum, r) => sum + (parseFloat(r.amount_required) || 0), 0).toLocaleString()}
+          </p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="filters-section">
+        <div className="filters">
+          <select
+            value={filters.status}
+            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+          >
+            <option value="">All Statuses</option>
+            <option value="paid">Paid</option>
+            <option value="unpaid">Unpaid</option>
+            <option value="partially_paid">Partially Paid</option>
+            <option value="refunded">Refunded</option>
+          </select>
+          <select
+            value={filters.tenant_id}
+            onChange={(e) => setFilters({ ...filters, tenant_id: e.target.value })}
+          >
+            <option value="">All Tenants</option>
+            {tenants.map(tenant => (
+              <option key={tenant.id} value={tenant.id}>
+                {tenant.full_name}
+              </option>
+            ))}
+          </select>
+          <div className="search-box">
+            <Search size={18} />
+            <input
+              type="text"
+              placeholder="Search deposits..."
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Deposits Table */}
+      <div className="table-container">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Tenant</th>
+              <th>Property</th>
+              <th>Amount Required</th>
+              <th>Amount Paid</th>
+              <th>Balance</th>
+              <th>Status</th>
+              <th>Created Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRecords.map(record => (
+              <tr key={record.id}>
+                <td>{record.tenant_name}</td>
+                <td>{record.property_name}</td>
+                <td>KSh {parseFloat(record.amount_required || 0).toLocaleString()}</td>
+                <td>KSh {parseFloat(record.amount_paid || 0).toLocaleString()}</td>
+                <td>KSh {parseFloat(record.balance || 0).toLocaleString()}</td>
+                <td>
+                  <div className="status-badge" style={{ color: getStatusColor(record.status) }}>
+                    {getStatusIcon(record.status)}
+                    {record.status?.replace('_', ' ').toUpperCase()}
+                  </div>
+                </td>
+                <td>{new Date(record.created_at).toLocaleDateString()}</td>
+                <td>
+                  {record.status !== 'paid' && (
+                    <button
+                      className="btn-small btn-primary"
+                      onClick={() => {
+                        setSelectedRecord(record);
+                        setShowPaymentModal(true);
+                      }}
+                    >
+                      Mark Payment
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(currentPage - 1)}
+          >
+            Previous
+          </button>
+          <span>Page {currentPage} of {totalPages}</span>
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(currentPage + 1)}
+          >
+            Next
+          </button>
+        </div>
+      )}
+
+      {/* Create Deposit Modal */}
+      {showCreateModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Create Deposit Record</h3>
+              <button onClick={() => setShowCreateModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Tenant</label>
+                <select
+                  value={createForm.tenant_id}
+                  onChange={(e) => setCreateForm({ ...createForm, tenant_id: e.target.value })}
+                >
+                  <option value="">Select Tenant</option>
+                  {tenants.map(tenant => (
+                    <option key={tenant.id} value={tenant.id}>
+                      {tenant.full_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Property ID</label>
+                <input
+                  type="number"
+                  value={createForm.property_id}
+                  onChange={(e) => setCreateForm({ ...createForm, property_id: e.target.value })}
+                  placeholder="Property ID"
+                />
+              </div>
+              <div className="form-group">
+                <label>Lease ID</label>
+                <input
+                  type="number"
+                  value={createForm.lease_id}
+                  onChange={(e) => setCreateForm({ ...createForm, lease_id: e.target.value })}
+                  placeholder="Lease ID"
+                />
+              </div>
+              <div className="form-group">
+                <label>Amount Required</label>
+                <input
+                  type="number"
+                  value={createForm.amount_required}
+                  onChange={(e) => setCreateForm({ ...createForm, amount_required: e.target.value })}
+                  placeholder="Amount Required"
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setShowCreateModal(false)}>Cancel</button>
+              <button onClick={handleCreateDeposit} className="btn-primary">
+                Create Deposit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedRecord && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Mark Deposit Payment</h3>
+              <button onClick={() => setShowPaymentModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="payment-details">
+                <p><strong>Tenant:</strong> {selectedRecord.tenant_name}</p>
+                <p><strong>Amount Required:</strong> KSh {parseFloat(selectedRecord.amount_required || 0).toLocaleString()}</p>
+                <p><strong>Current Balance:</strong> KSh {parseFloat(selectedRecord.balance || 0).toLocaleString()}</p>
+              </div>
+              <div className="form-group">
+                <label>Amount Paid</label>
+                <input
+                  type="number"
+                  value={paymentForm.amount_paid}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, amount_paid: e.target.value })}
+                  placeholder="Amount Paid"
+                />
+              </div>
+              <div className="form-group">
+                <label>Payment Method</label>
+                <select
+                  value={paymentForm.payment_method}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
+                >
+                  <option value="cash">Cash</option>
+                  <option value="mpesa">M-Pesa</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="cheque">Cheque</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Payment Reference</label>
+                <input
+                  type="text"
+                  value={paymentForm.payment_reference}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, payment_reference: e.target.value })}
+                  placeholder="Transaction ID / Reference"
+                />
+              </div>
+              <div className="form-group">
+                <label>Notes</label>
+                <textarea
+                  value={paymentForm.notes}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                  placeholder="Additional notes..."
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setShowPaymentModal(false)}>Cancel</button>
+              <button onClick={handleMarkPayment} className="btn-primary">
+                Mark Payment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default CaretakerDeposits;

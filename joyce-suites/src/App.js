@@ -1,6 +1,8 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import PageTransition from './components/PageTransition';
+import './styles/transitions.css';
 
 
 
@@ -23,7 +25,10 @@ const MenuPage = lazy(() => import('./pages/MenuPage'));
 
 const LoadingSpinner = () => (
   <div className="loading-container">
-    <div className="loading-spinner">Loading...</div>
+    <div className="loading-spinner">
+      <div className="spinner"></div>
+      <p>Loading...</p>
+    </div>
   </div>
 );
 
@@ -76,35 +81,36 @@ function AppContent() {
   }
 
   return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <Routes>
-        {}
-        <Route
-          path="/"
-          element={
-            <PublicRoute>
-              <MenuPage />
-            </PublicRoute>
-          }
-        />
+    <PageTransition>
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes>
+          {}
+          <Route
+            path="/"
+            element={
+              <PublicRoute>
+                <MenuPage />
+              </PublicRoute>
+            }
+          />
 
-        {}
-        <Route
-          path="/register-tenant"
-          element={
-            <PublicRoute>
-              <TenantRegister />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <TenantLogin />
-            </PublicRoute>
-          }
-        />
+          {}
+          <Route
+            path="/register-tenant"
+            element={
+              <PublicRoute>
+                <TenantRegister />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <TenantLogin />
+              </PublicRoute>
+            }
+          />
         <Route
           path="/caretaker-login"
           element={
@@ -197,6 +203,7 @@ function AppContent() {
         />
       </Routes>
     </Suspense>
+    </PageTransition>
   );
 }
 
