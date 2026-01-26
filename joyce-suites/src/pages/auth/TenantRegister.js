@@ -5,7 +5,7 @@ import './TenantRegister.css';
 import logo from '../../assets/image1.png';
 import backgroundImage from '../../assets/image21.jpg';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites.onrender.com';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
 
 const TenantRegister = () => {
   const navigate = useNavigate();

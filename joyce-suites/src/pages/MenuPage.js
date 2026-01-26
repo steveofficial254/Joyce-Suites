@@ -21,7 +21,7 @@ import gallery9 from '../assets/image10.jpg';
 import gallery10 from '../assets/image9.jpg';
 import gallery11 from '../assets/image18.jpg';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites.onrender.com';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
 
 const MenuPage = () => {
     const navigate = useNavigate();

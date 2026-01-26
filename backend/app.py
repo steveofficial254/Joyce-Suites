@@ -108,8 +108,8 @@ def create_app():
         return response
     
     # Add a simple test endpoint for CORS debugging
-    @app.route('/test-cors', methods=['GET', 'OPTIONS'])
-    def test_cors():
+    @app.route('/test-cors-debug', methods=['GET', 'OPTIONS'])
+    def test_cors_debug():
         origin = request.headers.get('Origin')
         app.logger.info(f"Test CORS - Method: {request.method}, Origin: {origin}")
         

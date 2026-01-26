@@ -11,7 +11,7 @@ from flask import Blueprint, request, jsonify, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from functools import wraps
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from enum import Enum
 import jwt
 import os
@@ -68,7 +68,7 @@ def generate_jwt_token(user_id: int, role: str) -> str:
     """Generate a JWT token for authenticated user."""
     jwt_secret = current_app.config.get('JWT_SECRET') or os.getenv("JWT_SECRET", "dev-secret-key")
     
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     
     payload = {
         "user_id": user_id,
@@ -78,8 +78,8 @@ def generate_jwt_token(user_id: int, role: str) -> str:
         "room_number": user.room_number if user else None,
         "photo_path": user.photo_path if user else None,
         "is_active": user.is_active if user else False,
-        "iat": datetime.utcnow(),
-        "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
+        "iat": datetime.now(timezone.utc),
+        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
     }
     token = jwt.encode(payload, jwt_secret, algorithm=JWT_ALGORITHM)
     return token
@@ -339,7 +339,7 @@ def logout():
 def get_profile():
     """Get authenticated user's profile information."""
     try:
-        user = User.query.get(request.user_id)
+        user = db.session.get(User, request.user_id)
         
         if not user:
             return jsonify({"success": False, "error": "User not found"}), 404
@@ -464,7 +464,7 @@ def get_available_rooms():
 def delete_user(user_id: int):
     """Delete a user account (admin only)."""
     try:
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         
         if not user:
             return jsonify({"success": False, "error": "User not found"}), 404

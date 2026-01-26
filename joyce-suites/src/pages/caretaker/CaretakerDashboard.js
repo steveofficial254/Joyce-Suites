@@ -10,14 +10,11 @@ import {
   Receipt, FileWarning, ShieldCheck, ShieldX, CalendarCheck, CalendarX,
   BedDouble, Bath, Square, Layers, MapPin, Droplet
 } from 'lucide-react';
-
 import MaintenancePage from './MaintenancePage';
-import PaymentsPage from './PaymentsPage';
 import CaretakerWaterBill from './CaretakerWaterBill';
 import CaretakerDeposits from './CaretakerDeposits';
-import PageTransition from '../../components/PageTransition';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites.onrender.com';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
 
 const CaretakerDashboard = () => {
   const [activePage, setActivePage] = useState('dashboard');
@@ -482,132 +479,56 @@ const CaretakerDashboard = () => {
   }, [activePage]);
 
   const renderContent = () => {
-    return (
-      <PageTransition>
-        {(() => {
-          switch (activePage) {
-            case 'dashboard':
-              return (
-                <DashboardPage
-                  overview={overview}
-                  maintenanceRequests={maintenanceRequests}
-                  availableRooms={availableRooms}
-                  pendingPayments={pendingPayments}
-                  vacateNotices={vacateNotices}
-                  loading={loading}
-                  onUpdateStatus={handleUpdateMaintenanceStatus}
-                  onViewDetails={(request) => {
-                    setSelectedMaintenanceRequest(request);
-                    setShowMaintenanceModal(true);
-                  }}
-                  onCreateMaintenance={() => setShowCreateMaintenanceModal(true)}
-                  onViewAllMaintenance={() => handlePageChange('maintenance')}
-                  onMarkPayment={(tenant) => {
-                    setSelectedTenantForPayment(tenant);
-                    setShowMarkPaymentModal(true);
-                  }}
-                  onViewVacateNotice={(notice) => {
-                    setSelectedVacateNotice(notice);
-                    setShowVacateNoticeModal(true);
-                  }}
-                />
-              );
-            case 'maintenance':
-              return (
-                <MaintenancePage
-                  requests={maintenanceRequests}
-                  loading={loading}
-                  onUpdateStatus={handleUpdateMaintenanceStatus}
-                  onViewDetails={(request) => {
-                    setSelectedMaintenanceRequest(request);
-                    setShowMaintenanceModal(true);
-                  }}
-                  onCreateMaintenance={() => setShowCreateMaintenanceModal(true)}
-                />
-              );
-            case 'properties':
-              return (
-                <PropertiesPage
-                  availableRooms={availableRooms}
-                  occupiedRooms={occupiedRooms}
-                  allRooms={allRooms}
-                  loading={loading}
-                  onViewDetails={(property) => {
-                    setSelectedProperty(property);
-                    setShowPropertyDetailsModal(true);
-                  }}
-                />
-              );
-            case 'tenants':
-              return (
-                <TenantsPage
-                  tenants={tenants}
-                  paymentStatus={allTenantsPaymentStatus}
-                  loading={loading}
-                  onMarkPayment={(tenant) => {
-                    setSelectedTenantForPayment(tenant);
-                    setShowMarkPaymentModal(true);
-                  }}
-                  onSendNotification={() => setShowSendNotificationModal(true)}
-                  onViewDetails={(tenant) => {
-                    setSelectedTenant(tenant);
-                    setShowTenantDetailsModal(true);
-                  }}
-                  onCreateVacateNotice={(leaseId) => {
-                    const tenant = tenants.find(t => t.id === leaseId);
-                    if (tenant) {
-                      setSelectedLeaseForVacate({
-                        lease_id: leaseId,
-                        tenant_name: tenant.name,
-                        room_number: tenant.room_number
-                      });
-                      setShowCreateVacateNoticeModal(true);
-                    }
-                  }}
-                />
-              );
-            case 'payments':
-              return (
-                <PaymentsPage
-                  pendingPayments={pendingPayments}
-                  allPayments={allTenantsPaymentStatus}
-                  loading={loading}
-                  onMarkPayment={(tenant) => {
-                    setSelectedTenantForPayment(tenant);
-                    setShowMarkPaymentModal(true);
-                  }}
-                />
-              );
-            case 'vacate':
-              return (
-                <VacatePage
-                  notices={vacateNotices}
-                  loading={loading}
-                  onViewDetails={(notice) => {
-                    setSelectedVacateNotice(notice);
-                    setShowVacateNoticeModal(true);
-                  }}
-                  onUpdateStatus={handleUpdateVacateNoticeStatus}
-                  onDelete={handleDeleteVacateNotice}
-                  onCreateNotice={() => setShowCreateVacateNoticeModal(true)}
-                />
-              );
-            case 'notifications':
-              return (
-                <div className="p-6">
-                  <h2 className="text-2xl font-bold mb-6">Inquiries & Notifications</h2>
-                  {loading && !notifications.length ? (
-                    <div style={{ textAlign: 'center', padding: '2rem' }}>Loading notifications...</div>
-                  ) : notifications.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280', backgroundColor: 'white', borderRadius: '0.5rem' }}>
-                      <MessageSquare size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-                      <p>No new notifications.</p>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'grid', gap: '1rem' }}>
-                      {notifications.map(note => (
-                        <div
-                          key={note.id}
+    switch (activePage) {
+      case 'dashboard':
+        return (
+          <DashboardPage
+            overview={overview}
+            maintenanceRequests={maintenanceRequests}
+            availableRooms={availableRooms}
+            pendingPayments={pendingPayments}
+            vacateNotices={vacateNotices}
+            loading={loading}
+            onUpdateStatus={handleUpdateMaintenanceStatus}
+            onViewDetails={(request) => {
+              setSelectedMaintenanceRequest(request);
+              setShowMaintenanceModal(true);
+            }}
+            onCreateMaintenance={() => setShowCreateMaintenanceModal(true)}
+            onViewAllMaintenance={() => handlePageChange('maintenance')}
+            onMarkPayment={(tenant) => {
+              setSelectedTenantForPayment(tenant);
+              setShowMarkPaymentModal(true);
+            }}
+            onViewVacateNotice={(notice) => {
+              setSelectedVacateNotice(notice);
+              setShowVacateNoticeModal(true);
+            }}
+          />
+        );
+      case 'maintenance':
+        return (
+          <MaintenancePage
+            requests={maintenanceRequests}
+            loading={loading}
+            onUpdateStatus={handleUpdateMaintenanceStatus}
+            onViewDetails={(request) => {
+              setSelectedMaintenanceRequest(request);
+              setShowMaintenanceModal(true);
+            }}
+            onCreateMaintenance={() => setShowCreateMaintenanceModal(true)}
+          />
+        );
+      case 'properties':
+        return (
+          <PropertiesPage
+            availableRooms={availableRooms}
+            occupiedRooms={occupiedRooms}
+            allRooms={allRooms}
+            loading={loading}
+            onViewDetails={(property) => {
+              setSelectedProperty(property);
+              setShowPropertyDetailsModal(true);
             }}
           />
         );
@@ -1359,470 +1280,6 @@ const DashboardPage = ({
               </table>
             </div>
           </div>
-        </div>
-      </div>
-    </>
-  );
-};
-
-
-const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails, onCreateMaintenance }) => {
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterPriority, setFilterPriority] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-
-  if (loading) {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p>Loading maintenance requests...</p>
-      </div>
-    );
-  }
-
-  const filtered = requests.filter(function (r) {
-    const statusMatch = filterStatus === 'all' || r.status === filterStatus;
-    const priorityMatch = filterPriority === 'all' || r.priority === filterPriority;
-    const searchMatch = !searchTerm ||
-      r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return statusMatch && priorityMatch && searchMatch;
-  });
-
-  return (
-    <>
-      <div style={styles.pageHeader}>
-        <h2 style={styles.pageTitle}>Maintenance Requests ({filtered.length})</h2>
-        <button style={styles.btnPrimary} onClick={onCreateMaintenance}>
-          <Plus size={16} /> Create Request
-        </button>
-      </div>
-
-      <div style={styles.filterBar}>
-        <div style={styles.searchBox}>
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Search maintenance requests..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
-        </div>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          style={styles.filterSelect}
-        >
-          <option value="all">All Status</option>
-          <option value="pending">Pending</option>
-          <option value="in_progress">In Progress</option>
-          <option value="completed">Completed</option>
-        </select>
-
-        <select
-          value={filterPriority}
-          onChange={(e) => setFilterPriority(e.target.value)}
-          style={styles.filterSelect}
-        >
-          <option value="all">All Priority</option>
-          <option value="urgent">Urgent</option>
-          <option value="high">High</option>
-          <option value="normal">Normal</option>
-          <option value="low">Low</option>
-        </select>
-      </div>
-
-      <div style={styles.section}>
-        <div style={styles.tableWrapper}>
-          <table style={styles.table}>
-            <thead style={styles.tableHeader}>
-              <tr>
-                <th style={styles.th}>ID</th>
-                <th style={styles.th}>Title</th>
-                <th style={styles.th}>Property</th>
-                <th style={styles.th}>Priority</th>
-                <th style={styles.th}>Status</th>
-                <th style={styles.th}>Created</th>
-                <th style={styles.th}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length > 0 ? (
-                filtered.map(function (req) {
-                  return (
-                    <tr key={req.id} style={styles.tableRow}>
-                      <td style={styles.td}>#{req.id}</td>
-                      <td style={styles.td}>{req.title}</td>
-                      <td style={styles.td}>{req.property_name || 'N/A'}</td>
-                      <td style={styles.td}>
-                        <span style={{
-                          ...styles.statusBadge,
-                          backgroundColor: req.priority === 'urgent' ? '#fee2e2' : '#dbeafe',
-                          color: req.priority === 'urgent' ? '#991b1b' : '#1e40af'
-                        }}>
-                          {req.priority}
-                        </span>
-                      </td>
-                      <td style={styles.td}>
-                        <span style={{
-                          ...styles.statusBadge,
-                          backgroundColor: req.status === 'completed' ? '#dcfce7' : '#fef3c7',
-                          color: req.status === 'completed' ? '#166534' : '#92400e'
-                        }}>
-                          {req.status}
-                        </span>
-                      </td>
-                      <td style={styles.td}>
-                        {req.created_at ? new Date(req.created_at).toLocaleDateString() : 'N/A'}
-                      </td>
-                      <td style={styles.td}>
-                        <div style={styles.actionButtons}>
-                          <button
-                            style={styles.btnSmallPrimary}
-                            onClick={() => onViewDetails(req)}
-                            title="View Details"
-                          >
-                            <Eye size={14} />
-                          </button>
-                          {req.status !== 'completed' && (
-                            <button
-                              style={styles.btnSmallSuccess}
-                              onClick={() => onUpdateStatus(req.id, 'completed')}
-                              title="Mark Complete"
-                            >
-                              <Check size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan="7" style={{ ...styles.td, textAlign: 'center', padding: '40px' }}>
-                    No maintenance requests found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </>
-  );
-};
-
-
-const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading, onViewDetails }) => {
-  const [activeTab, setActiveTab] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-
-  if (loading) {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p>Loading properties...</p>
-      </div>
-    );
-  }
-
-  const roomsToShow = activeTab === 'available' ? availableRooms :
-    activeTab === 'occupied' ? occupiedRooms : allRooms;
-
-  const filteredRooms = roomsToShow.filter(room =>
-    !searchTerm ||
-    room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    room.property_type.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  return (
-    <>
-      <div style={styles.pageHeader}>
-        <h2 style={styles.pageTitle}>Property Management</h2>
-        <div style={styles.tabs}>
-          <button
-            style={{
-              ...styles.tabButton,
-              ...(activeTab === 'all' ? styles.tabButtonActive : {})
-            }}
-            onClick={() => setActiveTab('all')}
-          >
-            All Rooms ({allRooms.length})
-          </button>
-          <button
-            style={{
-              ...styles.tabButton,
-              ...(activeTab === 'available' ? styles.tabButtonActive : {})
-            }}
-            onClick={() => setActiveTab('available')}
-          >
-            Available ({availableRooms.length})
-          </button>
-          <button
-            style={{
-              ...styles.tabButton,
-              ...(activeTab === 'occupied' ? styles.tabButtonActive : {})
-            }}
-            onClick={() => setActiveTab('occupied')}
-          >
-            Occupied ({occupiedRooms.length})
-          </button>
-        </div>
-      </div>
-
-      <div style={styles.filterBar}>
-        <div style={styles.searchBox}>
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Search rooms..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
-        </div>
-      </div>
-
-      <div style={styles.section}>
-        {filteredRooms.length === 0 ? (
-          <div style={styles.emptyState}>
-            <Building size={48} />
-            <p>No rooms found</p>
-          </div>
-        ) : (
-          <div style={styles.roomsGrid}>
-            {filteredRooms.map(function (room) {
-              return (
-                <div key={room.id} style={styles.roomCard}>
-                  <div style={styles.roomHeader}>
-                    <Building size={20} />
-                    <span style={styles.roomName}>{room.name}</span>
-                    <span style={{
-                      ...styles.roomStatus,
-                      backgroundColor: room.status === 'occupied' ? '#dcfce7' : '#dbeafe',
-                      color: room.status === 'occupied' ? '#166534' : '#1e40af'
-                    }}>
-                      {room.status}
-                    </span>
-                  </div>
-                  <div style={styles.roomDetails}>
-                    <div style={styles.roomDetail}>
-                      <span>Type:</span>
-                      <span>{room.property_type === 'bedsitter' ? 'Bedsitter' : 'One Bedroom'}</span>
-                    </div>
-                    <div style={styles.roomDetail}>
-                      <span>Rent:</span>
-                      <span style={styles.rentAmount}>
-                        KSh {room.rent_amount ? room.rent_amount.toLocaleString() : '0'}
-                      </span>
-                    </div>
-                    {room.tenant_name && (
-                      <div style={styles.roomDetail}>
-                        <span>Tenant:</span>
-                        <span>{room.tenant_name}</span>
-                      </div>
-                    )}
-                    {room.tenant_phone && (
-                      <div style={styles.roomDetail}>
-                        <span>Phone:</span>
-                        <span>{room.tenant_phone}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div style={styles.roomFooter}>
-                    {room.status === 'occupied' && (
-                      <button style={styles.btnSmallSecondary} title={room.tenant_phone || "No phone number"}>
-                        <Phone size={14} /> Contact
-                      </button>
-                    )}
-                    <button
-                      style={styles.btnSmallPrimary}
-                      onClick={() => onViewDetails(room)}
-                    >
-                      <Eye size={14} /> Details
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </>
-  );
-};
-
-
-const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNotification, onCreateVacateNotice, onViewDetails }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [paymentFilter, setPaymentFilter] = useState('all');
-
-  if (loading) {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p>Loading tenants...</p>
-      </div>
-    );
-  }
-
-  const tenantsWithPayment = tenants.map(tenant => {
-    const payment = paymentStatus.find(p => p.tenant_id === tenant.id);
-    return {
-      ...tenant,
-      current_month_paid: payment?.current_month_paid || false,
-      last_payment_date: payment?.last_payment_date,
-      rent_amount: payment?.rent_amount || 0
-    };
-  });
-
-  const filteredTenants = tenantsWithPayment.filter(tenant => {
-    const searchMatch = !searchTerm ||
-      tenant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tenant.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tenant.room_number.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const paymentMatch = paymentFilter === 'all' ||
-      (paymentFilter === 'paid' && tenant.current_month_paid) ||
-      (paymentFilter === 'unpaid' && !tenant.current_month_paid);
-
-    return searchMatch && paymentMatch;
-  });
-
-  return (
-    <>
-      <div style={styles.pageHeader}>
-        <h2 style={styles.pageTitle}>Tenants Management ({filteredTenants.length})</h2>
-        <div style={styles.headerActions}>
-          <button style={styles.btnSecondary} onClick={onSendNotification}>
-            <Send size={16} /> Notify
-          </button>
-          <button style={styles.btnPrimary} onClick={() => window.location.reload()}>
-            <RefreshCw size={16} />
-          </button>
-        </div>
-      </div>
-
-      <div style={styles.filterBar}>
-        <div style={styles.searchBox}>
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Search tenants..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
-        </div>
-        <select
-          value={paymentFilter}
-          onChange={(e) => setPaymentFilter(e.target.value)}
-          style={styles.filterSelect}
-        >
-          <option value="all">All Payment Status</option>
-          <option value="paid">Paid This Month</option>
-          <option value="unpaid">Unpaid This Month</option>
-        </select>
-      </div>
-
-      <div style={styles.section}>
-        <div style={styles.tableWrapper}>
-          <table style={styles.table}>
-            <thead style={styles.tableHeader}>
-              <tr>
-                <th style={styles.th}>Tenant Name</th>
-                <th style={styles.th}>Room</th>
-                <th style={styles.th}>Contact</th>
-                <th style={styles.th}>Rent Amount</th>
-                <th style={styles.th}>Payment Status</th>
-                <th style={styles.th}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTenants.length > 0 ? (
-                filteredTenants.map(function (tenant) {
-                  return (
-                    <tr key={tenant.id} style={styles.tableRow}>
-                      <td style={styles.td}>
-                        <div style={styles.tenantInfo}>
-                          <User size={16} />
-                          <span>{tenant.name}</span>
-                        </div>
-                      </td>
-                      <td style={styles.td}>
-                        <span style={styles.roomBadge}>{tenant.room_number || 'N/A'}</span>
-                      </td>
-                      <td style={styles.td}>
-                        <div style={styles.contactInfo}>
-                          <div>{tenant.phone_number}</div>
-                          <small>{tenant.email}</small>
-                        </div>
-                      </td>
-                      <td style={styles.td}>
-                        <span style={styles.rentAmount}>
-                          KSh {tenant.rent_amount ? tenant.rent_amount.toLocaleString() : '0'}
-                        </span>
-                      </td>
-                      <td style={styles.td}>
-                        <span style={{
-                          ...styles.statusBadge,
-                          backgroundColor: tenant.current_month_paid ? '#dcfce7' : '#fee2e2',
-                          color: tenant.current_month_paid ? '#166534' : '#991b1b'
-                        }}>
-                          {tenant.current_month_paid ? 'Paid' : 'Unpaid'}
-                        </span>
-                        {tenant.last_payment_date && (
-                          <div style={styles.paymentDate}>
-                            Last: {new Date(tenant.last_payment_date).toLocaleDateString()}
-                          </div>
-                        )}
-                      </td>
-                      <td style={styles.td}>
-                        <div style={styles.actionButtons}>
-                          <button
-                            style={styles.btnSmallPrimary}
-                            onClick={() => onMarkPayment(tenant)}
-                            title="Mark Payment"
-                          >
-                            <CreditCard size={14} />
-                          </button>
-                          <button
-                            style={styles.btnSmallPrimary}
-                            onClick={() => onViewDetails(tenant)}
-                            title="View Details"
-                          >
-                            <Eye size={14} />
-                          </button>
-                          <button
-                            style={styles.btnSmallSecondary}
-                            onClick={() => onCreateVacateNotice(tenant.id)}
-                            title="Create Vacate Notice"
-                          >
-                            <DoorOpen size={14} />
-                          </button>
-                          <button
-                            style={styles.btnSmallSecondary}
-                            onClick={() => onSendNotification()}
-                            title="Send Notification"
-                          >
-                            <Send size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan="6" style={{ ...styles.td, textAlign: 'center', padding: '40px' }}>
-                    No tenants found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
         </div>
       </div>
     </>
