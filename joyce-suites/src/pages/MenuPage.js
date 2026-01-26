@@ -137,7 +137,7 @@ const MenuPage = () => {
     useEffect(() => {
         const fetchRooms = async () => {
             try {
-
+                console.log('🔍 Fetching rooms from:', `${API_BASE_URL}/api/caretaker/rooms/public`);
                 const response = await fetch(`${API_BASE_URL}/api/caretaker/rooms/public`);
 
                 if (!response.ok) {
@@ -145,20 +145,24 @@ const MenuPage = () => {
                 }
 
                 const data = await response.json();
+                console.log('📊 Rooms data received:', data);
+                
                 if (data.success) {
                     setAvailableRooms(data.rooms || []);
                     if (data.next_available_date) {
                         setNextAvailableDate(data.next_available_date);
                     }
+                    console.log('✅ Rooms set:', data.rooms || [], 'Count:', (data.rooms || []).length);
                 } else {
-                    console.error('Room fetch returned unsuccessful:', data);
+                    console.error('❌ Room fetch returned unsuccessful:', data);
                     setFetchError('Failed to load available rooms.');
                 }
             } catch (error) {
-                console.error('Error fetching rooms:', error);
+                console.error('❌ Error fetching rooms:', error);
                 setFetchError('Connection error. Please check your internet or try again.');
             } finally {
                 setLoading(false);
+                console.log('🏁 Loading finished. State:', { loading: false, fetchError: null, availableRooms: availableRooms.length });
             }
         };
 
@@ -709,80 +713,97 @@ const MenuPage = () => {
                     </div>
                 </div>
 
-                {loading ? (
-                    <div style={{ textAlign: 'center', padding: '2rem' }}>Loading available rooms...</div>
-                ) : fetchError ? (
-                    <div style={{ textAlign: 'center', padding: '2rem', color: '#ef4444' }}>
-                        <p style={{ fontWeight: 'bold' }}>{fetchError}</p>
-                        <p style={{ fontSize: '0.875rem' }}>If the problem persists, please contact us directly.</p>
-                    </div>
-                ) : availableRooms.length > 0 ? (
-                    <div ref={scrollRef} style={styles.sliderContainer} className="hide-scrollbar">
-                        {availableRooms.map(room => (
-                            <div key={room.id} style={styles.sliderCard} className="slider-card" onClick={() => {
-                                if (isAuthenticated()) {
-                                    navigate('/tenant-dashboard');
-                                } else {
-                                    setBookingForm(prev => ({ ...prev, houseType: room.type || 'one_bedroom' }));
-                                    setShowBookingModal(true);
-                                }
-                            }}>
-                                <div style={{ height: '200px', overflow: 'hidden' }}>
-                                    <img
-                                        src={gallery2}
-                                        alt={room.name}
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                        loading="lazy"
-                                    />
-                                    <span style={{ position: 'absolute', top: '10px', right: '10px', backgroundColor: '#dcfce7', color: '#166534', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                        Vacant
-                                    </span>
-                                </div>
-                                <div style={{ padding: '1.5rem' }}>
-                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '700', margin: 0 }}>{room.name}</h3>
-                                    <p style={{ color: '#059669', fontSize: '0.875rem', fontWeight: '600', margin: '0.25rem 0' }}>
-                                        {room.property_type === 'bedsitter' ? 'Bedsitter' : 'One Bedroom'}
-                                    </p>
-                                    <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: '0.5rem 0 1rem' }}>
-                                        {room.description || 'Modern suite with all amenities included.'}
-                                    </p>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div style={{ color: '#f59e0b', fontWeight: '700', fontSize: '1.25rem' }}>
-                                            KSh {room.rent_amount.toLocaleString()}
-                                        </div>
-                                        <button
-                                            style={{ ...styles.primaryBtn, fontSize: '0.875rem', padding: '0.5rem 1rem' }}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (isAuthenticated()) {
-                                                    navigate('/tenant-dashboard');
-                                                } else {
-                                                    setBookingForm(prev => ({ ...prev, houseType: room.type || 'one_bedroom' }));
-                                                    setShowBookingModal(true);
-                                                }
-                                            }}
-                                        >
-                                            Book
-                                        </button>
-                                    </div>
-                                </div>
+                {(() => {
+                    console.log('🎯 Render check:', { loading, fetchError, roomCount: availableRooms.length });
+                    if (loading) {
+                        console.log('📱 Showing loading state');
+                        return <div style={{ textAlign: 'center', padding: '2rem' }}>Loading available rooms...</div>;
+                    }
+                    if (fetchError) {
+                        console.log('❌ Showing error state:', fetchError);
+                        return (
+                            <div style={{ textAlign: 'center', padding: '2rem', color: '#ef4444' }}>
+                                <p style={{ fontWeight: 'bold' }}>{fetchError}</p>
+                                <p style={{ fontSize: '0.875rem' }}>If the problem persists, please contact us directly.</p>
                             </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div style={{ textAlign: 'center', backgroundColor: '#f3f4f6', padding: '3rem', borderRadius: '1rem' }}>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>Fully Booked</h3>
-                        <p style={{ marginBottom: '0.5rem' }}>All rooms are currently occupied.</p>
-                        {nextAvailableDate && (
-                            <p style={{ marginBottom: '1.5rem', color: '#059669', fontWeight: '600' }}>
-                                Next estimated availability: {nextAvailableDate}
-                            </p>
-                        )}
-                        <button style={{ ...styles.primaryBtn, backgroundColor: 'white', color: '#f59e0b', border: '1px solid #f59e0b' }} onClick={handleJoinWaitlist}>
-                            Join Waiting List
-                        </button>
-                    </div>
-                )}
+                        );
+                    }
+                    if (availableRooms.length > 0) {
+                        console.log('🏠 Showing rooms list, count:', availableRooms.length);
+                        return (
+                            <div ref={scrollRef} style={styles.sliderContainer} className="hide-scrollbar">
+                                {availableRooms.map(room => (
+                                    <div key={room.id} style={styles.sliderCard} className="slider-card" onClick={() => {
+                                        if (isAuthenticated()) {
+                                            navigate('/tenant-dashboard');
+                                        } else {
+                                            setBookingForm(prev => ({ ...prev, houseType: room.type || 'one_bedroom' }));
+                                            setShowBookingModal(true);
+                                        }
+                                    }}>
+                                        <div style={{ height: '200px', overflow: 'hidden' }}>
+                                            <img
+                                                src={gallery2}
+                                                alt={room.name}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                loading="lazy"
+                                            />
+                                            <span style={{ position: 'absolute', top: '10px', right: '10px', backgroundColor: '#dcfce7', color: '#166534', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                Vacant
+                                            </span>
+                                        </div>
+                                        <div style={{ padding: '1.5rem' }}>
+                                            <h3 style={{ fontSize: '1.25rem', fontWeight: '700', margin: 0 }}>{room.name}</h3>
+                                            <p style={{ color: '#059669', fontSize: '0.875rem', fontWeight: '600', margin: '0.25rem 0' }}>
+                                                {room.property_type === 'bedsitter' ? 'Bedsitter' : 'One Bedroom'}
+                                            </p>
+                                            <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: '0.5rem 0 1rem' }}>
+                                                {room.description || 'Modern suite with all amenities included.'}
+                                            </p>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div style={{ color: '#f59e0b', fontWeight: '700', fontSize: '1.25rem' }}>
+                                                    KSh {room.rent_amount.toLocaleString()}
+                                                </div>
+                                                <button
+                                                    style={{ ...styles.primaryBtn, fontSize: '0.875rem', padding: '0.5rem 1rem' }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (isAuthenticated()) {
+                                                            navigate('/tenant-dashboard');
+                                                        } else {
+                                                            setBookingForm(prev => ({ ...prev, houseType: room.type || 'one_bedroom' }));
+                                                            setShowBookingModal(true);
+                                                        }
+                                                    }}
+                                                >
+                                                    Book
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    }
+                    console.log('🚫 Showing no rooms message');
+                    return (
+                        <div style={{ textAlign: 'center', backgroundColor: '#f3f4f6', padding: '3rem', borderRadius: '1rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>Fully Booked</h3>
+                            <p style={{ marginBottom: '0.5rem' }}>All rooms are currently occupied.</p>
+                            {nextAvailableDate && (
+                                <p style={{ marginBottom: '1.5rem', color: '#059669', fontWeight: '600' }}>
+                                    Next estimated availability: {nextAvailableDate}
+                                </p>
+                            )}
+                            <button style={{ ...styles.primaryBtn, marginRight: '0.5rem' }} onClick={() => setShowBookingModal(true)}>
+                                Join Waitlist
+                            </button>
+                            <button style={{ ...styles.secondaryBtn, marginLeft: '0.5rem' }} onClick={() => window.location.href = 'tel:+254712345678'}>
+                                Call Us
+                            </button>
+                        </div>
+                    );
+                })()}
             </section>
 
             { }
