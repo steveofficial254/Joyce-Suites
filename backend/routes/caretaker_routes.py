@@ -401,12 +401,31 @@ def get_all_rooms():
 def get_public_rooms():
     """Public endpoint for tenant registration."""
     try:
+        print("🔍 Debug: Starting get_public_rooms")
+        
+        # Get all properties first
+        all_properties = Property.query.all()
+        print(f"📊 Debug: Total properties in DB: {len(all_properties)}")
+        for prop in all_properties:
+            print(f"  - ID: {prop.id}, Name: {prop.name}, Status: {prop.status}")
+        
+        # Get active leases
+        active_leases = Lease.query.filter_by(status="active").all()
+        print(f"📋 Debug: Active leases: {len(active_leases)}")
+        for lease in active_leases:
+            print(f"  - Property ID: {lease.property_id}, Status: {lease.status}")
+        
         occupied_property_ids = [lease.property_id for lease in Lease.query.filter_by(status="active").all()]
+        print(f"🚫 Debug: Occupied property IDs: {occupied_property_ids}")
         
         vacant_properties = Property.query.filter(
             ~Property.id.in_(occupied_property_ids),
             Property.status == "vacant"
         ).all()
+        
+        print(f"✅ Debug: Vacant properties found: {len(vacant_properties)}")
+        for prop in vacant_properties:
+            print(f"  - ID: {prop.id}, Name: {prop.name}, Status: {prop.status}")
 
         rooms = []
         for prop in vacant_properties:
@@ -427,15 +446,17 @@ def get_public_rooms():
             if nearest_lease and nearest_lease.end_date:
                  next_available_date = nearest_lease.end_date.strftime("%B %d, %Y")
 
-        return jsonify({
+        result = {
             "success": True,
             "rooms": rooms,
             "total": len(rooms),
             "next_available_date": next_available_date
-        }), 200
+        }
+        print(f"🎯 Debug: Final result: {result}")
+        return jsonify(result), 200
 
     except Exception as e:
-        print(f"Error in get_public_rooms: {str(e)}")
+        print(f"❌ Error in get_public_rooms: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
