@@ -61,26 +61,17 @@ def create_app():
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
-
         "https://joyce-suites.vercel.app",
-
         "https://joyce-suites-jcfw.vercel.app",
-        "https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app",
-        "https://joyce-suites-git-feature-backend-steves-projects-d95e3bef.vercel.app",
-        "https://joyce-suites-ptgu4rwra-steves-projects-d95e3bef.vercel.app",
     ]
     
+    # CORS configuration - allow all origins for debugging
     CORS(app, 
-         resources={
-             r"/api/*": {
-                 "origins": cors_origins,
-                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-                 "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-                 "expose_headers": ["Content-Type", "Authorization"],
-                 "supports_credentials": True,
-                 "max_age": 3600
-             }
-         })
+         resources={r"/*": {"origins": "*"}},
+         allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+         expose_headers=["Content-Type", "Authorization"],
+         max_age=3600)
     
     is_development = os.getenv("FLASK_ENV", "development") == "development"
     
