@@ -2,17 +2,17 @@
 
 const getConfig = () => {
   return {
-    
-    apiBaseUrl: 'https:
 
-    
+    apiBaseUrl: 'https://joyce-suites.onrender.com',
+
+
     appName: 'Joyce Suites',
     appVersion: '1.0.0',
     appDescription: 'Property Management System',
 
-    
+
     endpoints: {
-      
+
       auth: {
         login: '/api/auth/login',
         logout: '/api/auth/logout',
@@ -21,7 +21,7 @@ const getConfig = () => {
         verify: '/api/auth/verify'
       },
 
-      
+
       caretaker: {
         dashboard: '/api/caretaker/dashboard',
         maintenance: '/api/caretaker/maintenance',
@@ -56,7 +56,7 @@ const getConfig = () => {
         markInquiryPaid: '/api/caretaker/inquiries/:id/mark-paid'
       },
 
-      
+
       admin: {
         overview: '/api/admin/overview',
         tenants: '/api/admin/tenants',
@@ -64,7 +64,7 @@ const getConfig = () => {
         reports: '/api/admin/reports'
       },
 
-      
+
       tenant: {
         dashboard: '/api/tenant/dashboard',
         profile: '/api/tenant/profile',
@@ -73,13 +73,13 @@ const getConfig = () => {
         lease: '/api/tenant/lease'
       },
 
-      
+
       public: {
         rooms: '/api/caretaker/rooms/public'
       }
     },
 
-    
+
     settings: {
       itemsPerPage: 20,
       defaultCurrency: 'KES',
@@ -94,7 +94,7 @@ const getConfig = () => {
       vacateStatuses: ['pending', 'approved', 'completed', 'rejected']
     },
 
-    
+
     ui: {
       primaryColor: '#3b82f6',
       secondaryColor: '#10b981',
