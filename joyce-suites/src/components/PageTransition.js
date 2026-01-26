@@ -1,7 +1,7 @@
 import React from 'react';
 import './PageTransition.css';
 
-const PageTransition = ({ children, isVisible }) => {
+const PageTransition = ({ children, isVisible = true }) => {
   return (
     <div className={`page-transition ${isVisible ? 'page-transition-enter-active' : 'page-transition-exit-active'}`}>
       {children}
