@@ -397,16 +397,168 @@ def get_all_rooms():
         }), 500
 
 
+@caretaker_bp.route("/rooms/create-test", methods=["GET"])
+def create_test_properties():
+    """Create test properties for debugging."""
+    try:
+        # Check if properties already exist
+        existing_props = Property.query.count()
+        if existing_props > 0:
+            return jsonify({
+                "success": True,
+                "message": f"Properties already exist: {existing_props}",
+                "existing_count": existing_props
+            }), 200
+        
+        # Create test properties
+        test_properties = [
+            {
+                "name": "Cozy Bedsitter A1",
+                "property_type": "bedsitter",
+                "description": "Modern bedsitter with all amenities",
+                "rent_amount": 8000,
+                "deposit_amount": 8000,
+                "status": "vacant"
+            },
+            {
+                "name": "Spacious One Bedroom B2",
+                "property_type": "one_bedroom",
+                "description": "Large one bedroom with separate living area",
+                "rent_amount": 15000,
+                "deposit_amount": 15000,
+                "status": "vacant"
+            },
+            {
+                "name": "Deluxe One Bedroom C3",
+                "property_type": "one_bedroom",
+                "description": "Premium one bedroom with modern finishes",
+                "rent_amount": 18000,
+                "deposit_amount": 18000,
+                "status": "vacant"
+            }
+        ]
+        
+        created_props = []
+        for prop_data in test_properties:
+            prop = Property(
+                name=prop_data["name"],
+                property_type=prop_data["property_type"],
+                description=prop_data["description"],
+                rent_amount=prop_data["rent_amount"],
+                deposit_amount=prop_data["deposit_amount"],
+                status=prop_data["status"]
+            )
+            db.session.add(prop)
+            created_props.append(prop)
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": f"Created {len(created_props)} test properties",
+            "properties": [
+                {
+                    "id": prop.id,
+                    "name": prop.name,
+                    "type": prop.property_type,
+                    "status": prop.status,
+                    "rent": prop.rent_amount
+                } for prop in created_props
+            ]
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@caretaker_bp.route("/rooms/debug", methods=["GET"])
+def debug_rooms():
+    """Debug endpoint to see database state."""
+    try:
+        # Get all properties
+        all_properties = Property.query.all()
+        properties_data = []
+        for prop in all_properties:
+            properties_data.append({
+                "id": prop.id,
+                "name": prop.name,
+                "status": prop.status,
+                "property_type": prop.property_type,
+                "rent_amount": float(prop.rent_amount) if prop.rent_amount else 0.0
+            })
+        
+        # Get active leases
+        active_leases = Lease.query.filter_by(status="active").all()
+        leases_data = []
+        for lease in active_leases:
+            leases_data.append({
+                "id": lease.id,
+                "property_id": lease.property_id,
+                "status": lease.status,
+                "end_date": lease.end_date.strftime("%Y-%m-%d") if lease.end_date else None
+            })
+        
+        return jsonify({
+            "success": True,
+            "total_properties": len(properties_data),
+            "properties": properties_data,
+            "active_leases": len(leases_data),
+            "leases": leases_data
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @caretaker_bp.route("/rooms/public", methods=["GET"])
 def get_public_rooms():
     """Public endpoint for tenant registration."""
     try:
+        print("🔍 Debug: Starting get_public_rooms")
+        
+        # Get all properties first
+        all_properties = Property.query.all()
+        print(f"📊 Debug: Total properties in DB: {len(all_properties)}")
+        
+        properties_debug = []
+        for prop in all_properties:
+            prop_data = {
+                "id": prop.id,
+                "name": prop.name,
+                "status": prop.status,
+                "property_type": prop.property_type,
+                "rent_amount": float(prop.rent_amount) if prop.rent_amount else 0.0
+            }
+            properties_debug.append(prop_data)
+            print(f"  - ID: {prop.id}, Name: {prop.name}, Status: {prop.status}")
+        
+        # Get active leases
+        active_leases = Lease.query.filter_by(status="active").all()
+        print(f"📋 Debug: Active leases: {len(active_leases)}")
+        
+        leases_debug = []
+        for lease in active_leases:
+            lease_data = {
+                "id": lease.id,
+                "property_id": lease.property_id,
+                "status": lease.status,
+                "end_date": lease.end_date.strftime("%Y-%m-%d") if lease.end_date else None
+            }
+            leases_debug.append(lease_data)
+            print(f"  - Property ID: {lease.property_id}, Status: {lease.status}")
+        
         occupied_property_ids = [lease.property_id for lease in Lease.query.filter_by(status="active").all()]
+        print(f"🚫 Debug: Occupied property IDs: {occupied_property_ids}")
         
         vacant_properties = Property.query.filter(
             ~Property.id.in_(occupied_property_ids),
             Property.status == "vacant"
         ).all()
+        
+        print(f"✅ Debug: Vacant properties found: {len(vacant_properties)}")
+        for prop in vacant_properties:
+            print(f"  - ID: {prop.id}, Name: {prop.name}, Status: {prop.status}")
 
         rooms = []
         for prop in vacant_properties:
@@ -427,15 +579,25 @@ def get_public_rooms():
             if nearest_lease and nearest_lease.end_date:
                  next_available_date = nearest_lease.end_date.strftime("%B %d, %Y")
 
-        return jsonify({
+        result = {
             "success": True,
             "rooms": rooms,
             "total": len(rooms),
-            "next_available_date": next_available_date
-        }), 200
+            "next_available_date": next_available_date,
+            "debug": {
+                "total_properties": len(all_properties),
+                "properties": properties_debug,
+                "active_leases": len(active_leases),
+                "leases": leases_debug,
+                "occupied_property_ids": occupied_property_ids,
+                "vacant_properties_count": len(vacant_properties)
+            }
+        }
+        print(f"🎯 Debug: Final result: {result}")
+        return jsonify(result), 200
 
     except Exception as e:
-        print(f"Error in get_public_rooms: {str(e)}")
+        print(f"❌ Error in get_public_rooms: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500

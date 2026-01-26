@@ -137,7 +137,6 @@ const MenuPage = () => {
     useEffect(() => {
         const fetchRooms = async () => {
             try {
-
                 const response = await fetch(`${API_BASE_URL}/api/caretaker/rooms/public`);
 
                 if (!response.ok) {
@@ -145,6 +144,7 @@ const MenuPage = () => {
                 }
 
                 const data = await response.json();
+                
                 if (data.success) {
                     setAvailableRooms(data.rooms || []);
                     if (data.next_available_date) {
@@ -778,8 +778,11 @@ const MenuPage = () => {
                                 Next estimated availability: {nextAvailableDate}
                             </p>
                         )}
-                        <button style={{ ...styles.primaryBtn, backgroundColor: 'white', color: '#f59e0b', border: '1px solid #f59e0b' }} onClick={handleJoinWaitlist}>
-                            Join Waiting List
+                        <button style={{ ...styles.primaryBtn, marginRight: '0.5rem' }} onClick={() => setShowBookingModal(true)}>
+                            Join Waitlist
+                        </button>
+                        <button style={{ ...styles.secondaryBtn, marginLeft: '0.5rem' }} onClick={() => window.location.href = 'tel:+254712345678'}>
+                            Call Us
                         </button>
                     </div>
                 )}
