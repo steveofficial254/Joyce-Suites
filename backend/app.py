@@ -57,7 +57,7 @@ def create_app():
     db.init_app(app)
     Migrate(app, db)
     
-    # CORS origins - use environment variable if set, otherwise use hardcoded list
+    # CORS origins - comprehensive list with fallback
     cors_origins = app.config.get('CORS_ORIGINS', [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
@@ -68,17 +68,24 @@ def create_app():
         "https://joyce-suites-xdkp.onrender.com",
     ])
     
-    # Ensure the render.com URLs are always included
-    if "https://joyce-suites.onrender.com" not in cors_origins:
-        cors_origins.append("https://joyce-suites.onrender.com")
-    if "https://joyce-suites-xdkp.onrender.com" not in cors_origins:
-        cors_origins.append("https://joyce-suites-xdkp.onrender.com")
+    # Ensure all render.com URLs are included
+    render_urls = ["https://joyce-suites.onrender.com", "https://joyce-suites-xdkp.onrender.com"]
+    for url in render_urls:
+        if url not in cors_origins:
+            cors_origins.append(url)
     
     app.logger.info(f"CORS origins: {cors_origins}")
-    app.logger.info("CORS fix deployed - v3.0 - Manual CORS")
+    app.logger.info("CORS fix deployed - v4.0 - Comprehensive solution")
     
-    # Disable Flask-CORS and handle manually
-    # CORS(app, origins=cors_origins, supports_credentials=True)
+    # Configure Flask-CORS with explicit settings
+    CORS(app, 
+         origins=cors_origins, 
+         supports_credentials=True,
+         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+         allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+         expose_headers=['Content-Type', 'Authorization'],
+         max_age=3600,
+         vary_header=True)
     
     @app.after_request
     def after_request(response):
@@ -86,40 +93,17 @@ def create_app():
         
         # Debug logging
         app.logger.info(f"After request - Method: {request.method}, Origin: {origin}, Path: {request.path}")
-        app.logger.info(f"CORS origins list: {cors_origins}")
-        app.logger.info(f"Origin in cors_origins: {origin in cors_origins}")
         
-        # Handle all CORS manually with multiple approaches
-        if origin in cors_origins:
-            response.headers['Access-Control-Allow-Origin'] = origin
-            response.headers.set('Access-Control-Allow-Origin', origin)
-            app.logger.info(f"CORS allowed for origin: {origin}")
-        elif origin is None:
-            response.headers['Access-Control-Allow-Origin'] = '*'
-            response.headers.set('Access-Control-Allow-Origin', '*')
-            app.logger.info("CORS allowed for requests with no Origin header")
-        else:
-            app.logger.warning(f"CORS blocked for origin: {origin}")
-            # For now, allow the specific frontend origin as fallback
-            if origin == "https://joyce-suites.vercel.app":
+        # Only add CORS headers if not already present (Flask-CORS should handle this)
+        if not response.headers.get('Access-Control-Allow-Origin'):
+            if origin and origin in cors_origins:
                 response.headers['Access-Control-Allow-Origin'] = origin
-                response.headers.set('Access-Control-Allow-Origin', origin)
-                app.logger.info(f"CORS allowed as fallback for origin: {origin}")
-        
-        # Set all other CORS headers manually
-        response.headers['Access-Control-Allow-Credentials'] = 'true'
-        response.headers.set('Access-Control-Allow-Credentials', 'true')
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
-        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept, Origin'
-        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
-        response.headers['Access-Control-Expose-Headers'] = 'Content-Type, Authorization'
-        response.headers.set('Access-Control-Expose-Headers', 'Content-Type, Authorization')
-        response.headers['Access-Control-Max-Age'] = '3600'
-        response.headers.set('Access-Control-Max-Age', '3600')
-        
-        # Debug: Log all headers being set
-        app.logger.info(f"Response headers: {dict(response.headers)}")
+                app.logger.info(f"CORS allowed for origin: {origin}")
+            elif origin is None:
+                response.headers['Access-Control-Allow-Origin'] = '*'
+                app.logger.info("CORS allowed for requests with no Origin header")
+            else:
+                app.logger.warning(f"CORS blocked for origin: {origin}")
         
         return response
     
@@ -135,36 +119,12 @@ def create_app():
             response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
             response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
             return response
-        
         return jsonify({
             'message': 'CORS test endpoint',
             'origin': origin,
             'cors_origins': cors_origins,
             'origin_allowed': origin in cors_origins if origin else True
         })
-    
-    # Add explicit OPTIONS handler for CORS preflight
-    @app.before_request
-    def handle_options():
-        if request.method == 'OPTIONS':
-            origin = request.headers.get('Origin')
-            app.logger.info(f"OPTIONS request - Origin: {origin}, Path: {request.path}")
-            
-            response = app.make_default_options_response()
-            
-            # Set CORS headers for OPTIONS
-            if origin in cors_origins or origin == "https://joyce-suites.vercel.app":
-                response.headers['Access-Control-Allow-Origin'] = origin
-                app.logger.info(f"CORS OPTIONS allowed for origin: {origin}")
-            else:
-                response.headers['Access-Control-Allow-Origin'] = '*'
-            
-            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
-            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept, Origin'
-            response.headers['Access-Control-Max-Age'] = '3600'
-            response.headers['Access-Control-Allow-Credentials'] = 'true'
-            
-            return response
     
     is_development = os.getenv("FLASK_ENV", "development") == "development"
     
