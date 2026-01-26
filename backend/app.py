@@ -57,36 +57,77 @@ def create_app():
     db.init_app(app)
     Migrate(app, db)
     
-    cors_origins = [
+    # CORS origins - use environment variable if set, otherwise use hardcoded list
+    cors_origins = app.config.get('CORS_ORIGINS', [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
         "https://joyce-suites.vercel.app",
         "https://joyce-suites-jcfw.vercel.app",
-    ]
+        "https://joyce-suites.onrender.com",
+        "https://joyce-suites-xdkp.onrender.com",
+    ])
+    
+    # Ensure the render.com URLs are always included
+    if "https://joyce-suites.onrender.com" not in cors_origins:
+        cors_origins.append("https://joyce-suites.onrender.com")
+    if "https://joyce-suites-xdkp.onrender.com" not in cors_origins:
+        cors_origins.append("https://joyce-suites-xdkp.onrender.com")
+    
+    app.logger.info(f"CORS origins: {cors_origins}")
     
     # CORS configuration - explicit handler for all routes
-    CORS(app)
+    CORS(app, origins=cors_origins, supports_credentials=True)
     
     @app.after_request
     def after_request(response):
-        origin = request.headers.get('Origin', '*')
-        response.headers.add('Access-Control-Allow-Origin', origin)
+        origin = request.headers.get('Origin')
+        
+        # Debug logging
+        app.logger.info(f"After request - Method: {request.method}, Origin: {origin}, Path: {request.path}")
+        
+        # Only allow whitelisted origins
+        if origin in cors_origins:
+            response.headers.add('Access-Control-Allow-Origin', origin)
+            app.logger.info(f"CORS allowed for origin: {origin}")
+        elif origin is None:
+            # Allow requests with no Origin header (like mobile apps, curl, etc.)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            app.logger.info("CORS allowed for requests with no Origin header")
+        else:
+            app.logger.warning(f"CORS blocked for origin: {origin}")
+        
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
         response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
         response.headers.add('Access-Control-Expose-Headers', 'Content-Type, Authorization')
         response.headers.add('Access-Control-Max-Age', '3600')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
         return response
     
     @app.before_request
     def handle_preflight():
         if request.method == 'OPTIONS':
             response = app.make_default_options_response()
-            origin = request.headers.get('Origin', '*')
-            response.headers.add('Access-Control-Allow-Origin', origin)
+            origin = request.headers.get('Origin')
+            
+            # Debug logging
+            app.logger.info(f"Preflight request - Origin: {origin}, Path: {request.path}")
+            
+            # Only allow whitelisted origins
+            if origin in cors_origins:
+                response.headers.add('Access-Control-Allow-Origin', origin)
+                app.logger.info(f"CORS preflight allowed for origin: {origin}")
+            elif origin is None:
+                # Allow requests with no Origin header
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                app.logger.info("CORS preflight allowed for requests with no Origin header")
+            else:
+                app.logger.warning(f"CORS preflight blocked for origin: {origin}")
+            
             response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
             response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
             response.headers.add('Access-Control-Max-Age', '3600')
+            response.headers.add('Access-Control-Allow-Credentials', 'true')
             return response
     
     is_development = os.getenv("FLASK_ENV", "development") == "development"
