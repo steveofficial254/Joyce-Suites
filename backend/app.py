@@ -75,6 +75,7 @@ def create_app():
         cors_origins.append("https://joyce-suites-xdkp.onrender.com")
     
     app.logger.info(f"CORS origins: {cors_origins}")
+    app.logger.info("CORS fix deployed - v2.0")
     
     # CORS configuration - apply to all routes with explicit configuration
     CORS(app, 
