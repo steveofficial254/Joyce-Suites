@@ -11249,3 +11249,150 @@ WHERE properties.status = ?]
 2026-01-23 12:34:54,030 - INFO - Joyce Suites API started - Env: production
 2026-01-23 12:34:54,071 - INFO - Application initialized
 2026-01-23 12:34:54,071 - INFO - Application initialized
+2026-01-26 20:40:02,505 - INFO - Joyce Suites API started - Env: production
+2026-01-26 20:40:30,577 - INFO - Joyce Suites API started - Env: production
+2026-01-26 20:40:30,604 - INFO - Application initialized
+2026-01-26 20:40:30,605 - INFO - CORS origins: ['http://localhost:3000', 'http://localhost:5000', 'https://joycesuites.onrender.com', 'https://your-frontend-app.onrender.com', 'https://joyce-suites.onrender.com', 'https://joyce-suites-xdkp.onrender.com']
+2026-01-26 20:40:30,606 - INFO - CORS fix deployed - v4.0 - Comprehensive solution
+2026-01-26 20:40:30,607 - INFO - Joyce Suites API started - Env: production
+2026-01-26 20:40:30,607 - INFO - Joyce Suites API started - Env: production
+2026-01-26 20:40:30,634 - INFO - Application initialized
+2026-01-26 20:40:30,634 - INFO - Application initialized
+2026-01-26 20:40:41,854 - INFO - Joyce Suites API started - Env: production
+2026-01-26 20:40:41,878 - INFO - Application initialized
+2026-01-26 20:41:11,715 - INFO - Joyce Suites API started - Env: production
+2026-01-26 20:41:11,741 - INFO - Application initialized
+2026-01-26 20:41:11,799 - INFO - CORS origins: ['http://localhost:3000', 'http://localhost:5000', 'https://joycesuites.onrender.com', 'https://your-frontend-app.onrender.com', 'https://joyce-suites.onrender.com', 'https://joyce-suites-xdkp.onrender.com']
+2026-01-26 20:41:11,799 - INFO - CORS fix deployed - v4.0 - Comprehensive solution
+2026-01-26 20:41:11,801 - INFO - Joyce Suites API started - Env: production
+2026-01-26 20:41:11,801 - INFO - Joyce Suites API started - Env: production
+2026-01-26 20:41:11,826 - INFO - Application initialized
+2026-01-26 20:41:11,826 - INFO - Application initialized
+2026-01-26 20:41:12,040 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,040 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,232 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:41:12,232 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:41:12,232 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,232 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,235 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,235 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,371 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:41:12,371 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:41:12,372 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,372 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,374 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,374 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,375 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:41:12,375 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:41:12,375 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,375 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,378 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,378 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,514 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:41:12,514 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:41:12,514 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,514 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,515 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,515 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,589 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/login
+2026-01-26 20:41:12,589 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/login
+2026-01-26 20:41:12,589 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,589 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,593 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,593 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,730 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:41:12,730 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:41:12,731 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,731 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,732 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,732 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,809 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/login
+2026-01-26 20:41:12,809 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/login
+2026-01-26 20:41:12,810 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,810 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,813 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,813 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,958 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:41:12,958 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:41:12,959 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,959 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:12,960 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:12,960 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:13,034 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/login
+2026-01-26 20:41:13,034 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/login
+2026-01-26 20:41:13,034 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:13,034 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:13,035 - INFO - GET /api/auth/profile | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:13,035 - INFO - GET /api/auth/profile | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:41:13,037 - INFO - After request - Method: GET, Origin: None, Path: /api/auth/profile
+2026-01-26 20:41:13,037 - INFO - After request - Method: GET, Origin: None, Path: /api/auth/profile
+2026-01-26 20:41:13,037 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:41:13,037 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:08,120 - INFO - Joyce Suites API started - Env: production
+2026-01-26 20:44:08,150 - INFO - Application initialized
+2026-01-26 20:44:08,166 - INFO - CORS origins: ['http://localhost:3000', 'http://localhost:5000', 'https://joycesuites.onrender.com', 'https://your-frontend-app.onrender.com', 'https://joyce-suites.onrender.com', 'https://joyce-suites-xdkp.onrender.com']
+2026-01-26 20:44:08,166 - INFO - CORS fix deployed - v4.0 - Comprehensive solution
+2026-01-26 20:44:08,167 - INFO - Joyce Suites API started - Env: production
+2026-01-26 20:44:08,167 - INFO - Joyce Suites API started - Env: production
+2026-01-26 20:44:08,231 - INFO - Application initialized
+2026-01-26 20:44:08,231 - INFO - Application initialized
+2026-01-26 20:44:09,254 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:09,254 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:09,479 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:44:09,479 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:44:09,479 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:09,479 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:09,482 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:09,482 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:09,619 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:44:09,619 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:44:09,619 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:09,619 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:09,620 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:09,620 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:09,621 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:44:09,621 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:44:09,622 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:09,622 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:09,624 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:09,624 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:09,758 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:44:09,758 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:44:09,759 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:09,759 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:09,760 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:09,760 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:09,834 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/login
+2026-01-26 20:44:09,834 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/login
+2026-01-26 20:44:09,834 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:09,834 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:09,838 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:09,838 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:09,966 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:44:09,966 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:44:09,967 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:09,967 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:09,968 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:09,968 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:10,047 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/login
+2026-01-26 20:44:10,047 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/login
+2026-01-26 20:44:10,048 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:10,048 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:10,050 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:10,050 - INFO - POST /api/auth/register | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:10,184 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:44:10,184 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/register
+2026-01-26 20:44:10,185 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:10,185 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:10,186 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:10,186 - INFO - POST /api/auth/login | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:10,257 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/login
+2026-01-26 20:44:10,257 - INFO - After request - Method: POST, Origin: None, Path: /api/auth/login
+2026-01-26 20:44:10,257 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:10,257 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:10,258 - INFO - GET /api/auth/profile | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:10,258 - INFO - GET /api/auth/profile | IP: 127.0.0.1 | User-Agent: Werkzeug/3.0.6
+2026-01-26 20:44:10,260 - INFO - After request - Method: GET, Origin: None, Path: /api/auth/profile
+2026-01-26 20:44:10,260 - INFO - After request - Method: GET, Origin: None, Path: /api/auth/profile
+2026-01-26 20:44:10,260 - INFO - CORS allowed for requests with no Origin header
+2026-01-26 20:44:10,260 - INFO - CORS allowed for requests with no Origin header
