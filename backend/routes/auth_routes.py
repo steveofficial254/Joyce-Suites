@@ -495,12 +495,20 @@ def seed_database():
     try:
         from seed_rooms import seed_rooms
         
+        # Force complete reseed by deleting all existing properties first
+        from models.property import Property
+        Property.query.delete()
+        
         # Run the seeding
         seed_rooms()
         
+        # Count total rooms after seeding
+        total_rooms = Property.query.count()
+        
         return jsonify({
             "success": True,
-            "message": "Database seeded successfully"
+            "message": "Database seeded successfully",
+            "total_rooms": total_rooms
         }), 200
         
     except Exception as e:
