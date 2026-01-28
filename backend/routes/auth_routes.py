@@ -11,6 +11,7 @@ from flask import Blueprint, request, jsonify, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from functools import wraps
+import os
 from datetime import datetime, timezone, timedelta
 from enum import Enum
 import jwt
@@ -515,6 +516,40 @@ def seed_database():
         return jsonify({
             "success": False,
             "error": f"Failed to seed database: {str(e)}"
+        }), 500
+
+
+@auth_bp.route("/migration-status", methods=["GET"])
+def migration_status():
+    """Check database migration status and table information"""
+    try:
+        from sqlalchemy import inspect
+        
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        
+        # Get table info
+        table_info = {}
+        for table in tables:
+            columns = inspector.get_columns(table)
+            table_info[table] = {
+                'columns': [col['name'] for col in columns],
+                'column_count': len(columns)
+            }
+        
+        return jsonify({
+            "success": True,
+            "database_uri": str(db.engine.url).replace('password', '***'),
+            "tables": tables,
+            "table_count": len(tables),
+            "table_info": table_info,
+            "migration_files": len([f for f in os.listdir('/opt/render/project/src/backend/migrations/versions') if f.endswith('.py')]) if os.path.exists('/opt/render/project/src/backend/migrations/versions') else 0
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Failed to check migration status: {str(e)}"
         }), 500
 
 
