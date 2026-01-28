@@ -486,6 +486,30 @@ def get_available_rooms():
             "error": f"Failed to fetch available rooms: {str(e)}"
         }), 500
 
+
+@auth_bp.route("/seed-database", methods=["POST"])
+def seed_database():
+    """
+    Seed the database with initial data (admin only endpoint)
+    """
+    try:
+        from seed_rooms import seed_rooms
+        
+        # Run the seeding
+        seed_rooms()
+        
+        return jsonify({
+            "success": True,
+            "message": "Database seeded successfully"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Failed to seed database: {str(e)}"
+        }), 500
+
+
 @auth_bp.route("/delete/<int:user_id>", methods=["DELETE"])
 @admin_required
 def delete_user(user_id: int):
