@@ -653,9 +653,9 @@ def mark_notification_read(notification_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@auth_bp.route("/seed-database", methods=["POST"])
-def seed_database():
-    """Seed the database with initial users and rooms."""
+@auth_bp.route("/reset-and-seed-database", methods=["POST"])
+def reset_and_seed_database():
+    """Reset database and seed with all rooms from seed_rooms.py"""
     try:
         from models.property import Property
         
