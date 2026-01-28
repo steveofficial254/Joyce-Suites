@@ -14,6 +14,7 @@ jest.mock('react-router-dom', () => {
 });
 
 import AdminLogin from './AdminLogin';
+import config from '../../config';
 
 const renderComponent = () => {
   return render(
@@ -25,12 +26,12 @@ const renderComponent = () => {
 
 
 beforeAll(() => {
-  
+
   if (global.localStorage) {
     try {
       global.localStorage.clear();
     } catch (e) {
-      
+
     }
   }
 });
@@ -51,7 +52,7 @@ beforeEach(() => {
 
 describe('AdminLogin Component', () => {
   beforeEach(() => {
-    
+
     const originalError = console.error;
     jest.spyOn(console, 'error').mockImplementation((...args) => {
       if (
@@ -63,24 +64,24 @@ describe('AdminLogin Component', () => {
       originalError.call(console, ...args);
     });
 
-    
+
     cleanup();
 
-    
+
     if (Object.getOwnPropertyDescriptor(global, 'localStorage')) {
       delete global.localStorage;
     }
 
-    
+
     jest.clearAllMocks();
     jest.restoreAllMocks();
     mockNavigate.mockClear();
     mockNavigate.mockReset();
 
-    
+
     const store = {};
 
-    
+
     const mockLocalStorage = {
       getItem: (key) => store[key] ?? null,
       setItem: (key, value) => {
@@ -101,27 +102,27 @@ describe('AdminLogin Component', () => {
       },
     };
 
-    
+
     Object.defineProperty(global, 'localStorage', {
       value: mockLocalStorage,
       writable: true,
       configurable: true,
     });
 
-    
+
     global.fetch = jest.fn();
   });
 
   afterEach(() => {
-    
+
     cleanup();
 
-    
+
     mockNavigate.mockClear();
     mockNavigate.mockReset();
     jest.restoreAllMocks();
 
-    
+
     if (Object.getOwnPropertyDescriptor(global, 'localStorage')) {
       delete global.localStorage;
     }
@@ -183,6 +184,7 @@ describe('AdminLogin Component', () => {
   test('disables login button while loading', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
+      headers: { get: () => 'application/json' },
       json: () =>
         Promise.resolve({
           token: 'admin-token',
@@ -209,6 +211,7 @@ describe('AdminLogin Component', () => {
   test('handles successful admin login', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
+      headers: { get: () => 'application/json' },
       json: () =>
         Promise.resolve({
           token: 'admin-token-12345',
@@ -228,13 +231,12 @@ describe('AdminLogin Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /Login to Admin Portal/i }));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/auth/login', {
+      expect(global.fetch).toHaveBeenCalledWith(`${config.apiBaseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: 'admin@joycesuites.com',
-          password: 'securepass',
-          role: 'admin',
+          password: 'securepass'
         }),
       });
     });
@@ -250,6 +252,7 @@ describe('AdminLogin Component', () => {
   test('handles login failure with error message from server', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: false,
+      headers: { get: () => 'application/json' },
       json: () =>
         Promise.resolve({
           message: 'Invalid admin credentials',
@@ -345,7 +348,7 @@ describe('AdminLogin Component', () => {
 
     renderComponent();
 
-    
+
     fireEvent.change(screen.getByLabelText(/Admin Email/i), {
       target: { value: 'admin@joycesuites.com' },
     });
@@ -359,7 +362,7 @@ describe('AdminLogin Component', () => {
       expect(screen.getByText(/Login failed/i)).toBeInTheDocument();
     });
 
-    
+
     fireEvent.change(screen.getByLabelText(/Admin Email/i), {
       target: { value: 'admin@joycesuites.com' },
     });
@@ -378,6 +381,7 @@ describe('AdminLogin Component', () => {
   test('sends correct request payload to API', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
+      headers: { get: () => 'application/json' },
       json: () =>
         Promise.resolve({
           token: 'admin-token',
@@ -400,13 +404,12 @@ describe('AdminLogin Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /Login to Admin Portal/i }));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/auth/login', {
+      expect(global.fetch).toHaveBeenCalledWith(`${config.apiBaseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: testEmail,
-          password: testPassword,
-          role: 'admin',
+          password: testPassword
         }),
       });
     });
@@ -415,6 +418,7 @@ describe('AdminLogin Component', () => {
   test('button text changes back to default after error', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: false,
+      headers: { get: () => 'application/json' },
       json: () => Promise.resolve({ message: 'Login failed' }),
     });
 
@@ -460,6 +464,7 @@ describe('AdminLogin Component', () => {
   test('stores admin role in localStorage on successful login', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
+      headers: { get: () => 'application/json' },
       json: () =>
         Promise.resolve({
           token: 'admin-token',
@@ -486,6 +491,7 @@ describe('AdminLogin Component', () => {
   test('sends role as admin in request payload', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
+      headers: { get: () => 'application/json' },
       json: () =>
         Promise.resolve({
           token: 'admin-token',

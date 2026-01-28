@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Menu, LogOut, X, Bell, Eye, Edit, Trash2, Filter, Search,
   Download, Mail, Phone, FileText, ArrowLeft, User, Send,
@@ -8,9 +9,12 @@ import {
   TrendingUp, PieChart, FileSpreadsheet, DoorOpen, List
 } from 'lucide-react';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
+import config from '../../config';
+
+const API_BASE_URL = config.apiBaseUrl;
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [activePage, setActivePage] = useState('dashboard');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
@@ -368,6 +372,7 @@ const AdminDashboard = () => {
 
   const handleLogout = async () => {
     try {
+      const token = getToken();
       await fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         headers: {
@@ -379,7 +384,7 @@ const AdminDashboard = () => {
       console.error('Logout error:', err);
     } finally {
       localStorage.clear();
-      window.location.href = '/admin-login';
+      navigate('/admin-login');
     }
   };
 
@@ -387,7 +392,7 @@ const AdminDashboard = () => {
     const token = getToken();
     if (!token) {
       console.error('No token found - redirecting to login');
-      window.location.href = '/admin-login';
+      navigate('/admin-login');
       return;
     }
 

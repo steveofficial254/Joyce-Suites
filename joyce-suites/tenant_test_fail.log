@@ -1,0 +1,1098 @@
+
+> joyce-suites@1.0.0 test
+> react-scripts test src/pages/auth/TenantLogin.test.js --watchAll=false
+
+  console.warn
+    ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+
+    [0m [90m 18 |[39m
+     [90m 19 |[39m [36mconst[39m renderComponent [33m=[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 20 |[39m   [36mreturn[39m render(
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 21 |[39m     [33m<[39m[33mMemoryRouter[39m[33m>[39m
+     [90m 22 |[39m       [33m<[39m[33mTenantLogin[39m [33m/[39m[33m>[39m
+     [90m 23 |[39m     [33m<[39m[33m/[39m[33mMemoryRouter[39m[33m>[39m[0m
+
+      at warnOnce (node_modules/react-router/lib/deprecations.ts:9:13)
+      at logDeprecation (node_modules/react-router/lib/deprecations.ts:14:3)
+      at logV6DeprecationWarnings (node_modules/react-router/lib/deprecations.ts:26:5)
+      at node_modules/react-router/lib/components.tsx:257:25
+      at commitHookEffectListMount (node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+      at commitPassiveMountOnFiber (node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+      at commitPassiveMountEffects_complete (node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+      at commitPassiveMountEffects_begin (node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+      at commitPassiveMountEffects (node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+      at flushPassiveEffectsImpl (node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+      at flushPassiveEffects (node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+      at node_modules/react-dom/cjs/react-dom.development.js:26808:9
+      at flushActQueue (node_modules/react/cjs/react.development.js:2667:24)
+      at act (node_modules/react/cjs/react.development.js:2582:11)
+      at node_modules/@testing-library/react/dist/act-compat.js:47:25
+      at renderRoot (node_modules/@testing-library/react/dist/pure.js:190:26)
+      at render (node_modules/@testing-library/react/dist/pure.js:292:10)
+      at renderComponent (src/pages/auth/TenantLogin.test.js:20:16)
+      at Object.<anonymous> (src/pages/auth/TenantLogin.test.js:113:5)
+      at TestScheduler.scheduleTests (node_modules/@jest/core/build/TestScheduler.js:333:13)
+      at runJest (node_modules/@jest/core/build/runJest.js:404:19)
+      at _run10000 (node_modules/@jest/core/build/cli/index.js:320:7)
+      at runCLI (node_modules/@jest/core/build/cli/index.js:173:3)
+
+  console.warn
+    ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+    [0m [90m 18 |[39m
+     [90m 19 |[39m [36mconst[39m renderComponent [33m=[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 20 |[39m   [36mreturn[39m render(
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 21 |[39m     [33m<[39m[33mMemoryRouter[39m[33m>[39m
+     [90m 22 |[39m       [33m<[39m[33mTenantLogin[39m [33m/[39m[33m>[39m
+     [90m 23 |[39m     [33m<[39m[33m/[39m[33mMemoryRouter[39m[33m>[39m[0m
+
+      at warnOnce (node_modules/react-router/lib/deprecations.ts:9:13)
+      at logDeprecation (node_modules/react-router/lib/deprecations.ts:14:3)
+      at logV6DeprecationWarnings (node_modules/react-router/lib/deprecations.ts:37:5)
+      at node_modules/react-router/lib/components.tsx:257:25
+      at commitHookEffectListMount (node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+      at commitPassiveMountOnFiber (node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+      at commitPassiveMountEffects_complete (node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+      at commitPassiveMountEffects_begin (node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+      at commitPassiveMountEffects (node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+      at flushPassiveEffectsImpl (node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+      at flushPassiveEffects (node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+      at node_modules/react-dom/cjs/react-dom.development.js:26808:9
+      at flushActQueue (node_modules/react/cjs/react.development.js:2667:24)
+      at act (node_modules/react/cjs/react.development.js:2582:11)
+      at node_modules/@testing-library/react/dist/act-compat.js:47:25
+      at renderRoot (node_modules/@testing-library/react/dist/pure.js:190:26)
+      at render (node_modules/@testing-library/react/dist/pure.js:292:10)
+      at renderComponent (src/pages/auth/TenantLogin.test.js:20:16)
+      at Object.<anonymous> (src/pages/auth/TenantLogin.test.js:113:5)
+      at TestScheduler.scheduleTests (node_modules/@jest/core/build/TestScheduler.js:333:13)
+      at runJest (node_modules/@jest/core/build/runJest.js:404:19)
+      at _run10000 (node_modules/@jest/core/build/cli/index.js:320:7)
+      at runCLI (node_modules/@jest/core/build/cli/index.js:173:3)
+
+  console.error
+    ❌ Login error: TypeError: Cannot read properties of undefined (reading 'get')
+        at handleSubmit (/home/stevemburu/Development/Joyce-Suites/joyce-suites/src/pages/auth/TenantLogin.js:44:44)
+
+    [0m [90m 91 |[39m       }
+     [90m 92 |[39m     } [36mcatch[39m (err) {
+    [31m[1m>[22m[39m[90m 93 |[39m       console[33m.[39merror([32m'❌ Login error:'[39m[33m,[39m err)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 94 |[39m       setError(err[33m.[39mmessage [33m||[39m [32m'Network error. Please try again.'[39m)[33m;[39m
+     [90m 95 |[39m       setLoading([36mfalse[39m)[33m;[39m
+     [90m 96 |[39m     }[0m
+
+      at handleSubmit (src/pages/auth/TenantLogin.js:93:15)
+
+  console.error
+    ❌ Login error: TypeError: Cannot read properties of undefined (reading 'get')
+        at handleSubmit (/home/stevemburu/Development/Joyce-Suites/joyce-suites/src/pages/auth/TenantLogin.js:44:44)
+
+    [0m [90m 91 |[39m       }
+     [90m 92 |[39m     } [36mcatch[39m (err) {
+    [31m[1m>[22m[39m[90m 93 |[39m       console[33m.[39merror([32m'❌ Login error:'[39m[33m,[39m err)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 94 |[39m       setError(err[33m.[39mmessage [33m||[39m [32m'Network error. Please try again.'[39m)[33m;[39m
+     [90m 95 |[39m       setLoading([36mfalse[39m)[33m;[39m
+     [90m 96 |[39m     }[0m
+
+      at handleSubmit (src/pages/auth/TenantLogin.js:93:15)
+
+  console.error
+    ❌ Login error: TypeError: Cannot read properties of undefined (reading 'get')
+        at handleSubmit (/home/stevemburu/Development/Joyce-Suites/joyce-suites/src/pages/auth/TenantLogin.js:44:44)
+
+    [0m [90m 91 |[39m       }
+     [90m 92 |[39m     } [36mcatch[39m (err) {
+    [31m[1m>[22m[39m[90m 93 |[39m       console[33m.[39merror([32m'❌ Login error:'[39m[33m,[39m err)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 94 |[39m       setError(err[33m.[39mmessage [33m||[39m [32m'Network error. Please try again.'[39m)[33m;[39m
+     [90m 95 |[39m       setLoading([36mfalse[39m)[33m;[39m
+     [90m 96 |[39m     }[0m
+
+      at handleSubmit (src/pages/auth/TenantLogin.js:93:15)
+
+  console.error
+    ❌ Login error: TypeError: Cannot read properties of undefined (reading 'get')
+        at handleSubmit (/home/stevemburu/Development/Joyce-Suites/joyce-suites/src/pages/auth/TenantLogin.js:44:44)
+
+    [0m [90m 91 |[39m       }
+     [90m 92 |[39m     } [36mcatch[39m (err) {
+    [31m[1m>[22m[39m[90m 93 |[39m       console[33m.[39merror([32m'❌ Login error:'[39m[33m,[39m err)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 94 |[39m       setError(err[33m.[39mmessage [33m||[39m [32m'Network error. Please try again.'[39m)[33m;[39m
+     [90m 95 |[39m       setLoading([36mfalse[39m)[33m;[39m
+     [90m 96 |[39m     }[0m
+
+      at handleSubmit (src/pages/auth/TenantLogin.js:93:15)
+
+  console.error
+    ❌ Login error: TypeError: Cannot read properties of undefined (reading 'get')
+        at handleSubmit (/home/stevemburu/Development/Joyce-Suites/joyce-suites/src/pages/auth/TenantLogin.js:44:44)
+
+    [0m [90m 91 |[39m       }
+     [90m 92 |[39m     } [36mcatch[39m (err) {
+    [31m[1m>[22m[39m[90m 93 |[39m       console[33m.[39merror([32m'❌ Login error:'[39m[33m,[39m err)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 94 |[39m       setError(err[33m.[39mmessage [33m||[39m [32m'Network error. Please try again.'[39m)[33m;[39m
+     [90m 95 |[39m       setLoading([36mfalse[39m)[33m;[39m
+     [90m 96 |[39m     }[0m
+
+      at handleSubmit (src/pages/auth/TenantLogin.js:93:15)
+
+  console.error
+    ❌ Login error: Error: Network error
+        at Object.<anonymous> (/home/stevemburu/Development/Joyce-Suites/joyce-suites/src/pages/auth/TenantLogin.test.js:347:55)
+        at Promise.then.completed (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/jest-circus/build/utils.js:391:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/jest-circus/build/utils.js:316:10)
+        at _callCircusTest (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/jest-circus/build/run.js:218:40)
+        at _runTest (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/jest-circus/build/run.js:155:3)
+        at _runTestsForDescribeBlock (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/jest-circus/build/run.js:66:9)
+        at _runTestsForDescribeBlock (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/jest-circus/build/run.js:60:9)
+        at run (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/jest-circus/build/run.js:25:3)
+        at runAndTransformResultsToJestFormat (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:170:21)
+        at jestAdapter (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:82:19)
+        at runTestInternal (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/jest-runner/build/runTest.js:389:16)
+        at runTest (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/jest-runner/build/runTest.js:475:34)
+        at TestRunner.runTests (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/jest-runner/build/index.js:101:12)
+        at TestScheduler.scheduleTests (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/@jest/core/build/TestScheduler.js:333:13)
+        at runJest (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/@jest/core/build/runJest.js:404:19)
+        at _run10000 (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/@jest/core/build/cli/index.js:320:7)
+        at runCLI (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/@jest/core/build/cli/index.js:173:3)
+        at Object.run (/home/stevemburu/Development/Joyce-Suites/joyce-suites/node_modules/jest-cli/build/cli/index.js:155:37)
+
+    [0m [90m 91 |[39m       }
+     [90m 92 |[39m     } [36mcatch[39m (err) {
+    [31m[1m>[22m[39m[90m 93 |[39m       console[33m.[39merror([32m'❌ Login error:'[39m[33m,[39m err)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 94 |[39m       setError(err[33m.[39mmessage [33m||[39m [32m'Network error. Please try again.'[39m)[33m;[39m
+     [90m 95 |[39m       setLoading([36mfalse[39m)[33m;[39m
+     [90m 96 |[39m     }[0m
+
+      at handleSubmit (src/pages/auth/TenantLogin.js:93:15)
+
+  console.error
+    ❌ Login error: TypeError: Cannot read properties of undefined (reading 'get')
+        at handleSubmit (/home/stevemburu/Development/Joyce-Suites/joyce-suites/src/pages/auth/TenantLogin.js:44:44)
+
+    [0m [90m 91 |[39m       }
+     [90m 92 |[39m     } [36mcatch[39m (err) {
+    [31m[1m>[22m[39m[90m 93 |[39m       console[33m.[39merror([32m'❌ Login error:'[39m[33m,[39m err)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 94 |[39m       setError(err[33m.[39mmessage [33m||[39m [32m'Network error. Please try again.'[39m)[33m;[39m
+     [90m 95 |[39m       setLoading([36mfalse[39m)[33m;[39m
+     [90m 96 |[39m     }[0m
+
+      at handleSubmit (src/pages/auth/TenantLogin.js:93:15)
+
+  console.error
+    ❌ Login error: TypeError: Cannot read properties of undefined (reading 'get')
+        at handleSubmit (/home/stevemburu/Development/Joyce-Suites/joyce-suites/src/pages/auth/TenantLogin.js:44:44)
+
+    [0m [90m 91 |[39m       }
+     [90m 92 |[39m     } [36mcatch[39m (err) {
+    [31m[1m>[22m[39m[90m 93 |[39m       console[33m.[39merror([32m'❌ Login error:'[39m[33m,[39m err)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 94 |[39m       setError(err[33m.[39mmessage [33m||[39m [32m'Network error. Please try again.'[39m)[33m;[39m
+     [90m 95 |[39m       setLoading([36mfalse[39m)[33m;[39m
+     [90m 96 |[39m     }[0m
+
+      at handleSubmit (src/pages/auth/TenantLogin.js:93:15)
+
+  console.error
+    ❌ Login error: TypeError: Cannot read properties of undefined (reading 'get')
+        at handleSubmit (/home/stevemburu/Development/Joyce-Suites/joyce-suites/src/pages/auth/TenantLogin.js:44:44)
+
+    [0m [90m 91 |[39m       }
+     [90m 92 |[39m     } [36mcatch[39m (err) {
+    [31m[1m>[22m[39m[90m 93 |[39m       console[33m.[39merror([32m'❌ Login error:'[39m[33m,[39m err)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 94 |[39m       setError(err[33m.[39mmessage [33m||[39m [32m'Network error. Please try again.'[39m)[33m;[39m
+     [90m 95 |[39m       setLoading([36mfalse[39m)[33m;[39m
+     [90m 96 |[39m     }[0m
+
+      at handleSubmit (src/pages/auth/TenantLogin.js:93:15)
+
+FAIL src/pages/auth/TenantLogin.test.js (6.744 s)
+  TenantLogin Component
+    ✓ renders login form with email and password fields (133 ms)
+    ✓ renders navigation buttons for caretaker and admin login (32 ms)
+    ✓ renders forgot password link (11 ms)
+    ✓ renders registration link (7 ms)
+    ✓ navigates to caretaker login when caretaker button clicked (19 ms)
+    ✓ navigates to admin login when admin button clicked (12 ms)
+    ✓ shows error when email field is empty (7 ms)
+    ✓ shows error when password field is empty (7 ms)
+    ✓ disables login button while loading (17 ms)
+    ✕ handles successful login with lease signed (1021 ms)
+    ✕ handles successful login with lease not signed (1020 ms)
+    ✕ handles login failure with error message from server (1014 ms)
+    ✕ handles login failure with generic error message (1015 ms)
+    ✓ handles network error during login (21 ms)
+    ✕ clears error message when form is submitted again (1015 ms)
+    ✕ sends correct request payload to API (1016 ms)
+    ✓ button text changes back to Login after error (24 ms)
+
+  ● TenantLogin Component › handles successful login with lease signed
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    - Expected
+    + Received
+
+      "http://localhost:5000/api/auth/login",
+      Object {
+    -   "body": "{\"email\":\"test@example.com\",\"password\":\"password123\",\"role\":\"tenant\"}",
+    +   "body": "{\"email\":\"test@example.com\",\"password\":\"password123\"}",
+        "headers": Object {
+          "Content-Type": "application/json",
+        },
+        "method": "POST",
+      },
+
+    Number of calls: 1
+
+    Ignored nodes: comments, script, style
+    [36m<html>[39m
+      [36m<head />[39m
+      [36m<body>[39m
+        [36m<div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"login-container"[39m
+            [33mstyle[39m=[32m"background-image: url(image21.jpg);"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"login-overlay"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"login-content"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"login-card"[39m
+              [36m>[39m
+                [36m<img[39m
+                  [33malt[39m=[32m"Joyce Suits Logo"[39m
+                  [33mclass[39m=[32m"login-logo"[39m
+                  [33msrc[39m=[32m"image1.png"[39m
+                [36m/>[39m
+                [36m<h1>[39m
+                  [0mJoyce Suits Apartments[0m
+                [36m</h1>[39m
+                [36m<h2>[39m
+                  [0mTenant Login[0m
+                [36m</h2>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"alert alert-error"[39m
+                [36m>[39m
+                  [0mCannot read properties of undefined (reading 'get')[0m
+                [36m</div>[39m
+                [36m<form>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"form-group"[39m
+                  [36m>[39m
+                    [36m<label[39m
+                      [33mfor[39m=[32m"email"[39m
+                    [36m>[39m
+                      [0mEmail Address[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mid[39m=[32m"email"[39m
+                      [33mname[39m=[32m"email"[39m
+                      [33mplaceholder[39m=[32m"your.email@example.com"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"email"[39m
+                      [33mvalue[39m=[32m"test@example.com"[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"form-group"[39m
+                  [36m>[39m
+                    [36m<label[39m
+                      [33mfor[39m=[32m"password"[39m
+                    [36m>[39m
+                      [0mPassword[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mid[39m=[32m"password"[39m
+                      [33mname[39m=[32m"password"[39m
+                      [33mplaceholder[39m=[32m"Enter your password"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"password"[39m
+                      [33mvalue[39m=[32m"password123"[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"form-actions"[39m
+                  [36m>[39m
+                    [36m<a[39m
+                      [33mclass[39m=[32m"forgot-link"[39m
+                      [33mhref[39m=[32m"/forgot-password"[39m
+                    [36m>[39m
+                      [0mForgot Password?[0m
+                    [36m</a>[39m
+                  [36m</div>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"btn btn-primary"[39m
+                    [33mtype[39m=[32m"submit"[39m
+                  [36m>[39m
+                    [0mLogin[0m
+                  [36m</button>[39m
+                [36m</form>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"auth-links"[39m
+                [36m>[39m
+                  [36m<p>[39m
+                    [0mDon't have an account?[0m
+                    [0m [0m
+                    [36m<a[39m
+                      [33mhref[39m=[32m"/register-tenant"[39m
+                    [36m>[39m
+                      [0mRegister here[0m
+                    [36m</a>[39m
+                  [36m</p>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"auth-navigation"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"nav-btn caretaker-btn"[39m
+                [36m>[39m
+                  [0mCaretaker Login →[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"nav-btn admin-btn"[39m
+                [36m>[39m
+                  [0mAdmin Login →[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</body>[39m
+    [36m</html>[39m
+
+    [0m [90m 230 |[39m
+     [90m 231 |[39m     [36mawait[39m waitFor(() [33m=>[39m {
+    [31m[1m>[22m[39m[90m 232 |[39m       expect(global[33m.[39mfetch)[33m.[39mtoHaveBeenCalledWith([32m`${config.apiBaseUrl}/api/auth/login`[39m[33m,[39m {
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 233 |[39m         method[33m:[39m [32m'POST'[39m[33m,[39m
+     [90m 234 |[39m         headers[33m:[39m { [32m'Content-Type'[39m[33m:[39m [32m'application/json'[39m }[33m,[39m
+     [90m 235 |[39m         body[33m:[39m [33mJSON[39m[33m.[39mstringify({[0m
+
+      at src/pages/auth/TenantLogin.test.js:232:28
+      at runWithExpensiveErrorDiagnosticsDisabled (node_modules/@testing-library/dom/dist/config.js:47:12)
+      at checkCallback (node_modules/@testing-library/dom/dist/wait-for.js:124:77)
+      at checkRealTimersCallback (node_modules/@testing-library/dom/dist/wait-for.js:118:16)
+      at Timeout.task [as _onTimeout] (node_modules/jsdom/lib/jsdom/browser/Window.js:516:19)
+
+  ● TenantLogin Component › handles successful login with lease not signed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "test-token-45678"
+    Received: null
+
+    Ignored nodes: comments, script, style
+    [36m<html>[39m
+      [36m<head />[39m
+      [36m<body>[39m
+        [36m<div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"login-container"[39m
+            [33mstyle[39m=[32m"background-image: url(image21.jpg);"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"login-overlay"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"login-content"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"login-card"[39m
+              [36m>[39m
+                [36m<img[39m
+                  [33malt[39m=[32m"Joyce Suits Logo"[39m
+                  [33mclass[39m=[32m"login-logo"[39m
+                  [33msrc[39m=[32m"image1.png"[39m
+                [36m/>[39m
+                [36m<h1>[39m
+                  [0mJoyce Suits Apartments[0m
+                [36m</h1>[39m
+                [36m<h2>[39m
+                  [0mTenant Login[0m
+                [36m</h2>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"alert alert-error"[39m
+                [36m>[39m
+                  [0mCannot read properties of undefined (reading 'get')[0m
+                [36m</div>[39m
+                [36m<form>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"form-group"[39m
+                  [36m>[39m
+                    [36m<label[39m
+                      [33mfor[39m=[32m"email"[39m
+                    [36m>[39m
+                      [0mEmail Address[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mid[39m=[32m"email"[39m
+                      [33mname[39m=[32m"email"[39m
+                      [33mplaceholder[39m=[32m"your.email@example.com"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"email"[39m
+                      [33mvalue[39m=[32m"newtenant@example.com"[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"form-group"[39m
+                  [36m>[39m
+                    [36m<label[39m
+                      [33mfor[39m=[32m"password"[39m
+                    [36m>[39m
+                      [0mPassword[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mid[39m=[32m"password"[39m
+                      [33mname[39m=[32m"password"[39m
+                      [33mplaceholder[39m=[32m"Enter your password"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"password"[39m
+                      [33mvalue[39m=[32m"securepass456"[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"form-actions"[39m
+                  [36m>[39m
+                    [36m<a[39m
+                      [33mclass[39m=[32m"forgot-link"[39m
+                      [33mhref[39m=[32m"/forgot-password"[39m
+                    [36m>[39m
+                      [0mForgot Password?[0m
+                    [36m</a>[39m
+                  [36m</div>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"btn btn-primary"[39m
+                    [33mtype[39m=[32m"submit"[39m
+                  [36m>[39m
+                    [0mLogin[0m
+                  [36m</button>[39m
+                [36m</form>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"auth-links"[39m
+                [36m>[39m
+                  [36m<p>[39m
+                    [0mDon't have an account?[0m
+                    [0m [0m
+                    [36m<a[39m
+                      [33mhref[39m=[32m"/register-tenant"[39m
+                    [36m>[39m
+                      [0mRegister here[0m
+                    [36m</a>[39m
+                  [36m</p>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"auth-navigation"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"nav-btn caretaker-btn"[39m
+                [36m>[39m
+                  [0mCaretaker Login →[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"nav-btn admin-btn"[39m
+                [36m>[39m
+                  [0mAdmin Login →[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</body>[39m
+    [36m</html>[39m
+
+    [0m [90m 272 |[39m
+     [90m 273 |[39m     [36mawait[39m waitFor(() [33m=>[39m {
+    [31m[1m>[22m[39m[90m 274 |[39m       expect(localStorage[33m.[39mgetItem([32m'token'[39m))[33m.[39mtoBe([32m'test-token-45678'[39m)[33m;[39m
+     [90m     |[39m                                             [31m[1m^[22m[39m
+     [90m 275 |[39m       expect(localStorage[33m.[39mgetItem([32m'userRole'[39m))[33m.[39mtoBe([32m'tenant'[39m)[33m;[39m
+     [90m 276 |[39m       expect(localStorage[33m.[39mgetItem([32m'userId'[39m))[33m.[39mtoBe([32m'456'[39m)[33m;[39m
+     [90m 277 |[39m       expect(mockNavigate)[33m.[39mtoHaveBeenCalledWith([32m'/lease-agreement'[39m)[33m;[39m[0m
+
+      at src/pages/auth/TenantLogin.test.js:274:45
+      at runWithExpensiveErrorDiagnosticsDisabled (node_modules/@testing-library/dom/dist/config.js:47:12)
+      at checkCallback (node_modules/@testing-library/dom/dist/wait-for.js:124:77)
+      at checkRealTimersCallback (node_modules/@testing-library/dom/dist/wait-for.js:118:16)
+      at Timeout.task [as _onTimeout] (node_modules/jsdom/lib/jsdom/browser/Window.js:516:19)
+
+  ● TenantLogin Component › handles login failure with error message from server
+
+    Unable to find an element with the text: /Invalid email or password/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"login-container"[39m
+          [33mstyle[39m=[32m"background-image: url(image21.jpg);"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"login-overlay"[39m
+          [36m/>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"login-content"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"login-card"[39m
+            [36m>[39m
+              [36m<img[39m
+                [33malt[39m=[32m"Joyce Suits Logo"[39m
+                [33mclass[39m=[32m"login-logo"[39m
+                [33msrc[39m=[32m"image1.png"[39m
+              [36m/>[39m
+              [36m<h1>[39m
+                [0mJoyce Suits Apartments[0m
+              [36m</h1>[39m
+              [36m<h2>[39m
+                [0mTenant Login[0m
+              [36m</h2>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"alert alert-error"[39m
+              [36m>[39m
+                [0mCannot read properties of undefined (reading 'get')[0m
+              [36m</div>[39m
+              [36m<form>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"form-group"[39m
+                [36m>[39m
+                  [36m<label[39m
+                    [33mfor[39m=[32m"email"[39m
+                  [36m>[39m
+                    [0mEmail Address[0m
+                  [36m</label>[39m
+                  [36m<input[39m
+                    [33mid[39m=[32m"email"[39m
+                    [33mname[39m=[32m"email"[39m
+                    [33mplaceholder[39m=[32m"your.email@example.com"[39m
+                    [33mrequired[39m=[32m""[39m
+                    [33mtype[39m=[32m"email"[39m
+                    [33mvalue[39m=[32m"wrong@example.com"[39m
+                  [36m/>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"form-group"[39m
+                [36m>[39m
+                  [36m<label[39m
+                    [33mfor[39m=[32m"password"[39m
+                  [36m>[39m
+                    [0mPassword[0m
+                  [36m</label>[39m
+                  [36m<input[39m
+                    [33mid[39m=[32m"password"[39m
+                    [33mname[39m=[32m"password"[39m
+                    [33mplaceholder[39m=[32m"Enter your password"[39m
+                    [33mrequired[39m=[32m""[39m
+                    [33mtype[39m=[32m"password"[39m
+                    [33mvalue[39m=[32m"wrongpassword"[39m
+                  [36m/>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"form-actions"[39m
+                [36m>[39m
+                  [36m<a[39m
+                    [33mclass[39m=[32m"forgot-link"[39m
+                    [33mhref[39m=[32m"/forgot-password"[39m
+                  [36m>[39m
+                    [0mForgot Password?[0m
+                  [36m</a>[39m
+                [36m</div>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"btn btn-primary"[39m
+                  [33mtype[39m=[32m"submit"[39m
+                [36m>[39m
+                  [0mLogin[0m
+                [36m</button>[39m
+              [36m</form>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"auth-links"[39m
+              [36m>[39m
+                [36m<p>[39m
+                  [0mDon't have an account?[0m
+                  [0m [0m
+                  [36m<a[39m
+                    [33mhref[39m=[32m"/register-tenant"[39m
+                  [36m>[39m
+                    [0mRegister here[0m
+                  [36m</a>[39m
+                [36m</p>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"auth-navigation"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"nav-btn caretaker-btn"[39m
+              [36m>[39m
+                [0mCaretaker Login →[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"nav-btn admin-btn"[39m
+              [36m>[39m
+                [0mAdmin Login →[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+    [0m [90m 303 |[39m
+     [90m 304 |[39m
+    [31m[1m>[22m[39m[90m 305 |[39m     [36mawait[39m waitFor(() [33m=>[39m
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 306 |[39m       expect(screen[33m.[39mgetByText([35m/Invalid email or password/i[39m))[33m.[39mtoBeInTheDocument()
+     [90m 307 |[39m     )[33m;[39m
+     [90m 308 |[39m[0m
+
+      at waitForWrapper (node_modules/@testing-library/dom/dist/wait-for.js:163:27)
+      at Object.<anonymous> (src/pages/auth/TenantLogin.test.js:305:18)
+      at TestScheduler.scheduleTests (node_modules/@jest/core/build/TestScheduler.js:333:13)
+      at runJest (node_modules/@jest/core/build/runJest.js:404:19)
+      at _run10000 (node_modules/@jest/core/build/cli/index.js:320:7)
+      at runCLI (node_modules/@jest/core/build/cli/index.js:173:3)
+
+  ● TenantLogin Component › handles login failure with generic error message
+
+    Unable to find an element with the text: /Login failed/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"login-container"[39m
+          [33mstyle[39m=[32m"background-image: url(image21.jpg);"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"login-overlay"[39m
+          [36m/>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"login-content"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"login-card"[39m
+            [36m>[39m
+              [36m<img[39m
+                [33malt[39m=[32m"Joyce Suits Logo"[39m
+                [33mclass[39m=[32m"login-logo"[39m
+                [33msrc[39m=[32m"image1.png"[39m
+              [36m/>[39m
+              [36m<h1>[39m
+                [0mJoyce Suits Apartments[0m
+              [36m</h1>[39m
+              [36m<h2>[39m
+                [0mTenant Login[0m
+              [36m</h2>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"alert alert-error"[39m
+              [36m>[39m
+                [0mCannot read properties of undefined (reading 'get')[0m
+              [36m</div>[39m
+              [36m<form>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"form-group"[39m
+                [36m>[39m
+                  [36m<label[39m
+                    [33mfor[39m=[32m"email"[39m
+                  [36m>[39m
+                    [0mEmail Address[0m
+                  [36m</label>[39m
+                  [36m<input[39m
+                    [33mid[39m=[32m"email"[39m
+                    [33mname[39m=[32m"email"[39m
+                    [33mplaceholder[39m=[32m"your.email@example.com"[39m
+                    [33mrequired[39m=[32m""[39m
+                    [33mtype[39m=[32m"email"[39m
+                    [33mvalue[39m=[32m"test@example.com"[39m
+                  [36m/>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"form-group"[39m
+                [36m>[39m
+                  [36m<label[39m
+                    [33mfor[39m=[32m"password"[39m
+                  [36m>[39m
+                    [0mPassword[0m
+                  [36m</label>[39m
+                  [36m<input[39m
+                    [33mid[39m=[32m"password"[39m
+                    [33mname[39m=[32m"password"[39m
+                    [33mplaceholder[39m=[32m"Enter your password"[39m
+                    [33mrequired[39m=[32m""[39m
+                    [33mtype[39m=[32m"password"[39m
+                    [33mvalue[39m=[32m"password123"[39m
+                  [36m/>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"form-actions"[39m
+                [36m>[39m
+                  [36m<a[39m
+                    [33mclass[39m=[32m"forgot-link"[39m
+                    [33mhref[39m=[32m"/forgot-password"[39m
+                  [36m>[39m
+                    [0mForgot Password?[0m
+                  [36m</a>[39m
+                [36m</div>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"btn btn-primary"[39m
+                  [33mtype[39m=[32m"submit"[39m
+                [36m>[39m
+                  [0mLogin[0m
+                [36m</button>[39m
+              [36m</form>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"auth-links"[39m
+              [36m>[39m
+                [36m<p>[39m
+                  [0mDon't have an account?[0m
+                  [0m [0m
+                  [36m<a[39m
+                    [33mhref[39m=[32m"/register-tenant"[39m
+                  [36m>[39m
+                    [0mRegister here[0m
+                  [36m</a>[39m
+                [36m</p>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"auth-navigation"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"nav-btn caretaker-btn"[39m
+              [36m>[39m
+                [0mCaretaker Login →[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"nav-btn admin-btn"[39m
+              [36m>[39m
+                [0mAdmin Login →[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+    [0m [90m 336 |[39m     fireEvent[33m.[39mclick(screen[33m.[39mgetByRole([32m'button'[39m[33m,[39m { name[33m:[39m [35m/^Login$/i[39m }))[33m;[39m
+     [90m 337 |[39m
+    [31m[1m>[22m[39m[90m 338 |[39m     [36mawait[39m waitFor(() [33m=>[39m {
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 339 |[39m       expect(screen[33m.[39mgetByText([35m/Login failed/i[39m))[33m.[39mtoBeInTheDocument()[33m;[39m
+     [90m 340 |[39m     })[33m;[39m
+     [90m 341 |[39m[0m
+
+      at waitForWrapper (node_modules/@testing-library/dom/dist/wait-for.js:163:27)
+      at Object.<anonymous> (src/pages/auth/TenantLogin.test.js:338:18)
+      at TestScheduler.scheduleTests (node_modules/@jest/core/build/TestScheduler.js:333:13)
+      at runJest (node_modules/@jest/core/build/runJest.js:404:19)
+      at _run10000 (node_modules/@jest/core/build/cli/index.js:320:7)
+      at runCLI (node_modules/@jest/core/build/cli/index.js:173:3)
+
+  ● TenantLogin Component › clears error message when form is submitted again
+
+    Unable to find an element with the text: /Login failed/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"login-container"[39m
+          [33mstyle[39m=[32m"background-image: url(image21.jpg);"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"login-overlay"[39m
+          [36m/>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"login-content"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"login-card"[39m
+            [36m>[39m
+              [36m<img[39m
+                [33malt[39m=[32m"Joyce Suits Logo"[39m
+                [33mclass[39m=[32m"login-logo"[39m
+                [33msrc[39m=[32m"image1.png"[39m
+              [36m/>[39m
+              [36m<h1>[39m
+                [0mJoyce Suits Apartments[0m
+              [36m</h1>[39m
+              [36m<h2>[39m
+                [0mTenant Login[0m
+              [36m</h2>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"alert alert-error"[39m
+              [36m>[39m
+                [0mCannot read properties of undefined (reading 'get')[0m
+              [36m</div>[39m
+              [36m<form>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"form-group"[39m
+                [36m>[39m
+                  [36m<label[39m
+                    [33mfor[39m=[32m"email"[39m
+                  [36m>[39m
+                    [0mEmail Address[0m
+                  [36m</label>[39m
+                  [36m<input[39m
+                    [33mid[39m=[32m"email"[39m
+                    [33mname[39m=[32m"email"[39m
+                    [33mplaceholder[39m=[32m"your.email@example.com"[39m
+                    [33mrequired[39m=[32m""[39m
+                    [33mtype[39m=[32m"email"[39m
+                    [33mvalue[39m=[32m"test@example.com"[39m
+                  [36m/>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"form-group"[39m
+                [36m>[39m
+                  [36m<label[39m
+                    [33mfor[39m=[32m"password"[39m
+                  [36m>[39m
+                    [0mPassword[0m
+                  [36m</label>[39m
+                  [36m<input[39m
+                    [33mid[39m=[32m"password"[39m
+                    [33mname[39m=[32m"password"[39m
+                    [33mplaceholder[39m=[32m"Enter your password"[39m
+                    [33mrequired[39m=[32m""[39m
+                    [33mtype[39m=[32m"password"[39m
+                    [33mvalue[39m=[32m"wrongpass"[39m
+                  [36m/>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"form-actions"[39m
+                [36m>[39m
+                  [36m<a[39m
+                    [33mclass[39m=[32m"forgot-link"[39m
+                    [33mhref[39m=[32m"/forgot-password"[39m
+                  [36m>[39m
+                    [0mForgot Password?[0m
+                  [36m</a>[39m
+                [36m</div>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"btn btn-primary"[39m
+                  [33mtype[39m=[32m"submit"[39m
+                [36m>[39m
+                  [0mLogin[0m
+                [36m</button>[39m
+              [36m</form>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"auth-links"[39m
+              [36m>[39m
+                [36m<p>[39m
+                  [0mDon't have an account?[0m
+                  [0m [0m
+                  [36m<a[39m
+                    [33mhref[39m=[32m"/register-tenant"[39m
+                  [36m>[39m
+                    [0mRegister here[0m
+                  [36m</a>[39m
+                [36m</p>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"auth-navigation"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"nav-btn caretaker-btn"[39m
+              [36m>[39m
+                [0mCaretaker Login →[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"nav-btn admin-btn"[39m
+              [36m>[39m
+                [0mAdmin Login →[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+    [0m [90m 397 |[39m     fireEvent[33m.[39mclick(screen[33m.[39mgetByRole([32m'button'[39m[33m,[39m { name[33m:[39m [35m/^Login$/i[39m }))[33m;[39m
+     [90m 398 |[39m
+    [31m[1m>[22m[39m[90m 399 |[39m     [36mawait[39m waitFor(() [33m=>[39m {
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 400 |[39m       expect(screen[33m.[39mgetByText([35m/Login failed/i[39m))[33m.[39mtoBeInTheDocument()[33m;[39m
+     [90m 401 |[39m     })[33m;[39m
+     [90m 402 |[39m[0m
+
+      at waitForWrapper (node_modules/@testing-library/dom/dist/wait-for.js:163:27)
+      at Object.<anonymous> (src/pages/auth/TenantLogin.test.js:399:18)
+      at TestScheduler.scheduleTests (node_modules/@jest/core/build/TestScheduler.js:333:13)
+      at runJest (node_modules/@jest/core/build/runJest.js:404:19)
+      at _run10000 (node_modules/@jest/core/build/cli/index.js:320:7)
+      at runCLI (node_modules/@jest/core/build/cli/index.js:173:3)
+
+  ● TenantLogin Component › sends correct request payload to API
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    - Expected
+    + Received
+
+      "http://localhost:5000/api/auth/login",
+      Object {
+    -   "body": "{\"email\":\"tenant@example.com\",\"password\":\"mypassword123\",\"role\":\"tenant\"}",
+    +   "body": "{\"email\":\"tenant@example.com\",\"password\":\"mypassword123\"}",
+        "headers": Object {
+          "Content-Type": "application/json",
+        },
+        "method": "POST",
+      },
+
+    Number of calls: 1
+
+    Ignored nodes: comments, script, style
+    [36m<html>[39m
+      [36m<head />[39m
+      [36m<body>[39m
+        [36m<div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"login-container"[39m
+            [33mstyle[39m=[32m"background-image: url(image21.jpg);"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"login-overlay"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"login-content"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"login-card"[39m
+              [36m>[39m
+                [36m<img[39m
+                  [33malt[39m=[32m"Joyce Suits Logo"[39m
+                  [33mclass[39m=[32m"login-logo"[39m
+                  [33msrc[39m=[32m"image1.png"[39m
+                [36m/>[39m
+                [36m<h1>[39m
+                  [0mJoyce Suits Apartments[0m
+                [36m</h1>[39m
+                [36m<h2>[39m
+                  [0mTenant Login[0m
+                [36m</h2>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"alert alert-error"[39m
+                [36m>[39m
+                  [0mCannot read properties of undefined (reading 'get')[0m
+                [36m</div>[39m
+                [36m<form>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"form-group"[39m
+                  [36m>[39m
+                    [36m<label[39m
+                      [33mfor[39m=[32m"email"[39m
+                    [36m>[39m
+                      [0mEmail Address[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mid[39m=[32m"email"[39m
+                      [33mname[39m=[32m"email"[39m
+                      [33mplaceholder[39m=[32m"your.email@example.com"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"email"[39m
+                      [33mvalue[39m=[32m"tenant@example.com"[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"form-group"[39m
+                  [36m>[39m
+                    [36m<label[39m
+                      [33mfor[39m=[32m"password"[39m
+                    [36m>[39m
+                      [0mPassword[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mid[39m=[32m"password"[39m
+                      [33mname[39m=[32m"password"[39m
+                      [33mplaceholder[39m=[32m"Enter your password"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"password"[39m
+                      [33mvalue[39m=[32m"mypassword123"[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"form-actions"[39m
+                  [36m>[39m
+                    [36m<a[39m
+                      [33mclass[39m=[32m"forgot-link"[39m
+                      [33mhref[39m=[32m"/forgot-password"[39m
+                    [36m>[39m
+                      [0mForgot Password?[0m
+                    [36m</a>[39m
+                  [36m</div>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"btn btn-primary"[39m
+                    [33mtype[39m=[32m"submit"[39m
+                  [36m>[39m
+                    [0mLogin[0m
+                  [36m</button>[39m
+                [36m</form>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"auth-links"[39m
+                [36m>[39m
+                  [36m<p>[39m
+                    [0mDon't have an account?[0m
+                    [0m [0m
+                    [36m<a[39m
+                      [33mhref[39m=[32m"/register-tenant"[39m
+                    [36m>[39m
+                      [0mRegister here[0m
+                    [36m</a>[39m
+                  [36m</p>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"auth-navigation"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"nav-btn caretaker-btn"[39m
+                [36m>[39m
+                  [0mCaretaker Login →[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"nav-btn admin-btn"[39m
+                [36m>[39m
+                  [0mAdmin Login →[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</body>[39m
+    [36m</html>[39m
+
+    [0m [90m 443 |[39m
+     [90m 444 |[39m     [36mawait[39m waitFor(() [33m=>[39m {
+    [31m[1m>[22m[39m[90m 445 |[39m       expect(global[33m.[39mfetch)[33m.[39mtoHaveBeenCalledWith([32m`${config.apiBaseUrl}/api/auth/login`[39m[33m,[39m {
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 446 |[39m         method[33m:[39m [32m'POST'[39m[33m,[39m
+     [90m 447 |[39m         headers[33m:[39m { [32m'Content-Type'[39m[33m:[39m [32m'application/json'[39m }[33m,[39m
+     [90m 448 |[39m         body[33m:[39m [33mJSON[39m[33m.[39mstringify({[0m
+
+      at src/pages/auth/TenantLogin.test.js:445:28
+      at runWithExpensiveErrorDiagnosticsDisabled (node_modules/@testing-library/dom/dist/config.js:47:12)
+      at checkCallback (node_modules/@testing-library/dom/dist/wait-for.js:124:77)
+      at checkRealTimersCallback (node_modules/@testing-library/dom/dist/wait-for.js:118:16)
+      at Timeout.task [as _onTimeout] (node_modules/jsdom/lib/jsdom/browser/Window.js:516:19)
+
+Test Suites: 1 failed, 1 total
+Tests:       6 failed, 11 passed, 17 total
+Snapshots:   0 total
+Time:        7.097 s, estimated 9 s
+Ran all test suites matching /src\/pages\/auth\/TenantLogin.test.js/i.

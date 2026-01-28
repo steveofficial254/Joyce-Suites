@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
 
 from models.base import db
@@ -80,7 +80,7 @@ def create_maintenance_request():
             if field not in data:
                 return jsonify({"success": False, "error": f"{field} is required"}), 400
 
-        prop = Property.query.get(data["property_id"])
+        prop = db.session.get(Property, data["property_id"])
         if not prop:
             return jsonify({"success": False, "error": "Property not found"}), 404
 
@@ -188,7 +188,7 @@ def get_maintenance_requests():
 @caretaker_required
 def update_maintenance_status(req_id):
     try:
-        maintenance = MaintenanceRequest.query.get(req_id)
+        maintenance = db.session.get(MaintenanceRequest, req_id)
         if not maintenance:
             return jsonify({"success": False, "error": "Request not found"}), 404
 
@@ -967,7 +967,7 @@ def create_vacate_notice():
             if field not in data:
                 return jsonify({"success": False, "error": f"{field} is required"}), 400
 
-        lease = Lease.query.get(data["lease_id"])
+        lease = db.session.get(Lease, data["lease_id"])
         if not lease:
             return jsonify({"success": False, "error": "Lease not found"}), 404
 
@@ -1028,7 +1028,7 @@ def create_vacate_notice():
 def get_vacate_notice(notice_id):
     """Get a specific vacate notice."""
     try:
-        notice = VacateNotice.query.get(notice_id)
+        notice = db.session.get(VacateNotice, notice_id)
         if not notice:
             return jsonify({"success": False, "error": "Vacate notice not found"}), 404
 
@@ -1069,7 +1069,7 @@ def get_vacate_notice(notice_id):
 def update_vacate_notice(notice_id):
     """Update a vacate notice."""
     try:
-        notice = VacateNotice.query.get(notice_id)
+        notice = db.session.get(VacateNotice, notice_id)
         if not notice:
             return jsonify({"success": False, "error": "Vacate notice not found"}), 404
 
@@ -1115,7 +1115,7 @@ def update_vacate_notice(notice_id):
 def approve_vacate_notice(notice_id):
     """Approve a vacate notice."""
     try:
-        notice = VacateNotice.query.get(notice_id)
+        notice = db.session.get(VacateNotice, notice_id)
         if not notice:
             return jsonify({"success": False, "error": "Vacate notice not found"}), 404
 
@@ -1146,7 +1146,7 @@ def approve_vacate_notice(notice_id):
 def reject_vacate_notice(notice_id):
     """Reject a vacate notice."""
     try:
-        notice = VacateNotice.query.get(notice_id)
+        notice = db.session.get(VacateNotice, notice_id)
         if not notice:
             return jsonify({"success": False, "error": "Vacate notice not found"}), 404
 
@@ -1177,7 +1177,7 @@ def reject_vacate_notice(notice_id):
 def complete_vacate_notice(notice_id):
     """Complete a vacate notice (mark as completed and terminate lease)."""
     try:
-        notice = VacateNotice.query.get(notice_id)
+        notice = db.session.get(VacateNotice, notice_id)
         if not notice:
             return jsonify({"success": False, "error": "Vacate notice not found"}), 404
 
@@ -1212,7 +1212,7 @@ def complete_vacate_notice(notice_id):
 def delete_vacate_notice(notice_id):
     """Delete a vacate notice (only pending notices can be deleted)."""
     try:
-        notice = VacateNotice.query.get(notice_id)
+        notice = db.session.get(VacateNotice, notice_id)
         if not notice:
             return jsonify({"success": False, "error": "Vacate notice not found"}), 404
 
@@ -1297,7 +1297,7 @@ def get_booking_inquiries():
 def approve_inquiry(inquiry_id):
     """Approve a booking inquiry and reserve the room."""
     try:
-        inquiry = BookingInquiry.query.get(inquiry_id)
+        inquiry = db.session.get(BookingInquiry, inquiry_id)
         if not inquiry:
             return jsonify({"success": False, "error": "Inquiry not found"}), 404
             
@@ -1305,7 +1305,7 @@ def approve_inquiry(inquiry_id):
         inquiry.approved_by = request.user_id
         
         if inquiry.room_id:
-            room = Property.query.get(inquiry.room_id)
+            room = db.session.get(Property, inquiry.room_id)
             if room:
                 room.status = "reserved"
         
@@ -1325,7 +1325,7 @@ def approve_inquiry(inquiry_id):
 def reject_inquiry(inquiry_id):
     """Reject a booking inquiry."""
     try:
-        inquiry = BookingInquiry.query.get(inquiry_id)
+        inquiry = db.session.get(BookingInquiry, inquiry_id)
         if not inquiry:
             return jsonify({"success": False, "error": "Inquiry not found"}), 404
             
@@ -1348,17 +1348,17 @@ def reject_inquiry(inquiry_id):
 def mark_inquiry_paid(inquiry_id):
     """Mark a booking inquiry as paid."""
     try:
-        inquiry = BookingInquiry.query.get(inquiry_id)
+        inquiry = db.session.get(BookingInquiry, inquiry_id)
         if not inquiry:
             return jsonify({"success": False, "error": "Inquiry not found"}), 404
             
         inquiry.status = "paid"
         inquiry.is_paid = True
-        inquiry.paid_at = datetime.utcnow()
+        inquiry.paid_at = datetime.now(timezone.utc)
         inquiry.approved_by = request.user_id
         
         if inquiry.room_id:
-            room = Property.query.get(inquiry.room_id)
+            room = db.session.get(Property, inquiry.room_id)
             if room:
                 room.status = "reserved"
         

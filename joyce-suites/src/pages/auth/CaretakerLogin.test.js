@@ -14,6 +14,7 @@ jest.mock('react-router-dom', () => {
 });
 
 import CaretakerLogin from './CaretakerLogin';
+import config from '../../config';
 
 const renderComponent = () => {
   return render(
@@ -25,57 +26,57 @@ const renderComponent = () => {
 
 
 beforeAll(() => {
-  
+
   if (global.localStorage) {
     try {
       global.localStorage.clear();
     } catch (e) {
-      
+
     }
   }
 });
 
 describe('CaretakerLogin Component', () => {
   beforeEach(() => {
-    
+
     let clearAttempts = 0;
     while (clearAttempts < 3) {
       if (global.localStorage && typeof global.localStorage.clear === 'function') {
         try {
           global.localStorage.clear();
-          
+
           if (global.localStorage.length === 0) {
             break;
           }
         } catch (e) {
-          
+
         }
       }
       clearAttempts++;
     }
 
-    
+
     cleanup();
 
-    
+
     mockNavigate.mockReset();
     mockNavigate.mockClear();
-    mockNavigate.mockImplementation(() => {});
+    mockNavigate.mockImplementation(() => { });
 
-    
+
     jest.restoreAllMocks();
     jest.clearAllMocks();
 
-    
+
     const descriptor = Object.getOwnPropertyDescriptor(global, 'localStorage');
     if (descriptor && descriptor.configurable) {
       delete global.localStorage;
     }
 
-    
+
     const store = {};
 
-    
+
     const mockLocalStorage = {
       getItem: (key) => {
         const value = store[key];
@@ -101,7 +102,7 @@ describe('CaretakerLogin Component', () => {
       },
     };
 
-    
+
     Object.defineProperty(global, 'localStorage', {
       value: mockLocalStorage,
       writable: false,
@@ -110,27 +111,27 @@ describe('CaretakerLogin Component', () => {
   });
 
   afterEach(() => {
-    
+
     cleanup();
 
-    
+
     jest.restoreAllMocks();
 
-    
+
     jest.clearAllMocks();
     mockNavigate.mockClear();
     mockNavigate.mockReset();
 
-    
+
     try {
       if (global.localStorage) {
         global.localStorage.clear();
       }
     } catch (e) {
-      
+
     }
 
-    
+
     const descriptor = Object.getOwnPropertyDescriptor(global, 'localStorage');
     if (descriptor && descriptor.configurable) {
       delete global.localStorage;
@@ -192,6 +193,7 @@ describe('CaretakerLogin Component', () => {
             () =>
               resolve({
                 ok: true,
+                headers: { get: () => 'application/json' },
                 json: () =>
                   Promise.resolve({
                     token: 'caretaker-token',
@@ -222,6 +224,7 @@ describe('CaretakerLogin Component', () => {
   test('handles successful login', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
+      headers: { get: () => 'application/json' },
       json: () =>
         Promise.resolve({
           token: 'caretaker-token-12345',
@@ -241,7 +244,7 @@ describe('CaretakerLogin Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /Login as Caretaker/i }));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/auth/login', {
+      expect(global.fetch).toHaveBeenCalledWith(`${config.apiBaseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -263,6 +266,7 @@ describe('CaretakerLogin Component', () => {
   test('handles login failure with error message from server', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: false,
+      headers: { get: () => 'application/json' },
       json: () =>
         Promise.resolve({
           message: 'Invalid caretaker credentials',
@@ -291,6 +295,7 @@ describe('CaretakerLogin Component', () => {
   test('handles login failure with generic error message', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: false,
+      headers: { get: () => 'application/json' },
       json: () => Promise.resolve({}),
     });
 
@@ -334,7 +339,7 @@ describe('CaretakerLogin Component', () => {
       { timeout: 3000 }
     );
 
-    
+
     expect(localStorage.getItem('token')).toBeNull();
     expect(localStorage.getItem('userRole')).toBeNull();
     expect(localStorage.getItem('userId')).toBeNull();
@@ -346,10 +351,12 @@ describe('CaretakerLogin Component', () => {
       .spyOn(global, 'fetch')
       .mockResolvedValueOnce({
         ok: false,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ message: 'Login failed' }),
       })
       .mockResolvedValueOnce({
         ok: true,
+        headers: { get: () => 'application/json' },
         json: () =>
           Promise.resolve({
             token: 'caretaker-success-token',
@@ -359,7 +366,7 @@ describe('CaretakerLogin Component', () => {
 
     renderComponent();
 
-    
+
     fireEvent.change(screen.getByLabelText(/Email Address/i), {
       target: { value: 'caretaker@joycesuites.com' },
     });
@@ -373,7 +380,7 @@ describe('CaretakerLogin Component', () => {
       expect(screen.getByText(/Login failed/i)).toBeInTheDocument();
     });
 
-    
+
     fireEvent.change(screen.getByLabelText(/Email Address/i), {
       target: { value: 'caretaker@joycesuites.com' },
     });
@@ -392,6 +399,7 @@ describe('CaretakerLogin Component', () => {
   test('sends correct request payload to API with caretaker role', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
+      headers: { get: () => 'application/json' },
       json: () =>
         Promise.resolve({
           token: 'caretaker-token',
@@ -414,7 +422,7 @@ describe('CaretakerLogin Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /Login as Caretaker/i }));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/auth/login', {
+      expect(global.fetch).toHaveBeenCalledWith(`${config.apiBaseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -429,6 +437,7 @@ describe('CaretakerLogin Component', () => {
   test('button text changes back to Login as Caretaker after error', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: false,
+      headers: { get: () => 'application/json' },
       json: () => Promise.resolve({ message: 'Login failed' }),
     });
 

@@ -1,0 +1,74 @@
+
+Running 4 tests using 1 worker
+
+  ✘  1 [firefox] › tests/e2e/e2e.test.js:5:5 › Joyce Suites End-to-End Tests › Admin Login and Dashboard (2ms)
+  ✘  2 [firefox] › tests/e2e/e2e.test.js:21:5 › Joyce Suites End-to-End Tests › Tenant Login and Dashboard (3ms)
+  ✘  3 [firefox] › tests/e2e/e2e.test.js:38:5 › Joyce Suites End-to-End Tests › Caretaker Login and Dashboard (2ms)
+  ✘  4 [firefox] › tests/e2e/e2e.test.js:53:5 › Joyce Suites End-to-End Tests › Landing Page Navigation (4ms)
+
+
+  1) [firefox] › tests/e2e/e2e.test.js:5:5 › Joyce Suites End-to-End Tests › Admin Login and Dashboard 
+
+    Error: browserType.launch: 
+    ╔══════════════════════════════════════════════════════╗
+    ║ Host system is missing dependencies to run browsers. ║
+    ║ Please install them with the following command:      ║
+    ║                                                      ║
+    ║     sudo npx playwright install-deps                 ║
+    ║                                                      ║
+    ║ Alternatively, use apt:                              ║
+    ║     sudo apt-get install libasound2t64               ║
+    ║                                                      ║
+    ║ <3 Playwright Team                                   ║
+    ╚══════════════════════════════════════════════════════╝
+
+  2) [firefox] › tests/e2e/e2e.test.js:21:5 › Joyce Suites End-to-End Tests › Tenant Login and Dashboard 
+
+    Error: browserType.launch: 
+    ╔══════════════════════════════════════════════════════╗
+    ║ Host system is missing dependencies to run browsers. ║
+    ║ Please install them with the following command:      ║
+    ║                                                      ║
+    ║     sudo npx playwright install-deps                 ║
+    ║                                                      ║
+    ║ Alternatively, use apt:                              ║
+    ║     sudo apt-get install libasound2t64               ║
+    ║                                                      ║
+    ║ <3 Playwright Team                                   ║
+    ╚══════════════════════════════════════════════════════╝
+
+  3) [firefox] › tests/e2e/e2e.test.js:38:5 › Joyce Suites End-to-End Tests › Caretaker Login and Dashboard 
+
+    Error: browserType.launch: 
+    ╔══════════════════════════════════════════════════════╗
+    ║ Host system is missing dependencies to run browsers. ║
+    ║ Please install them with the following command:      ║
+    ║                                                      ║
+    ║     sudo npx playwright install-deps                 ║
+    ║                                                      ║
+    ║ Alternatively, use apt:                              ║
+    ║     sudo apt-get install libasound2t64               ║
+    ║                                                      ║
+    ║ <3 Playwright Team                                   ║
+    ╚══════════════════════════════════════════════════════╝
+
+  4) [firefox] › tests/e2e/e2e.test.js:53:5 › Joyce Suites End-to-End Tests › Landing Page Navigation 
+
+    Error: browserType.launch: 
+    ╔══════════════════════════════════════════════════════╗
+    ║ Host system is missing dependencies to run browsers. ║
+    ║ Please install them with the following command:      ║
+    ║                                                      ║
+    ║     sudo npx playwright install-deps                 ║
+    ║                                                      ║
+    ║ Alternatively, use apt:                              ║
+    ║     sudo apt-get install libasound2t64               ║
+    ║                                                      ║
+    ║ <3 Playwright Team                                   ║
+    ╚══════════════════════════════════════════════════════╝
+
+  4 failed
+    [firefox] › tests/e2e/e2e.test.js:5:5 › Joyce Suites End-to-End Tests › Admin Login and Dashboard 
+    [firefox] › tests/e2e/e2e.test.js:21:5 › Joyce Suites End-to-End Tests › Tenant Login and Dashboard 
+    [firefox] › tests/e2e/e2e.test.js:38:5 › Joyce Suites End-to-End Tests › Caretaker Login and Dashboard 
+    [firefox] › tests/e2e/e2e.test.js:53:5 › Joyce Suites End-to-End Tests › Landing Page Navigation 

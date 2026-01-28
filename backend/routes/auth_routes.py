@@ -371,7 +371,7 @@ def update_profile():
     """Update authenticated user's profile information."""
     try:
         data = request.get_json()
-        user = User.query.get(request.user_id)
+        user = db.session.get(User, request.user_id)
         
         if not user:
             return jsonify({"success": False, "error": "User not found"}), 404
@@ -387,7 +387,7 @@ def update_profile():
                 return jsonify({"success": False, "error": "Invalid phone number format"}), 400
             user.phone_number = phone
             
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
         db.session.commit()
         
         return jsonify({

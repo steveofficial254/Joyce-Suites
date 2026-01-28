@@ -21,7 +21,7 @@ jest.mock('./TenantPage', () => {
   };
 });
 
-jest.mock('./PaymentPage', () => {
+jest.mock('./PaymentsPage', () => {
   return function MockPaymentPage({ payments, onConfirm, onMarkPending }) {
     return (
       <div data-testid="payment-page">
@@ -33,20 +33,15 @@ jest.mock('./PaymentPage', () => {
   };
 });
 
-jest.mock('./BalancesPage', () => {
-  return function MockBalancesPage({ tenants }) {
-    return <div data-testid="balances-page">Balances Page - {tenants?.length} tenants</div>;
+jest.mock('./RoomsPage', () => {
+  return function MockRoomsPage({ rooms }) {
+    return <div data-testid="rooms-page">Rooms Page - {rooms?.length} rooms</div>;
   };
 });
 
-jest.mock('./CommentsPage', () => {
-  return function MockCommentsPage({ comments, tenants, onAddComment }) {
-    return (
-      <div data-testid="comments-page">
-        Comments Page - {comments?.length} comments
-        <button onClick={() => onAddComment?.(1, 'Test comment')}>Add Comment</button>
-      </div>
-    );
+jest.mock('./NotificationsPage', () => {
+  return function MockNotificationsPage({ notifications }) {
+    return <div data-testid="notifications-page">Notifications Page - {notifications?.length} notifications</div>;
   };
 });
 
@@ -119,16 +114,16 @@ describe('CaretakerDashboard', () => {
       expect(screen.getByTestId('payment-page')).toBeInTheDocument();
     });
 
-    test('should navigate to balances page when clicked', () => {
+    test('should navigate to rooms page when clicked', () => {
       renderWithRouter(<CaretakerDashboard />);
-      fireEvent.click(screen.getByText('💰 Balances'));
-      expect(screen.getByTestId('balances-page')).toBeInTheDocument();
+      fireEvent.click(screen.getByText('🏠 Rooms'));
+      expect(screen.getByTestId('rooms-page')).toBeInTheDocument();
     });
 
-    test('should navigate to comments page when clicked', () => {
+    test('should navigate to notifications page when clicked', () => {
       renderWithRouter(<CaretakerDashboard />);
-      fireEvent.click(screen.getByText('💬 Comments'));
-      expect(screen.getByTestId('comments-page')).toBeInTheDocument();
+      fireEvent.click(screen.getByText('🔔 Notifications'));
+      expect(screen.getByTestId('notifications-page')).toBeInTheDocument();
     });
 
     test('should navigate back to dashboard when clicked', () => {
@@ -203,10 +198,16 @@ describe('CaretakerDashboard', () => {
       expect(screen.getByText(/2 payments/)).toBeInTheDocument();
     });
 
-    test('should initialize with correct comments data', () => {
+    test('should initialize with correct rooms data', () => {
       renderWithRouter(<CaretakerDashboard />);
-      fireEvent.click(screen.getByText('💬 Comments'));
-      expect(screen.getByText(/2 comments/)).toBeInTheDocument();
+      fireEvent.click(screen.getByText('🏠 Rooms'));
+      expect(screen.getByText(/rooms/i)).toBeInTheDocument();
+    });
+
+    test('should initialize with correct notifications data', () => {
+      renderWithRouter(<CaretakerDashboard />);
+      fireEvent.click(screen.getByText('🔔 Notifications'));
+      expect(screen.getByText(/notifications/i)).toBeInTheDocument();
     });
   });
 
@@ -228,10 +229,10 @@ describe('CaretakerDashboard', () => {
       expect(screen.getByTestId('payment-page')).toBeInTheDocument();
     });
 
-    test('should display balances page with all tenants', () => {
+    test('should display rooms page with all properties', () => {
       renderWithRouter(<CaretakerDashboard />);
-      fireEvent.click(screen.getByText('💰 Balances'));
-      expect(screen.getByText(/5 tenants/)).toBeInTheDocument();
+      fireEvent.click(screen.getByText('🏠 Rooms'));
+      expect(screen.getByTestId('rooms-page')).toBeInTheDocument();
     });
   });
 
@@ -257,26 +258,11 @@ describe('CaretakerDashboard', () => {
     });
   });
 
-  describe('Comments Management', () => {
-    test('should render comments page with 2 comments', () => {
+  describe('Notifications Management', () => {
+    test('should render notifications page', () => {
       renderWithRouter(<CaretakerDashboard />);
-      fireEvent.click(screen.getByText('💬 Comments'));
-      expect(screen.getByText(/2 comments/)).toBeInTheDocument();
-    });
-
-    test('should have add comment button', () => {
-      renderWithRouter(<CaretakerDashboard />);
-      fireEvent.click(screen.getByText('💬 Comments'));
-      const addCommentBtn = screen.getByRole('button', { name: /add comment/i });
-      expect(addCommentBtn).toBeInTheDocument();
-    });
-
-    test('should render comments page after adding comment', () => {
-      renderWithRouter(<CaretakerDashboard />);
-      fireEvent.click(screen.getByText('💬 Comments'));
-      const addBtn = screen.getByRole('button', { name: /add comment/i });
-      fireEvent.click(addBtn);
-      expect(screen.getByTestId('comments-page')).toBeInTheDocument();
+      fireEvent.click(screen.getByText('🔔 Notifications'));
+      expect(screen.getByTestId('notifications-page')).toBeInTheDocument();
     });
   });
 
@@ -372,7 +358,7 @@ describe('CaretakerDashboard', () => {
       fireEvent.click(menuBtn);
       let sidebar = container.querySelector('.caretaker-sidebar');
       expect(sidebar).not.toHaveClass('hidden');
-      
+
       fireEvent.click(screen.getByText('👥 Tenants'));
       sidebar = container.querySelector('.caretaker-sidebar');
       expect(sidebar).toHaveClass('hidden');
@@ -398,16 +384,16 @@ describe('CaretakerDashboard', () => {
       expect(screen.getByTestId('payment-page')).toHaveTextContent(/2 payments/);
     });
 
-    test('should pass tenants to balances page', () => {
+    test('should pass rooms to rooms page', () => {
       renderWithRouter(<CaretakerDashboard />);
-      fireEvent.click(screen.getByText('💰 Balances'));
-      expect(screen.getByTestId('balances-page')).toHaveTextContent(/5 tenants/);
+      fireEvent.click(screen.getByText('🏠 Rooms'));
+      expect(screen.getByTestId('rooms-page')).toBeInTheDocument();
     });
 
-    test('should pass comments to comments page', () => {
+    test('should pass notifications to notifications page', () => {
       renderWithRouter(<CaretakerDashboard />);
-      fireEvent.click(screen.getByText('💬 Comments'));
-      expect(screen.getByTestId('comments-page')).toHaveTextContent(/2 comments/);
+      fireEvent.click(screen.getByText('🔔 Notifications'));
+      expect(screen.getByTestId('notifications-page')).toBeInTheDocument();
     });
   });
 

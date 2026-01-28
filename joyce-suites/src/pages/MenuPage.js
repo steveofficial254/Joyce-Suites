@@ -6,6 +6,8 @@ import {
     Instagram, Facebook, Twitter, MessageSquare, Camera
 } from 'lucide-react';
 
+import config from '../config';
+
 
 import heroBg from '../assets/image13.jpg';
 import logo from '../assets/image1.png';
@@ -21,7 +23,7 @@ import gallery9 from '../assets/image10.jpg';
 import gallery10 from '../assets/image9.jpg';
 import gallery11 from '../assets/image18.jpg';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
+const API_BASE_URL = config.apiBaseUrl;
 
 const MenuPage = () => {
     const navigate = useNavigate();
@@ -144,7 +146,7 @@ const MenuPage = () => {
                 }
 
                 const data = await response.json();
-                
+
                 if (data.success) {
                     setAvailableRooms(data.rooms || []);
                     if (data.next_available_date) {
@@ -902,8 +904,9 @@ const MenuPage = () => {
                         <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '1.5rem' }}>Send Message</h3>
                         <form onSubmit={handleInquirySubmit}>
                             <div style={styles.formGroup}>
-                                <label style={{ fontSize: '0.875rem', fontWeight: '500' }}>Name</label>
+                                <label htmlFor="inquiry-name" style={{ fontSize: '0.875rem', fontWeight: '500' }}>Name</label>
                                 <input
+                                    id="inquiry-name"
                                     type="text"
                                     style={styles.input}
                                     required
@@ -912,8 +915,9 @@ const MenuPage = () => {
                                 />
                             </div>
                             <div style={styles.formGroup}>
-                                <label style={{ fontSize: '0.875rem', fontWeight: '500' }}>Email</label>
+                                <label htmlFor="inquiry-email" style={{ fontSize: '0.875rem', fontWeight: '500' }}>Email</label>
                                 <input
+                                    id="inquiry-email"
                                     type="email"
                                     style={styles.input}
                                     required
@@ -922,8 +926,9 @@ const MenuPage = () => {
                                 />
                             </div>
                             <div style={styles.formGroup}>
-                                <label style={{ fontSize: '0.875rem', fontWeight: '500' }}>Phone</label>
+                                <label htmlFor="inquiry-phone" style={{ fontSize: '0.875rem', fontWeight: '500' }}>Phone</label>
                                 <input
+                                    id="inquiry-phone"
                                     type="tel"
                                     style={styles.input}
                                     value={inquiryForm.phone}
@@ -931,8 +936,9 @@ const MenuPage = () => {
                                 />
                             </div>
                             <div style={styles.formGroup}>
-                                <label style={{ fontSize: '0.875rem', fontWeight: '500' }}>Message</label>
+                                <label htmlFor="inquiry-message" style={{ fontSize: '0.875rem', fontWeight: '500' }}>Message</label>
                                 <textarea
+                                    id="inquiry-message"
                                     style={styles.textarea}
                                     required
                                     value={inquiryForm.message}
@@ -963,9 +969,9 @@ const MenuPage = () => {
             { }
             {showBookingModal && (
                 <div style={styles.modalOverlay} onClick={() => setShowBookingModal(false)}>
-                    <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+                    <div role="dialog" aria-labelledby="booking-modal-title" style={styles.modalContent} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', justifyItems: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', flex: 1 }}>Booking Questionnaire</h2>
+                            <h2 id="booking-modal-title" style={{ fontSize: '1.5rem', fontWeight: '700', flex: 1 }}>Booking Questionnaire</h2>
                             <button onClick={() => setShowBookingModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                                 <X size={24} />
                             </button>
@@ -978,8 +984,9 @@ const MenuPage = () => {
                         <form onSubmit={handleBookingSubmit}>
                             <h4 style={{ fontSize: '1rem', fontWeight: '600', color: '#f59e0b', margin: '1rem 0 0.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.5rem' }}>Personal Information</h4>
                             <div style={styles.formGroup}>
-                                <label style={styles.formLabel}>Full Name</label>
+                                <label htmlFor="booking-name" style={styles.formLabel}>Full Name</label>
                                 <input
+                                    id="booking-name"
                                     type="text"
                                     style={styles.input}
                                     required
@@ -989,8 +996,9 @@ const MenuPage = () => {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div style={styles.formGroup}>
-                                    <label style={styles.formLabel}>Phone</label>
+                                    <label htmlFor="booking-phone" style={styles.formLabel}>Phone</label>
                                     <input
+                                        id="booking-phone"
                                         type="tel"
                                         style={styles.input}
                                         required
@@ -1000,8 +1008,9 @@ const MenuPage = () => {
                                     />
                                 </div>
                                 <div style={styles.formGroup}>
-                                    <label style={styles.formLabel}>Email</label>
+                                    <label htmlFor="booking-email" style={styles.formLabel}>Email</label>
                                     <input
+                                        id="booking-email"
                                         type="email"
                                         style={styles.input}
                                         required
@@ -1015,8 +1024,9 @@ const MenuPage = () => {
                             <h4 style={{ fontSize: '1rem', fontWeight: '600', color: '#f59e0b', margin: '1rem 0 0.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.5rem' }}>Accommodation Preferences</h4>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div style={styles.formGroup}>
-                                    <label style={styles.formLabel}>Unit Type</label>
+                                    <label htmlFor="booking-unit-type" style={styles.formLabel}>Unit Type</label>
                                     <select
+                                        id="booking-unit-type"
                                         style={styles.input}
                                         value={bookingForm.houseType}
                                         onChange={e => setBookingForm({ ...bookingForm, houseType: e.target.value })}
@@ -1026,8 +1036,9 @@ const MenuPage = () => {
                                     </select>
                                 </div>
                                 <div style={styles.formGroup}>
-                                    <label style={styles.formLabel}>Occupancy</label>
+                                    <label htmlFor="booking-occupancy" style={styles.formLabel}>Occupancy</label>
                                     <select
+                                        id="booking-occupancy"
                                         style={styles.input}
                                         value={bookingForm.occupancy || 'single'}
                                         onChange={e => setBookingForm({ ...bookingForm, occupancy: e.target.value })}
@@ -1040,8 +1051,9 @@ const MenuPage = () => {
                             </div>
 
                             <div style={styles.formGroup}>
-                                <label style={styles.formLabel}>Desired Move-in Date</label>
+                                <label htmlFor="booking-move-in-date" style={styles.formLabel}>Desired Move-in Date</label>
                                 <input
+                                    id="booking-move-in-date"
                                     type="date"
                                     style={styles.input}
                                     required
@@ -1051,8 +1063,9 @@ const MenuPage = () => {
                             </div>
 
                             <div style={styles.formGroup}>
-                                <label style={styles.formLabel}>Additional Requests / Notes</label>
+                                <label htmlFor="booking-message" style={styles.formLabel}>Additional Requests / Notes</label>
                                 <textarea
+                                    id="booking-message"
                                     style={styles.textarea}
                                     value={bookingForm.message}
                                     onChange={e => setBookingForm({ ...bookingForm, message: e.target.value })}

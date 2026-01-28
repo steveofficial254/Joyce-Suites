@@ -7,7 +7,7 @@ from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 
 from routes.auth_routes import auth_bp
@@ -185,7 +185,7 @@ def register_blueprints(app: Flask) -> None:
             "status": "running",
             "environment": os.getenv("FLASK_ENV", "development"),
             "version": "1.0.0",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }), 200
 
     @app.route("/api/health", methods=["GET"])
@@ -195,7 +195,7 @@ def register_blueprints(app: Flask) -> None:
             "status": "healthy",
             "service": "Joyce Suites API",
             "version": "1.0.0",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }), 200
 
     @app.route("/api/status", methods=["GET"])
@@ -207,7 +207,7 @@ def register_blueprints(app: Flask) -> None:
             "version": "1.0.0",
             "environment": os.getenv("FLASK_ENV", "development"),
             "database": "Connected" if check_db_connection(app) else "Disconnected",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }), 200
     
     @app.route("/api/test-cors", methods=["GET", "OPTIONS"])
@@ -258,8 +258,9 @@ def register_error_handlers(app: Flask) -> None:
 
     @app.errorhandler(500)
     def internal_error(error):
-        app.logger.error(f"Internal server error: {str(error)}")
-        return jsonify({"success": False, "error": "Internal Server Error", "message": "An unexpected error occurred"}), 500
+        import traceback
+        app.logger.error(f"Internal server error: {str(error)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "error": "Internal Server Error", "message": str(error)}), 500
 
 
 def register_cli_commands(app: Flask) -> None:

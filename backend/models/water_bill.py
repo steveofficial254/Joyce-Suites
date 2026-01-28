@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Numeric, Enum
 from sqlalchemy.orm import relationship
 from .base import db, BaseModel
@@ -54,35 +54,46 @@ class WaterBill(BaseModel):
     
     def calculate_amount(self):
         """Calculate water bill amount based on consumption"""
-        self.units_consumed = float(self.current_reading) - float(self.previous_reading)
-        self.amount_due = float(self.units_consumed) * float(self.unit_rate)
+        curr = float(self.current_reading) if self.current_reading is not None else 0.0
+        prev = float(self.previous_reading) if self.previous_reading is not None else 0.0
+        rate = float(self.unit_rate) if self.unit_rate is not None else 0.0
+        
+        self.units_consumed = curr - prev
+        self.amount_due = self.units_consumed * rate
         self.calculate_balance()
     
     def calculate_balance(self):
         """Calculate remaining balance"""
-        self.balance = float(self.amount_due) - float(self.amount_paid)
+        due = float(self.amount_due) if self.amount_due is not None else 0.0
+        paid = float(self.amount_paid) if self.amount_paid is not None else 0.0
+        self.balance = due - paid
         
         # Auto-update status based on balance
         if self.balance <= 0:
             self.status = WaterBillStatus.PAID
             self.amount_paid = self.amount_due
             self.balance = 0
-        elif float(self.amount_paid) > 0:
+        elif paid > 0:
             self.status = WaterBillStatus.PARTIALLY_PAID
         else:
             self.status = WaterBillStatus.UNPAID
             
         # Check if overdue
-        if self.due_date < datetime.utcnow() and self.status != WaterBillStatus.PAID:
+        now = datetime.now(timezone.utc)
+        due_date = self.due_date
+        if isinstance(due_date, datetime) and due_date.tzinfo is None:
+            due_date = due_date.replace(tzinfo=timezone.utc)
+
+        if due_date < now and self.status != WaterBillStatus.PAID:
             self.status = WaterBillStatus.OVERDUE
             
-        self.last_calculated = datetime.utcnow()
+        self.last_calculated = datetime.now(timezone.utc)
     
     def mark_payment(self, amount_paid, caretaker_id, payment_method=None, payment_reference=None, notes=None):
         """Mark payment by caretaker"""
         self.amount_paid = float(amount_paid)
         self.paid_by_caretaker_id = caretaker_id
-        self.payment_date = datetime.utcnow()
+        self.payment_date = datetime.now(timezone.utc)
         self.payment_method = payment_method
         self.payment_reference = payment_reference
         self.notes = notes
