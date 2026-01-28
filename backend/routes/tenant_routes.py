@@ -13,6 +13,7 @@ from models.maintenance import MaintenanceRequest
 from models.notification import Notification
 from models.vacate_notice import VacateNotice
 from models.property import Property
+from models.rent_deposit import DepositRecord
 from routes.auth_routes import token_required
 from services.mpesa_service import MpesaService
 from config import Config
@@ -1206,3 +1207,114 @@ def check_payment_status(checkout_id):
     except Exception as e:
         current_app.logger.error(f"Payment status query error: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# Tenant Deposit Management Routes
+@tenant_bp.route('/deposit/status', methods=['GET'])
+@tenant_required
+def get_tenant_deposit_status():
+    """Get tenant's deposit status"""
+    try:
+        current_user = db.session.get(User, request.user_id)
+        
+        # Get tenant's active lease
+        active_lease = Lease.query.filter_by(
+            tenant_id=current_user.id,
+            status='active'
+        ).first()
+        
+        if not active_lease:
+            return jsonify({
+                'success': False,
+                'error': 'No active lease found'
+            }), 404
+        
+        # Get deposit record for this lease
+        deposit_record = DepositRecord.query.filter_by(lease_id=active_lease.id).first()
+        
+        if not deposit_record:
+            # Create deposit record if it doesn't exist
+            deposit_record = DepositRecord.create_deposit_record(
+                tenant=current_user,
+                property_obj=active_lease.property,
+                lease=active_lease,
+                amount_required=active_lease.deposit_amount
+            )
+            db.session.add(deposit_record)
+            db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'deposit': deposit_record.to_dict()
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching tenant deposit status: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to fetch deposit status: {str(e)}'}), 500
+
+@tenant_bp.route('/deposit/payment-history', methods=['GET'])
+@tenant_required
+def get_tenant_deposit_payment_history():
+    """Get tenant's deposit payment history"""
+    try:
+        current_user = db.session.get(User, request.user_id)
+        
+        # Get tenant's active lease
+        active_lease = Lease.query.filter_by(
+            tenant_id=current_user.id,
+            status='active'
+        ).first()
+        
+        if not active_lease:
+            return jsonify({
+                'success': False,
+                'error': 'No active lease found'
+            }), 404
+        
+        # Get deposit record
+        deposit_record = DepositRecord.query.filter_by(lease_id=active_lease.id).first()
+        
+        if not deposit_record:
+            return jsonify({
+                'success': True,
+                'deposit': None,
+                'payment_history': []
+            }), 200
+        
+        # Create payment history
+        payment_history = []
+        
+        if deposit_record.payment_date:
+            payment_history.append({
+                'type': 'payment',
+                'amount': float(deposit_record.amount_paid),
+                'date': deposit_record.payment_date.isoformat(),
+                'method': deposit_record.payment_method,
+                'reference': deposit_record.payment_reference,
+                'notes': deposit_record.notes,
+                'processed_by': deposit_record.paid_by_caretaker.full_name if deposit_record.paid_by_caretaker else 'System'
+            })
+        
+        if deposit_record.refund_date:
+            payment_history.append({
+                'type': 'refund',
+                'amount': float(deposit_record.refund_amount),
+                'date': deposit_record.refund_date.isoformat(),
+                'method': deposit_record.refund_method,
+                'reference': deposit_record.refund_reference,
+                'notes': deposit_record.refund_notes,
+                'processed_by': deposit_record.refunded_by_admin.full_name if deposit_record.refunded_by_admin else 'System'
+            })
+        
+        # Sort by date (most recent first)
+        payment_history.sort(key=lambda x: x['date'], reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'deposit': deposit_record.to_dict(),
+            'payment_history': payment_history
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching tenant deposit payment history: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to fetch payment history: {str(e)}'}), 500

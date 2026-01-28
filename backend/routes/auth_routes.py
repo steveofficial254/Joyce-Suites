@@ -782,6 +782,22 @@ def reset_and_seed_database():
             lawrence.password = 'Password@123'
             db.session.add(lawrence)
         
+        # Create caretaker user
+        caretaker = User.query.filter_by(email='caretaker@joycesuites.com').first()
+        if not caretaker:
+            caretaker = User(
+                email='caretaker@joycesuites.com',
+                username='caretaker',
+                first_name='Caretaker',
+                last_name='User',
+                phone_number='+254700000002',
+                role='caretaker',
+                national_id=88888888,
+                is_active=True
+            )
+            caretaker.password = 'Caretaker123!'
+            db.session.add(caretaker)
+        
         db.session.commit()
         
         # Create all rooms from seed_rooms.py data
