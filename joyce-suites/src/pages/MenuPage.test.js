@@ -36,7 +36,7 @@ describe('MenuPage Component', () => {
             const urlStr = String(url);
 
             // Use logical matching regardless of the base URL
-            if (urlStr.includes('/api/caretaker/rooms/public')) {
+            if (urlStr.includes('/api/auth/rooms/available')) {
                 return Promise.resolve({
                     ok: true,
                     status: 200,
@@ -93,10 +93,15 @@ describe('MenuPage Component', () => {
             </MemoryRouter>
         );
 
-        // Wait for rooms to load
+        // Wait for loading to complete first
+        await waitFor(() => {
+            expect(screen.queryByText('Loading available rooms...')).not.toBeInTheDocument();
+        }, { timeout: 3000 });
+
+        // Then wait for rooms to load
         await waitFor(() => {
             expect(screen.getByText('Room 101')).toBeInTheDocument();
-            expect(screen.getByText(/One Bedroom/i)).toBeInTheDocument();
+            expect(screen.getAllByText(/One Bedroom/i).length).toBeGreaterThan(0);
             expect(screen.getByText(/KSh 15,000/i)).toBeInTheDocument();
         }, { timeout: 5000 });
     });

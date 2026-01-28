@@ -96,7 +96,7 @@ def create_app():
          origins=cors_origins, 
          supports_credentials=True,
          methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-         allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+         allow_headers=['content-type', 'Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
          expose_headers=['Content-Type', 'Authorization'],
          max_age=3600,
          vary_header=True)
@@ -131,7 +131,7 @@ def create_app():
             response = app.make_default_options_response()
             response.headers.set('Access-Control-Allow-Origin', origin or '*')
             response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-            response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+            response.headers.set('Access-Control-Allow-Headers', 'content-type, Content-Type, Authorization')
             return response
         return jsonify({
             'message': 'CORS test endpoint',
