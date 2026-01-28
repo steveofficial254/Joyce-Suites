@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Menu, X } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import './TenantDashboard.css';
 import logo from '../../assets/image1.png';
 import quickActionsBg from '../../assets/image1.png';
