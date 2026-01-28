@@ -14,7 +14,9 @@ import MaintenancePage from './MaintenancePage';
 import CaretakerWaterBill from './CaretakerWaterBill';
 import CaretakerDeposits from './CaretakerDeposits';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://joyce-suites-xdkp.onrender.com';
+import config from '../../config';
+
+const API_BASE_URL = config.apiBaseUrl;
 
 const CaretakerDashboard = () => {
   const [activePage, setActivePage] = useState('dashboard');
