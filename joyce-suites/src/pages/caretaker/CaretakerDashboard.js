@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Menu, LogOut, X, Bell, Eye, Edit, Trash2, Filter, Search,
   Download, Mail, Phone, FileText, ArrowLeft, User, Send,
@@ -19,6 +20,7 @@ import config from '../../config';
 const API_BASE_URL = config.apiBaseUrl;
 
 const CaretakerDashboard = () => {
+  const navigate = useNavigate();
   const [activePage, setActivePage] = useState('dashboard');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
@@ -410,14 +412,14 @@ const CaretakerDashboard = () => {
       console.error('Logout error:', err);
     } finally {
       localStorage.clear();
-      window.location.href = '/caretaker-login';
+      navigate('/caretaker-login');
     }
   };
 
   useEffect(() => {
     const token = getToken();
     if (!token) {
-      window.location.href = '/caretaker-login';
+      navigate('/caretaker-login');
       return;
     }
 
