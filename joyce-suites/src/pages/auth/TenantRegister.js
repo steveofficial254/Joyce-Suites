@@ -52,7 +52,7 @@ const TenantRegister = () => {
     try {
 
 
-      const response = await fetch(`${API_BASE_URL}/api/caretaker/rooms/public`);
+      const response = await fetch(`${API_BASE_URL}/api/auth/rooms/available`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

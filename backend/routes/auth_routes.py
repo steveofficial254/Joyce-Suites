@@ -408,12 +408,27 @@ def update_profile():
         return jsonify({"success": False, "error": f"Failed to update profile: {str(e)}"}), 500
 
 
-@auth_bp.route("/rooms/available", methods=["GET"])
+@auth_bp.route("/rooms/available", methods=["GET", "OPTIONS"])
 def get_available_rooms():
     """
     Get all available rooms for tenant registration.
     This is a public endpoint that doesn't require authentication.
     """
+    # Handle preflight OPTIONS request
+    if request.method == "OPTIONS":
+        response = current_app.make_default_options_response()
+        origin = request.headers.get('Origin')
+        if origin in ["https://joyce-suites.vercel.app", "https://joyce-suites-jcfw.vercel.app", "https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app"]:
+            response.headers.set('Access-Control-Allow-Origin', origin)
+            response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS')
+            response.headers.set('Access-Control-Allow-Headers', 'content-type, Content-Type, Authorization, X-Requested-With, Accept, Origin')
+            response.headers.set('Access-Control-Allow-Credentials', 'true')
+        else:
+            response.headers.set('Access-Control-Allow-Origin', '*')
+            response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS')
+            response.headers.set('Access-Control-Allow-Headers', 'content-type, Content-Type, Authorization, X-Requested-With, Accept, Origin')
+        return response
+    
     try:
         from models.property import Property
         
@@ -482,12 +497,27 @@ def delete_user(user_id: int):
         return jsonify({"success": False, "error": f"Failed to delete user: {str(e)}"}), 500
 
 
-@auth_bp.route("/inquiry", methods=["POST"])
+@auth_bp.route("/inquiry", methods=["POST", "OPTIONS"])
 def send_inquiry():
     """
     Public endpoint for sending inquiries/messages.
     Creates a notification for all admins and caretakers.
     """
+    # Handle preflight OPTIONS request
+    if request.method == "OPTIONS":
+        response = current_app.make_default_options_response()
+        origin = request.headers.get('Origin')
+        if origin in ["https://joyce-suites.vercel.app", "https://joyce-suites-jcfw.vercel.app", "https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app"]:
+            response.headers.set('Access-Control-Allow-Origin', origin)
+            response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            response.headers.set('Access-Control-Allow-Headers', 'content-type, Content-Type, Authorization, X-Requested-With, Accept, Origin')
+            response.headers.set('Access-Control-Allow-Credentials', 'true')
+        else:
+            response.headers.set('Access-Control-Allow-Origin', '*')
+            response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            response.headers.set('Access-Control-Allow-Headers', 'content-type, Content-Type, Authorization, X-Requested-With, Accept, Origin')
+        return response
+    
     try:
         data = request.get_json()
         

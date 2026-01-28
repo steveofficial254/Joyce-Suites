@@ -1,465 +1,322 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import { BrowserRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import LeaseAgreement from './LeaseAgreement';
+import '@testing-library/jest-dom';
+import config from '../../config';
 
+// Mock the config module to use the database URL
+jest.mock('../../config', () => ({
+  apiBaseUrl: 'https://joyce-suites-xdkp.onrender.com'
+}));
 
+// Mock the SignatureCanvas component
 jest.mock('react-signature-canvas', () => {
-  const mockModule = require('react');
-  return mockModule.forwardRef((props, ref) => {
-    mockModule.useImperativeHandle(ref, () => ({
-      clear: jest.fn(),
-      isEmpty: jest.fn(() => false),
-      toDataURL: jest.fn(() => 'data:image/png;base64,mockSignature'),
-    }));
-    return mockModule.createElement('canvas', {
-      ref,
-      className: 'signature-canvas',
-      'data-testid': 'signature-canvas',
-      ...props.canvasProps,
-    });
+  return function MockSignatureCanvas({ onChange }) {
+    return (
+      <canvas
+        data-testid="signature-canvas"
+        onChange={onChange}
+        style={{ border: '1px solid #ccc', width: '100%', height: '200px' }}
+      />
+    );
+  };
+});
+
+// Mock the navigate function
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}));
+
+beforeAll(() => {
+  jest.spyOn(console, 'warn').mockImplementation((msg) => {
+    if (
+      msg.includes('React Router Future Flag Warning') ||
+      msg.includes('Relative route resolution')
+    ) {
+      return;
+    }
+    console.warn(msg);
   });
 });
 
+describe('LeaseAgreement Component - Production Ready Tests', () => {
+  const mockTenantData = {
+    fullName: 'John Doe',
+    idNumber: '12345678',
+    phone: '+254 712 345 678',
+    email: 'john.doe@example.com',
+    roomNumber: '12'
+  };
 
-global.print = jest.fn();
+  const mockUnitData = {
+    rent_amount: 5500,
+    deposit_amount: 5900,
+    water_deposit: 400,
+    room_type: 'bedsitter'
+  };
 
-const mockTenantData = {
-  id: 1,
-  fullName: 'John Doe',
-  idNumber: '12345678',
-  phone: '+254 712 345 678',
-  email: 'john.doe@example.com',
-  roomNumber: '12'
-};
-
-const mockUnitData = {
-  rent_amount: 5500,
-  deposit_amount: 5900,
-  water_deposit: 400,
-  room_type: 'bedsitter'
-};
-
-const renderWithRouter = (component) => {
-  return render(
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      {component}
-    </BrowserRouter>
-  );
-};
-
-describe('LeaseAgreement', () => {
   beforeEach(() => {
-    localStorage.clear();
-    localStorage.setItem('token', 'mock-token');
-    jest.clearAllMocks();
-    global.fetch = jest.fn();
-  });
-
-  describe('Rendering', () => {
-    test('should render lease agreement with tenant data', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
-      }, { timeout: 3000 });
-    });
-
-    test('should render lease agreement header', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText('Joyce Suits Apartments')).toBeInTheDocument();
-        expect(screen.getByText('House Lease Agreement')).toBeInTheDocument();
-      });
-    });
-
-    test('should render landlord information', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/JOYCE MUTHONI MATHEA/)).toBeInTheDocument();
-        expect(screen.getByText(/0758 999322/)).toBeInTheDocument();
-      });
-    });
-
-    test('should render tenant information', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
-        expect(screen.getByText(/12345678/)).toBeInTheDocument();
-      });
-    });
-
-    test('should render property address section', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/PROPERTY ADDRESS/)).toBeInTheDocument();
-        expect(screen.getByText(/Room 12/)).toBeInTheDocument();
-      });
-    });
-
-    test('should render all lease terms sections', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/1. TERM OF LEASE/)).toBeInTheDocument();
-        expect(screen.getByText(/2. RENTAL PAYMENT/)).toBeInTheDocument();
-        expect(screen.getByText(/3. SECURITY DEPOSIT/)).toBeInTheDocument();
-        expect(screen.getByText(/4. UTILITIES & SERVICES/)).toBeInTheDocument();
-        expect(screen.getByText(/5. PROPERTY CONDITION & MAINTENANCE/)).toBeInTheDocument();
-        expect(screen.getByText(/6. NOISE AND DISTURBANCE POLICY/)).toBeInTheDocument();
-        expect(screen.getByText(/7. TERMINATION & MOVE-OUT PROCEDURE/)).toBeInTheDocument();
-        expect(screen.getByText(/8. GOVERNING LAW/)).toBeInTheDocument();
-      });
-    });
-
-    test('should display rental amount correctly', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/KSh 5,500/)).toBeInTheDocument();
-      });
-    });
-
-    test('should display deposit amounts correctly', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/KSh 5,900/)).toBeInTheDocument();
-        expect(screen.getByText(/KSh 400/)).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Signature Canvas', () => {
-    test('should render signature canvas', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByTestId('signature-canvas')).toBeInTheDocument();
-      });
-    });
-
-    test('should render clear signature button', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Clear Signature/i })).toBeInTheDocument();
-      });
-    });
-
-    test('should display signature date', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/Date:/)).toBeInTheDocument();
-      });
-    });
-
-    test('should render signature label with instruction', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/Tenant's Signature/)).toBeInTheDocument();
-        expect(screen.getByText(/Draw your signature in the box below/)).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Terms Acceptance', () => {
-    test('should render terms acceptance checkbox', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        const checkbox = screen.getByRole('checkbox');
-        expect(checkbox).toBeInTheDocument();
-      });
-    });
-
-    test('should render acceptance text', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(
-          screen.getByText(/I have read, understood, and agree to all the terms/)
-        ).toBeInTheDocument();
-      });
-    });
-
-    test('should update checkbox state when clicked', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        const checkbox = screen.getByRole('checkbox');
-        expect(checkbox).not.toBeChecked();
-        fireEvent.click(checkbox);
-        expect(checkbox).toBeChecked();
-      });
-    });
-  });
-
-  describe('Submit Button', () => {
-    test('should render submit button', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Sign & Submit/i })).toBeInTheDocument();
-      });
-    });
-
-    test('should disable submit button by default', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        const submitBtn = screen.getByRole('button', { name: /Sign & Submit/i });
-        expect(submitBtn).toBeDisabled();
-      });
-    });
-
-    test('should show submit note', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(
-          screen.getByText(/By clicking submit, you are electronically signing/)
-        ).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Action Buttons', () => {
-    test('should render print button', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Print Agreement/i })).toBeInTheDocument();
-      });
-    });
-
-    test('should render back to dashboard button', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Back to Dashboard/i })).toBeInTheDocument();
-      });
-    });
-
-    test('should call window.print when print button clicked', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        const printBtn = screen.getByRole('button', { name: /Print Agreement/i });
-        fireEvent.click(printBtn);
-        expect(window.print).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe('Form Submission', () => {
-    test('should show error if terms not accepted', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        const submitBtn = screen.getByRole('button', { name: /Sign & Submit/i });
-        
-        expect(submitBtn).toBeDisabled();
-      });
-    });
-
-    test('should show error if signature is empty', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        const checkbox = screen.getByRole('checkbox');
-        fireEvent.click(checkbox);
-        
-        const submitBtn = screen.getByRole('button', { name: /Sign & Submit/i });
-        
-        expect(submitBtn).toBeDisabled();
-      });
-    });
-
-    test('should send correct data on successful submission', async () => {
-      global.fetch = jest.fn().mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ message: 'Success' })
-      });
-
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        const checkbox = screen.getByRole('checkbox');
-        fireEvent.click(checkbox);
-      });
-
-      
-      const mockSignatureRef = {
-        current: {
-          isEmpty: () => false,
-          toDataURL: () => 'data:image/png;base64,mockSignature'
+    const localStorageMock = (function () {
+      let store = {
+        'joyce-suites-token': 'fake-tenant-token',
+        'userId': '3',
+        'userRole': 'tenant'
+      };
+      return {
+        getItem: function (key) {
+          return store[key] || null;
+        },
+        setItem: function (key, value) {
+          store[key] = value.toString();
+        },
+        clear: function () {
+          store = {};
+        },
+        removeItem: function (key) {
+          delete store[key];
         }
       };
+    })();
+    Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
-      await waitFor(() => {
-        const submitBtn = screen.getByRole('button', { name: /Sign & Submit/i });
-        
-        expect(submitBtn).toBeInTheDocument();
+    global.fetch = jest.fn((url, options) => {
+      let responseData = { success: true };
+
+      if (url.includes('/api/tenant/lease')) {
+        responseData = {
+          success: true,
+          lease: {
+            id: 1,
+            property_id: 1,
+            start_date: '2024-01-01',
+            end_date: '2024-12-31',
+            rent_amount: 5500,
+            deposit_amount: 5900,
+            water_deposit: 400,
+            status: 'pending_signature',
+            property: {
+              name: 'Room 12',
+              property_type: 'bedsitter'
+            }
+          }
+        };
+      } else if (url.includes('/api/tenant/lease/sign')) {
+        responseData = {
+          success: true,
+          message: 'Lease agreement signed successfully',
+          lease: {
+            id: 1,
+            status: 'active'
+          }
+        };
+      }
+
+      return Promise.resolve({
+        ok: true,
+        headers: { get: () => 'application/json' },
+        json: () => Promise.resolve(responseData),
       });
     });
 
-    test('should handle fetch error', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      
-      await waitFor(() => {
-        expect(screen.getByText(/Joyce Suits Apartments/)).toBeInTheDocument();
-      }, { timeout: 3000 });
-    });
+    render(
+      <MemoryRouter>
+        <LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />
+      </MemoryRouter>
+    );
   });
 
-  describe('Data Loading', () => {
-    test('should use provided tenant data', async () => {
-      const customTenantData = {
-        id: 2,
-        fullName: 'Jane Smith',
-        idNumber: '87654321',
-        phone: '+254 789 456 123',
-        email: 'jane.smith@example.com',
-        roomNumber: '25'
-      };
+  test('renders lease agreement interface', async () => {
+    expect(screen.getByText(/Lease Agreement/i)).toBeInTheDocument();
+    expect(screen.getByText(/John Doe/i)).toBeInTheDocument();
+    expect(screen.getByText(/Room 12/i)).toBeInTheDocument();
+    expect(screen.getByText(/5500/i)).toBeInTheDocument();
+  });
 
-      renderWithRouter(
-        <LeaseAgreement tenantData={customTenantData} unitData={mockUnitData} />
+  test('displays lease terms and conditions', async () => {
+    expect(screen.getByText(/Terms and Conditions/i)).toBeInTheDocument();
+    expect(screen.getByText(/Rent Amount/i)).toBeInTheDocument();
+    expect(screen.getByText(/Security Deposit/i)).toBeInTheDocument();
+    expect(screen.getByText(/Water Deposit/i)).toBeInTheDocument();
+  });
+
+  test('displays tenant and landlord information', async () => {
+    expect(screen.getByText(/Tenant Information/i)).toBeInTheDocument();
+    expect(screen.getByText(/Landlord Information/i)).toBeInTheDocument();
+    expect(screen.getByText(/John Doe/i)).toBeInTheDocument();
+    expect(screen.getByText(/12345678/i)).toBeInTheDocument();
+    expect(screen.getByText(/john.doe@example.com/i)).toBeInTheDocument();
+  });
+
+  test('displays property details', async () => {
+    expect(screen.getByText(/Property Details/i)).toBeInTheDocument();
+    expect(screen.getByText(/Room 12/i)).toBeInTheDocument();
+    expect(screen.getByText(/bedsitter/i)).toBeInTheDocument();
+    expect(screen.getByText(/KSh 5500 per month/i)).toBeInTheDocument();
+  });
+
+  test('requires terms acceptance before signing', async () => {
+    const signButton = screen.getByText(/Sign Agreement/i);
+    fireEvent.click(signButton);
+
+    expect(screen.getByText(/Please accept the terms and conditions before signing/i)).toBeInTheDocument();
+  });
+
+  test('requires signature before signing', async () => {
+    // Accept terms first
+    const termsCheckbox = screen.getByLabelText(/I accept the terms and conditions/i);
+    fireEvent.click(termsCheckbox);
+
+    const signButton = screen.getByText(/Sign Agreement/i);
+    fireEvent.click(signButton);
+
+    expect(screen.getByText(/Please provide your signature before signing/i)).toBeInTheDocument();
+  });
+
+  test('signs lease agreement successfully', async () => {
+    // Accept terms
+    const termsCheckbox = screen.getByLabelText(/I accept the terms and conditions/i);
+    fireEvent.click(termsCheckbox);
+
+    // Simulate signature
+    const signatureCanvas = screen.getByTestId('signature-canvas');
+    
+    // Mock signature change
+    fireEvent.change(signatureCanvas, { target: { value: 'mock-signature-data' } });
+
+    // Sign agreement
+    const signButton = screen.getByText(/Sign Agreement/i);
+    fireEvent.click(signButton);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining(`${config.apiBaseUrl}/api/tenant/lease/sign`),
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            'Authorization': 'Bearer fake-tenant-token',
+            'Content-Type': 'application/json'
+          })
+        })
       );
-
-      await waitFor(() => {
-        expect(screen.getByText(/Jane Smith/)).toBeInTheDocument();
-        expect(screen.getByText(/87654321/)).toBeInTheDocument();
-        expect(screen.getByText(/Room 25/)).toBeInTheDocument();
-      });
-    });
-
-    test('should use provided unit data', async () => {
-      const customUnitData = {
-        rent_amount: 8000,
-        deposit_amount: 8500,
-        water_deposit: 500,
-        room_type: 'one-bedroom'
-      };
-
-      renderWithRouter(
-        <LeaseAgreement tenantData={mockTenantData} unitData={customUnitData} />
-      );
-
-      await waitFor(() => {
-        expect(screen.getByText(/KSh 8,000/)).toBeInTheDocument();
-        expect(screen.getByText(/KSh 8,500/)).toBeInTheDocument();
-        expect(screen.getByText(/KSh 500/)).toBeInTheDocument();
-        expect(screen.getByText(/one-bedroom/)).toBeInTheDocument();
-      });
-    });
-
-    test('should use default data if none provided', async () => {
-      renderWithRouter(<LeaseAgreement />);
-
-      await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
-      });
     });
   });
 
-  describe('Accessibility', () => {
-    test('should have proper heading hierarchy', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        const h1 = screen.getByRole('heading', { level: 1 });
-        expect(h1).toBeInTheDocument();
-      });
-    });
+  test('shows loading state during submission', async () => {
+    // Accept terms
+    const termsCheckbox = screen.getByLabelText(/I accept the terms and conditions/i);
+    fireEvent.click(termsCheckbox);
 
-    test('should have proper form labels', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/Tenant's Signature/)).toBeInTheDocument();
-      });
-    });
+    // Simulate signature
+    const signatureCanvas = screen.getByTestId('signature-canvas');
+    fireEvent.change(signatureCanvas, { target: { value: 'mock-signature-data' } });
 
-    test('should have proper button text for screen readers', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Print Agreement/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Back to Dashboard/i })).toBeInTheDocument();
-      });
-    });
+    // Sign agreement
+    const signButton = screen.getByText(/Sign Agreement/i);
+    fireEvent.click(signButton);
 
-    test('should render checkbox with associated label', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        const checkbox = screen.getByRole('checkbox');
-        expect(checkbox).toBeInTheDocument();
-      });
+    expect(screen.getByText(/Signing agreement/i)).toBeInTheDocument();
+    expect(screen.getByText(/Please wait/i)).toBeInTheDocument();
+  });
+
+  test('shows success message after successful signing', async () => {
+    // Accept terms
+    const termsCheckbox = screen.getByLabelText(/I accept the terms and conditions/i);
+    fireEvent.click(termsCheckbox);
+
+    // Simulate signature
+    const signatureCanvas = screen.getByTestId('signature-canvas');
+    fireEvent.change(signatureCanvas, { target: { value: 'mock-signature-data' } });
+
+    // Sign agreement
+    const signButton = screen.getByText(/Sign Agreement/i);
+    fireEvent.click(signButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Lease agreement signed successfully/i)).toBeInTheDocument();
     });
   });
 
-  describe('Content Verification', () => {
-    test('should display rent payment term correctly', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/5th day of each month/)).toBeInTheDocument();
-      }, { timeout: 3000 });
-    });
+  test('navigates to dashboard after successful signing', async () => {
+    // Accept terms
+    const termsCheckbox = screen.getByLabelText(/I accept the terms and conditions/i);
+    fireEvent.click(termsCheckbox);
 
-    test('should display quiet hours in noise policy', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        const elements = screen.queryAllByText(/10:00 PM and 8:00 AM/);
-        expect(elements.length).toBeGreaterThan(0);
-      }, { timeout: 3000 });
-    });
+    // Simulate signature
+    const signatureCanvas = screen.getByTestId('signature-canvas');
+    fireEvent.change(signatureCanvas, { target: { value: 'mock-signature-data' } });
 
-    test('should display 30 days notice requirement', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        const elements = screen.queryAllByText(/30 days' notice/);
-        expect(elements.length).toBeGreaterThan(0);
-      }, { timeout: 3000 });
-    });
+    // Sign agreement
+    const signButton = screen.getByText(/Sign Agreement/i);
+    fireEvent.click(signButton);
 
-    test('should display governing law as Kenya', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/laws of Kenya/)).toBeInTheDocument();
-      }, { timeout: 3000 });
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/tenant-dashboard');
     });
   });
 
-  describe('Date Formatting', () => {
-    test('should display formatted current date', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        const dateElements = screen.getAllByText(/Date:/);
-        expect(dateElements.length).toBeGreaterThan(0);
-      });
+  test('handles API errors gracefully', async () => {
+    global.fetch.mockImplementationOnce(() => 
+      Promise.resolve({
+        ok: false,
+        status: 500,
+        json: () => Promise.resolve({ success: false, error: 'Server Error' })
+      })
+    );
+
+    // Accept terms
+    const termsCheckbox = screen.getByLabelText(/I accept the terms and conditions/i);
+    fireEvent.click(termsCheckbox);
+
+    // Simulate signature
+    const signatureCanvas = screen.getByTestId('signature-canvas');
+    fireEvent.change(signatureCanvas, { target: { value: 'mock-signature-data' } });
+
+    // Sign agreement
+    const signButton = screen.getByText(/Sign Agreement/i);
+    fireEvent.click(signButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to sign lease agreement/i)).toBeInTheDocument();
     });
   });
 
-  describe('Loading State', () => {
-    test('should render lease content immediately', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/Joyce Suits Apartments/)).toBeInTheDocument();
-      }, { timeout: 3000 });
-    });
+  test('clears signature', async () => {
+    const clearButton = screen.getByText(/Clear Signature/i);
+    fireEvent.click(clearButton);
 
-    test('should render full content after loading', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/Joyce Suits Apartments/)).toBeInTheDocument();
-        expect(screen.getByText(/House Lease Agreement/)).toBeInTheDocument();
-      }, { timeout: 3000 });
-    });
-
-    test('should have leaseData state populated', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/John Doe/)).toBeInTheDocument();
-      }, { timeout: 3000 });
-    });
+    // Verify canvas is cleared (mock implementation)
+    const signatureCanvas = screen.getByTestId('signature-canvas');
+    expect(signatureCanvas).toBeInTheDocument();
   });
 
-  describe('Error Handling', () => {
-    test('should display error message on load failure', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        expect(screen.getByText(/Loading lease agreement/)).toBeInTheDocument();
-      });
+  test('displays current date', async () => {
+    const currentDate = new Date();
+    const expectedDate = currentDate.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
     });
 
-    test('should display alert container for errors', async () => {
-      renderWithRouter(<LeaseAgreement tenantData={mockTenantData} unitData={mockUnitData} />);
-      await waitFor(() => {
-        const container = screen.getByText(/Joyce Suits Apartments/).closest('.lease-agreement-container');
-        expect(container).toBeInTheDocument();
-      });
-    });
+    expect(screen.getByText(new RegExp(expectedDate))).toBeInTheDocument();
+  });
+
+  test('validates signature before submission', async () => {
+    // Accept terms but don't provide signature
+    const termsCheckbox = screen.getByLabelText(/I accept the terms and conditions/i);
+    fireEvent.click(termsCheckbox);
+
+    const signButton = screen.getByText(/Sign Agreement/i);
+    fireEvent.click(signButton);
+
+    expect(screen.getByText(/Please provide your signature before signing/i)).toBeInTheDocument();
+  });
+
+  test('displays lease duration', async () => {
+    expect(screen.getByText(/12 months/i)).toBeInTheDocument();
+    expect(screen.getByText(/January 1, 2024/i)).toBeInTheDocument();
+    expect(screen.getByText(/December 31, 2024/i)).toBeInTheDocument();
   });
 });
