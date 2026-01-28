@@ -1,7 +1,13 @@
 
+import os
+from dotenv import load_dotenv
+
 from app import create_app, db
 from models.property import Property
 from models.user import User
+
+# Load environment variables
+load_dotenv()
 
 def seed_rooms():
     """Add all rooms to the database with correct pricing and payment details"""
@@ -30,7 +36,7 @@ def seed_rooms():
                 national_id=99999999,
                 is_active=True
             )
-            admin.password = 'Admin@123456'  # Use the password setter
+            admin.password = os.getenv('DEFAULT_ADMIN_PASSWORD', 'Admin@123456')  # Use environment variable
             db.session.add(admin)
             print("✅ Admin user created: admin@joycesuites.com / Admin@123456")
         else:
@@ -49,7 +55,7 @@ def seed_rooms():
                 national_id=66183870,
                 is_active=True
             )
-            joyce.password = 'Password@123'
+            joyce.password = os.getenv('DEFAULT_LANDLORD_PASSWORD', 'Password@123')
             db.session.add(joyce)
             print("✅ Joyce Muthoni created")
         
@@ -66,7 +72,7 @@ def seed_rooms():
                 national_id=10000011,
                 is_active=True
             )
-            lawrence.password = 'Password@123'
+            lawrence.password = os.getenv('DEFAULT_LANDLORD_PASSWORD', 'Password@123')
             db.session.add(lawrence)
             print("✅ Lawrence Mathea created")
         
@@ -84,7 +90,7 @@ def seed_rooms():
                 national_id=88888888,
                 is_active=True
             )
-            caretaker.password = 'Caretaker123!'
+            caretaker.password = os.getenv('DEFAULT_CARETAKER_PASSWORD', 'Caretaker123!')
             db.session.add(caretaker)
             print("✅ Caretaker user created: caretaker@joycesuites.com / Caretaker123!")
         else:
@@ -166,10 +172,10 @@ def seed_rooms():
         print(f"  • Lawrence Mathea: Paybill 222222 (Account: 54544)")
         
         print("\n🔑 DEFAULT CREDENTIALS:")
-        print(f"  • Admin:     admin@joycesuites.com / Admin@123456")
-        print(f"  • Caretaker: caretaker@joycesuites.com / Caretaker123!")
-        print(f"  • Landlord1: joyce@joycesuites.com / Password@123")
-        print(f"  • Landlord2: lawrence@joycesuites.com / Password@123")
+        print(f"  • Admin:     admin@joycesuites.com / {os.getenv('DEFAULT_ADMIN_PASSWORD', 'Admin@123456')}")
+        print(f"  • Caretaker: caretaker@joycesuites.com / {os.getenv('DEFAULT_CARETAKER_PASSWORD', 'Caretaker123!')}")
+        print(f"  • Landlord1: joyce@joycesuites.com / {os.getenv('DEFAULT_LANDLORD_PASSWORD', 'Password@123')}")
+        print(f"  • Landlord2: lawrence@joycesuites.com / {os.getenv('DEFAULT_LANDLORD_PASSWORD', 'Password@123')}")
         
         print("\n🎉 Seeding complete!")
 
