@@ -1,0 +1,28 @@
+# Testing requirements for Joyce Suites Water Bill System
+
+# Core testing framework
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-flask==1.2.0
+
+# HTTP testing
+requests==2.31.0
+
+# Database testing
+sqlalchemy==2.0.23
+
+# Flask testing
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+
+# Date/time utilities
+python-dateutil==2.8.2
+
+# JSON handling (already in main requirements but included for completeness)
+
+# Development and debugging
+pytest-xdist==3.3.1  # Parallel test execution
+pytest-mock==3.12.0  # Mocking support
+pytest-html==4.1.1  # HTML test reports
+# Additional testing for financial calculations
+decimal==1.70       # Precise decimal arithmetic

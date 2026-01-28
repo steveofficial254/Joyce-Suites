@@ -260,51 +260,6 @@ def get_tenant_deposit_records(tenant_id):
         return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
 
 
-@rent_deposit_bp.route('/deposit/mark-payment', methods=['POST'])
-@token_required
-@role_required(['caretaker'])
-def mark_deposit_payment():
-    """Mark deposit payment by caretaker"""
-    current_user = db.session.get(User, request.user_id)
-    try:
-        data = request.get_json()
-        
-        deposit_id = data.get('deposit_id')
-        amount_paid = data.get('amount_paid')
-        payment_method = data.get('payment_method')
-        payment_reference = data.get('payment_reference')
-        notes = data.get('notes')
-        
-        if not deposit_id or not amount_paid:
-            return jsonify({'error': 'deposit_id and amount_paid are required'}), 400
-        
-        deposit_record = db.session.get(DepositRecord, deposit_id)
-        if not deposit_record:
-            return jsonify({'error': 'Deposit record not found'}), 404
-        
-        # Mark payment
-        deposit_record.mark_payment(
-            amount_paid=amount_paid,
-            caretaker_id=current_user.id,
-            payment_method=payment_method,
-            payment_reference=payment_reference,
-            notes=notes
-        )
-        
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Deposit payment marked successfully',
-            'deposit_record': deposit_record.to_dict()
-        }), 200
-        
-    except Exception as e:
-        db.session.rollback()
-        import traceback
-        current_app.logger.error(f"Error in {request.path}: {str(e)}\n{traceback.format_exc()}")
-        return jsonify({'error': str(e)}), 500
-
-
 @rent_deposit_bp.route('/deposit/mark-refund', methods=['POST'])
 @token_required
 @role_required(['admin'])
@@ -649,51 +604,6 @@ def create_water_bill():
         return jsonify({'error': str(e)}), 500
 
 
-@rent_deposit_bp.route('/water-bill/mark-payment', methods=['POST'])
-@token_required
-@role_required(['caretaker'])
-def mark_water_bill_payment():
-    """Mark water bill payment by caretaker"""
-    current_user = db.session.get(User, request.user_id)
-    try:
-        data = request.get_json()
-        
-        water_bill_id = data.get('water_bill_id')
-        amount_paid = data.get('amount_paid')
-        payment_method = data.get('payment_method')
-        payment_reference = data.get('payment_reference')
-        notes = data.get('notes')
-        
-        if not water_bill_id or not amount_paid:
-            return jsonify({'error': 'water_bill_id and amount_paid are required'}), 400
-        
-        water_bill = db.session.get(WaterBill, water_bill_id)
-        if not water_bill:
-            return jsonify({'error': 'Water bill not found'}), 404
-        
-        # Mark payment
-        water_bill.mark_payment(
-            amount_paid=amount_paid,
-            caretaker_id=current_user.id,
-            payment_method=payment_method,
-            payment_reference=payment_reference,
-            notes=notes
-        )
-        
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Water bill payment marked successfully',
-            'water_bill': water_bill.to_dict()
-        }), 200
-        
-    except Exception as e:
-        db.session.rollback()
-        import traceback
-        current_app.logger.error(f"Error in {request.path}: {str(e)}\n{traceback.format_exc()}")
-        return jsonify({'error': str(e)}), 500
-
-
 @rent_deposit_bp.route('/water-bill/bulk-create', methods=['POST'])
 @token_required
 @role_required(['caretaker'])
@@ -886,3 +796,561 @@ def run_overdue_checks():
         import traceback
         current_app.logger.error(f"Error in {request.path}: {str(e)}\n{traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
+
+
+# Water Bill Management Routes for Caretakers
+@rent_deposit_bp.route('/water-bill/record-readings', methods=['POST'])
+@token_required
+@role_required(['admin', 'caretaker'])
+def record_water_readings():
+    """Record water readings for all tenants for a specific month"""
+    current_user = db.session.get(User, request.user_id)
+    try:
+        data = request.get_json()
+        month = data.get('month')
+        year = data.get('year')
+        unit_rate = data.get('unit_rate', 50.0)  # Default rate per unit
+        readings = data.get('readings', [])  # List of {tenant_id, current_reading, previous_reading}
+        
+        if not month or not year:
+            return jsonify({'success': False, 'error': 'Month and year are required'}), 400
+        
+        if not readings:
+            return jsonify({'success': False, 'error': 'At least one reading is required'}), 400
+        
+        created_bills = []
+        updated_bills = []
+        errors = []
+        
+        for reading_data in readings:
+            try:
+                tenant_id = reading_data.get('tenant_id')
+                current_reading = reading_data.get('current_reading')
+                previous_reading = reading_data.get('previous_reading', 0)
+                
+                if not tenant_id or current_reading is None:
+                    errors.append(f"Invalid reading data for tenant {tenant_id}")
+                    continue
+                
+                # Get tenant's active lease
+                active_lease = Lease.query.filter_by(
+                    tenant_id=tenant_id, 
+                    status='active'
+                ).first()
+                
+                if not active_lease:
+                    errors.append(f"No active lease found for tenant {tenant_id}")
+                    continue
+                
+                # Check if water bill already exists for this month/year
+                existing_bill = WaterBill.query.filter_by(
+                    tenant_id=tenant_id,
+                    month=month,
+                    year=year
+                ).first()
+                
+                if existing_bill:
+                    # Update existing bill
+                    existing_bill.current_reading = current_reading
+                    existing_bill.previous_reading = previous_reading
+                    existing_bill.unit_rate = unit_rate
+                    existing_bill.recorded_by_caretaker_id = current_user.id
+                    existing_bill.calculate_amount()
+                    updated_bills.append(existing_bill)
+                else:
+                    # Create new water bill
+                    water_bill = WaterBill.create_monthly_bill(
+                        tenant=active_lease.tenant,
+                        property=active_lease.property,
+                        lease=active_lease,
+                        current_reading=current_reading,
+                        previous_reading=previous_reading,
+                        unit_rate=unit_rate,
+                        caretaker_id=current_user.id,
+                        month=month,
+                        year=year
+                    )
+                    db.session.add(water_bill)
+                    created_bills.append(water_bill)
+                    
+            except Exception as e:
+                errors.append(f"Error processing reading for tenant {tenant_id}: {str(e)}")
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Processed {len(created_bills + updated_bills)} water bills successfully',
+            'created_bills': len(created_bills),
+            'updated_bills': len(updated_bills),
+            'errors': errors,
+            'bills': [bill.to_dict() for bill in created_bills + updated_bills]
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error recording water readings: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to record water readings: {str(e)}'}), 500
+
+@rent_deposit_bp.route('/water-bill/tenants-with-readings', methods=['GET'])
+@token_required
+@role_required(['admin', 'caretaker'])
+def get_tenants_for_water_readings():
+    """Get all tenants with their properties and last water readings for recording new readings"""
+    try:
+        month = request.args.get('month', datetime.now().month, type=int)
+        year = request.args.get('year', datetime.now().year, type=int)
+        
+        # Get all tenants with active leases
+        active_leases = Lease.query.filter_by(status='active').all()
+        
+        tenants_data = []
+        for lease in active_leases:
+            # Get last water bill for previous reading
+            last_water_bill = WaterBill.query.filter_by(tenant_id=lease.tenant_id)\
+                .order_by(WaterBill.year.desc(), WaterBill.month.desc())\
+                .first()
+            
+            # Check if bill already exists for current month
+            current_month_bill = WaterBill.query.filter_by(
+                tenant_id=lease.tenant_id,
+                month=month,
+                year=year
+            ).first()
+            
+            tenants_data.append({
+                'tenant_id': lease.tenant_id,
+                'tenant_name': lease.tenant.full_name,
+                'tenant_email': lease.tenant.email,
+                'property_id': lease.property_id,
+                'property_name': lease.property.name,
+                'lease_id': lease.id,
+                'last_reading': float(last_water_bill.current_reading) if last_water_bill else 0,
+                'last_month': last_water_bill.month if last_water_bill else None,
+                'last_year': last_water_bill.year if last_water_bill else None,
+                'current_month_bill_exists': current_month_bill is not None,
+                'current_month_bill': current_month_bill.to_dict() if current_month_bill else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'tenants': tenants_data,
+            'month': month,
+            'year': year,
+            'total_tenants': len(tenants_data)
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching tenants for water readings: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to fetch tenants: {str(e)}'}), 500
+
+@rent_deposit_bp.route('/water-bill/mark-payment', methods=['POST'])
+@token_required
+@role_required(['admin', 'caretaker'])
+def mark_water_bill_payment():
+    """Mark water bill payment for a tenant"""
+    current_user = db.session.get(User, request.user_id)
+    try:
+        data = request.get_json()
+        bill_id = data.get('bill_id')
+        amount_paid = data.get('amount_paid')
+        payment_method = data.get('payment_method')
+        payment_reference = data.get('payment_reference')
+        notes = data.get('notes')
+        
+        if not bill_id or amount_paid is None:
+            return jsonify({'success': False, 'error': 'Bill ID and amount paid are required'}), 400
+        
+        water_bill = WaterBill.query.get(bill_id)
+        if not water_bill:
+            return jsonify({'success': False, 'error': 'Water bill not found'}), 404
+        
+        # Record payment
+        water_bill.mark_payment(
+            amount_paid=amount_paid,
+            caretaker_id=current_user.id,
+            payment_method=payment_method,
+            payment_reference=payment_reference,
+            notes=notes
+        )
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Water bill payment recorded successfully',
+            'water_bill': water_bill.to_dict()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error marking water bill payment: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to record payment: {str(e)}'}), 500
+
+@rent_deposit_bp.route('/water-bill/send-notifications', methods=['POST'])
+@token_required
+@role_required(['admin', 'caretaker'])
+def send_water_bill_notifications():
+    """Send notifications for unpaid water bills (5th day and overdue)"""
+    try:
+        data = request.get_json()
+        notification_type = data.get('type', '5th')  # '5th' or 'overdue'
+        
+        now = datetime.now(timezone.utc)
+        notifications_sent = []
+        
+        if notification_type == '5th':
+            # Send 5th day notifications
+            water_bills = WaterBill.query.filter(
+                and_(
+                    WaterBill.status != WaterBillStatus.PAID,
+                    WaterBill.notification_sent_5th == False,
+                    WaterBill.month == now.month,
+                    WaterBill.year == now.year
+                )
+            ).all()
+            
+            for bill in water_bills:
+                if bill.should_send_5th_notification():
+                    # Create notification
+                    notification = Notification(
+                        user_id=bill.tenant_id,
+                        title="Water Bill Due",
+                        message=f"Your water bill for {bill.month}/{bill.year} is KES {bill.amount_due:,.2f}. Due date: {bill.due_date.strftime('%B %d, %Y')}. Please pay on time.",
+                        type="water_bill_due",
+                        is_read=False
+                    )
+                    db.session.add(notification)
+                    bill.mark_notification_sent('5th')
+                    notifications_sent.append({
+                        'tenant_id': bill.tenant_id,
+                        'tenant_name': bill.tenant.full_name,
+                        'amount': float(bill.amount_due),
+                        'due_date': bill.due_date.isoformat()
+                    })
+        
+        elif notification_type == 'overdue':
+            # Send overdue notifications
+            water_bills = WaterBill.query.filter(
+                and_(
+                    WaterBill.status == WaterBillStatus.OVERDUE,
+                    WaterBill.notification_sent_overdue == False
+                )
+            ).all()
+            
+            for bill in water_bills:
+                if bill.should_send_overdue_notification():
+                    # Create notification
+                    notification = Notification(
+                        user_id=bill.tenant_id,
+                        title="Water Bill Overdue",
+                        message=f"Your water bill of KES {bill.balance:,.2f} for {bill.month}/{bill.year} is overdue. Immediate payment required to avoid service interruption.",
+                        type="water_bill_overdue",
+                        is_read=False
+                    )
+                    db.session.add(notification)
+                    bill.mark_notification_sent('overdue')
+                    notifications_sent.append({
+                        'tenant_id': bill.tenant_id,
+                        'tenant_name': bill.tenant.full_name,
+                        'balance': float(bill.balance),
+                        'days_overdue': (now - bill.due_date).days
+                    })
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Sent {len(notifications_sent)} water bill notifications',
+            'notifications_sent': notifications_sent
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error sending water bill notifications: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to send notifications: {str(e)}'}), 500
+
+@rent_deposit_bp.route('/water-bill/summary', methods=['GET'])
+@token_required
+@role_required(['admin', 'caretaker'])
+def get_water_bill_summary():
+    """Get water bill summary for a specific month"""
+    try:
+        month = request.args.get('month', datetime.now().month, type=int)
+        year = request.args.get('year', datetime.now().year, type=int)
+        
+        water_bills = WaterBill.query.filter_by(month=month, year=year).all()
+        
+        total_bills = len(water_bills)
+        total_amount_due = sum(float(bill.amount_due) for bill in water_bills)
+        total_amount_paid = sum(float(bill.amount_paid) for bill in water_bills)
+        total_balance = sum(float(bill.balance) for bill in water_bills)
+        
+        status_counts = {
+            'unpaid': len([b for b in water_bills if b.status == WaterBillStatus.UNPAID]),
+            'partially_paid': len([b for b in water_bills if b.status == WaterBillStatus.PARTIALLY_PAID]),
+            'paid': len([b for b in water_bills if b.status == WaterBillStatus.PAID]),
+            'overdue': len([b for b in water_bills if b.status == WaterBillStatus.OVERDUE])
+        }
+        
+        return jsonify({
+            'success': True,
+            'summary': {
+                'month': month,
+                'year': year,
+                'total_bills': total_bills,
+                'total_amount_due': total_amount_due,
+                'total_amount_paid': total_amount_paid,
+                'total_balance': total_balance,
+                'status_counts': status_counts,
+                'collection_rate': (total_amount_paid / total_amount_due * 100) if total_amount_due > 0 else 0
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting water bill summary: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to get summary: {str(e)}'}), 500
+
+
+# Deposit Management Routes for Caretakers
+@rent_deposit_bp.route('/deposit/tenants-with-deposits', methods=['GET'])
+@token_required
+@role_required(['admin', 'caretaker'])
+def get_tenants_for_deposits():
+    """Get all tenants with their deposit status for management"""
+    try:
+        # Get all tenants with active leases
+        active_leases = Lease.query.filter_by(status='active').all()
+        
+        tenants_data = []
+        for lease in active_leases:
+            # Get or create deposit record for this tenant
+            deposit_record = DepositRecord.query.filter_by(lease_id=lease.id).first()
+            
+            if not deposit_record:
+                # Create deposit record if it doesn't exist
+                deposit_record = DepositRecord.create_deposit_record(
+                    tenant=lease.tenant,
+                    property_obj=lease.property,
+                    lease=lease,
+                    amount_required=lease.deposit_amount
+                )
+                db.session.add(deposit_record)
+                db.session.commit()
+            
+            tenants_data.append({
+                'tenant_id': lease.tenant_id,
+                'tenant_name': lease.tenant.full_name,
+                'tenant_email': lease.tenant.email,
+                'property_id': lease.property_id,
+                'property_name': lease.property.name,
+                'lease_id': lease.id,
+                'deposit_record': deposit_record.to_dict()
+            })
+        
+        return jsonify({
+            'success': True,
+            'tenants': tenants_data,
+            'total_tenants': len(tenants_data)
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching tenants for deposits: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to fetch tenants: {str(e)}'}), 500
+
+@rent_deposit_bp.route('/deposit/mark-payment', methods=['POST'])
+@token_required
+@role_required(['admin', 'caretaker'])
+def mark_deposit_payment():
+    """Mark deposit payment for a tenant"""
+    current_user = db.session.get(User, request.user_id)
+    try:
+        data = request.get_json()
+        deposit_id = data.get('deposit_id')
+        amount_paid = data.get('amount_paid')
+        payment_method = data.get('payment_method')
+        payment_reference = data.get('payment_reference')
+        notes = data.get('notes')
+        send_notification = data.get('send_notification', True)
+        
+        if not deposit_id or amount_paid is None:
+            return jsonify({'success': False, 'error': 'Deposit ID and amount paid are required'}), 400
+        
+        deposit_record = DepositRecord.query.get(deposit_id)
+        if not deposit_record:
+            return jsonify({'success': False, 'error': 'Deposit record not found'}), 404
+        
+        # Record payment
+        deposit_record.mark_payment(
+            amount_paid=amount_paid,
+            caretaker_id=current_user.id,
+            payment_method=payment_method,
+            payment_reference=payment_reference,
+            notes=notes
+        )
+        
+        # Send notification to tenant if requested and payment is complete
+        if send_notification and deposit_record.status == DepositStatus.PAID:
+            notification = Notification(
+                user_id=deposit_record.tenant_id,
+                title="Deposit Payment Confirmed",
+                message=f"Your deposit payment of KES {amount_paid:,.2f} has been confirmed. Your deposit status is now PAID.",
+                type="deposit_payment",
+                is_read=False
+            )
+            db.session.add(notification)
+            deposit_record.mark_payment_notification_sent()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Deposit payment recorded successfully',
+            'deposit_record': deposit_record.to_dict()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error marking deposit payment: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to record payment: {str(e)}'}), 500
+
+@rent_deposit_bp.route('/deposit/update-status', methods=['POST'])
+@token_required
+@role_required(['admin', 'caretaker'])
+def update_deposit_status():
+    """Update deposit status (mark as paid/unpaid)"""
+    current_user = db.session.get(User, request.user_id)
+    try:
+        data = request.get_json()
+        deposit_id = data.get('deposit_id')
+        status = data.get('status')  # 'paid' or 'unpaid'
+        amount_paid = data.get('amount_paid')
+        payment_method = data.get('payment_method')
+        payment_reference = data.get('payment_reference')
+        notes = data.get('notes')
+        send_notification = data.get('send_notification', True)
+        
+        if not deposit_id or not status:
+            return jsonify({'success': False, 'error': 'Deposit ID and status are required'}), 400
+        
+        if status not in ['paid', 'unpaid']:
+            return jsonify({'success': False, 'error': 'Status must be "paid" or "unpaid"'}), 400
+        
+        deposit_record = DepositRecord.query.get(deposit_id)
+        if not deposit_record:
+            return jsonify({'success': False, 'error': 'Deposit record not found'}), 404
+        
+        if status == 'paid':
+            # Mark as paid
+            if amount_paid is None:
+                amount_paid = deposit_record.amount_required
+            
+            deposit_record.mark_payment(
+                amount_paid=amount_paid,
+                caretaker_id=current_user.id,
+                payment_method=payment_method,
+                payment_reference=payment_reference,
+                notes=notes
+            )
+            
+            # Send notification
+            if send_notification:
+                notification = Notification(
+                    user_id=deposit_record.tenant_id,
+                    title="Deposit Payment Confirmed",
+                    message=f"Your deposit payment of KES {amount_paid:,.2f} has been confirmed. Your deposit status is now PAID.",
+                    type="deposit_payment",
+                    is_read=False
+                )
+                db.session.add(notification)
+                deposit_record.mark_payment_notification_sent()
+        
+        elif status == 'unpaid':
+            # Mark as unpaid
+            deposit_record.amount_paid = 0.0
+            deposit_record.paid_by_caretaker_id = None
+            deposit_record.payment_date = None
+            deposit_record.payment_method = None
+            deposit_record.payment_reference = None
+            deposit_record.notes = notes
+            deposit_record.calculate_balance()
+            
+            # Send notification
+            if send_notification:
+                notification = Notification(
+                    user_id=deposit_record.tenant_id,
+                    title="Deposit Status Updated",
+                    message="Your deposit status has been updated to UNPAID. Please contact the caretaker for more information.",
+                    type="deposit_status",
+                    is_read=False
+                )
+                db.session.add(notification)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Deposit status updated to {status.upper()} successfully',
+            'deposit_record': deposit_record.to_dict()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error updating deposit status: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to update status: {str(e)}'}), 500
+
+@rent_deposit_bp.route('/deposit/summary', methods=['GET'])
+@token_required
+@role_required(['admin', 'caretaker'])
+def get_deposit_summary():
+    """Get deposit summary statistics"""
+    try:
+        # Get all deposit records
+        deposit_records = DepositRecord.query.all()
+        
+        total_deposits = len(deposit_records)
+        total_amount_required = sum(float(record.amount_required) for record in deposit_records)
+        total_amount_paid = sum(float(record.amount_paid) for record in deposit_records)
+        total_balance = sum(float(record.balance) for record in deposit_records)
+        
+        status_counts = {
+            'unpaid': len([r for r in deposit_records if r.status == DepositStatus.UNPAID]),
+            'paid': len([r for r in deposit_records if r.status == DepositStatus.PAID]),
+            'refunded': len([r for r in deposit_records if r.status == DepositStatus.REFUNDED]),
+            'partially_refunded': len([r for r in deposit_records if r.status == DepositStatus.PARTIALLY_REFUNDED])
+        }
+        
+        # Property breakdown
+        property_breakdown = {}
+        for record in deposit_records:
+            prop_name = record.property.name if record.property else 'Unknown'
+            if prop_name not in property_breakdown:
+                property_breakdown[prop_name] = {
+                    'total_deposits': 0,
+                    'total_required': 0,
+                    'total_paid': 0,
+                    'total_balance': 0,
+                    'status_counts': {'unpaid': 0, 'paid': 0, 'refunded': 0, 'partially_refunded': 0}
+                }
+            property_breakdown[prop_name]['total_deposits'] += 1
+            property_breakdown[prop_name]['total_required'] += float(record.amount_required)
+            property_breakdown[prop_name]['total_paid'] += float(record.amount_paid)
+            property_breakdown[prop_name]['total_balance'] += float(record.balance)
+            property_breakdown[prop_name]['status_counts'][record.status.value] += 1
+        
+        return jsonify({
+            'success': True,
+            'summary': {
+                'total_deposits': total_deposits,
+                'total_amount_required': total_amount_required,
+                'total_amount_paid': total_amount_paid,
+                'total_balance': total_balance,
+                'collection_rate': (total_amount_paid / total_amount_required * 100) if total_amount_required > 0 else 0,
+                'status_counts': status_counts,
+                'property_breakdown': property_breakdown
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting deposit summary: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to get summary: {str(e)}'}), 500

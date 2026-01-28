@@ -408,19 +408,44 @@ def update_profile():
         return jsonify({"success": False, "error": f"Failed to update profile: {str(e)}"}), 500
 
 
-@auth_bp.route("/rooms/available", methods=["GET"])
+@auth_bp.route("/rooms/available", methods=["GET", "OPTIONS"])
 def get_available_rooms():
     """
     Get all available rooms for tenant registration.
     This is a public endpoint that doesn't require authentication.
     """
+    # Handle preflight OPTIONS request
+    if request.method == "OPTIONS":
+        response = current_app.make_default_options_response()
+        origin = request.headers.get('Origin')
+        if origin in ["https://joyce-suites.vercel.app", "https://joyce-suites-jcfw.vercel.app", "https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app"]:
+            response.headers.set('Access-Control-Allow-Origin', origin)
+            response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS')
+            response.headers.set('Access-Control-Allow-Headers', 'content-type, Content-Type, Authorization, X-Requested-With, Accept, Origin')
+            response.headers.set('Access-Control-Allow-Credentials', 'true')
+        else:
+            response.headers.set('Access-Control-Allow-Origin', '*')
+            response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS')
+            response.headers.set('Access-Control-Allow-Headers', 'content-type, Content-Type, Authorization, X-Requested-With, Accept, Origin')
+        return response
+    
     try:
         from models.property import Property
         
+        # Debug: Check total properties
+        total_properties = Property.query.count()
+        print(f"DEBUG: Total properties in database: {total_properties}")
+        
+        # Debug: Check all properties
+        all_properties = Property.query.all()
+        print(f"DEBUG: All properties: {[{'id': p.id, 'name': p.name, 'status': p.status} for p in all_properties]}")
+        
         vacant_rooms = Property.query.filter_by(status='vacant').all()
+        print(f"DEBUG: Vacant rooms found: {len(vacant_rooms)}")
         
         rooms_data = []
         for room in vacant_rooms:
+            print(f"DEBUG: Processing room: {room.name}, status: {room.status}")
             landlord_name = "Unknown"
             if room.landlord:
                 landlord_name = f"{room.landlord.first_name} {room.landlord.last_name}"
@@ -445,6 +470,8 @@ def get_available_rooms():
                 "landlord_name": landlord_name,
                 "status": room.status
             })
+        
+        print(f"DEBUG: Rooms data to return: {rooms_data}")
         
         return jsonify({
             "success": True,
@@ -482,12 +509,27 @@ def delete_user(user_id: int):
         return jsonify({"success": False, "error": f"Failed to delete user: {str(e)}"}), 500
 
 
-@auth_bp.route("/inquiry", methods=["POST"])
+@auth_bp.route("/inquiry", methods=["POST", "OPTIONS"])
 def send_inquiry():
     """
     Public endpoint for sending inquiries/messages.
     Creates a notification for all admins and caretakers.
     """
+    # Handle preflight OPTIONS request
+    if request.method == "OPTIONS":
+        response = current_app.make_default_options_response()
+        origin = request.headers.get('Origin')
+        if origin in ["https://joyce-suites.vercel.app", "https://joyce-suites-jcfw.vercel.app", "https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app"]:
+            response.headers.set('Access-Control-Allow-Origin', origin)
+            response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            response.headers.set('Access-Control-Allow-Headers', 'content-type, Content-Type, Authorization, X-Requested-With, Accept, Origin')
+            response.headers.set('Access-Control-Allow-Credentials', 'true')
+        else:
+            response.headers.set('Access-Control-Allow-Origin', '*')
+            response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            response.headers.set('Access-Control-Allow-Headers', 'content-type, Content-Type, Authorization, X-Requested-With, Accept, Origin')
+        return response
+    
     try:
         data = request.get_json()
         
@@ -577,3 +619,251 @@ def mark_notification_read(notification_id):
         return jsonify({"success": True, "message": "Notification marked as read"}), 200
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@auth_bp.route("/seed-database", methods=["POST"])
+def seed_database():
+    """Seed the database with initial users and rooms."""
+    try:
+        from models.property import Property
+        
+        # Check if admin exists
+        admin = User.query.filter_by(email='admin@joycesuites.com').first()
+        if not admin:
+            admin = User(
+                email='admin@joycesuites.com',
+                username='admin',
+                first_name='System',
+                last_name='Administrator',
+                phone_number='+254700000001',
+                role='admin',
+                national_id=99999999,
+                is_active=True
+            )
+            admin.password = 'Admin@123456'
+            db.session.add(admin)
+        
+        # Create landlords
+        joyce = User.query.filter_by(email='joyce@joycesuites.com').first()
+        if not joyce:
+            joyce = User(
+                email='joyce@joycesuites.com',
+                username='joyce_muthoni',
+                first_name='Joyce',
+                last_name='Muthoni',
+                phone_number='0729175330',
+                role='landlord',
+                national_id=66183870,
+                is_active=True
+            )
+            joyce.password = 'Password@123'
+            db.session.add(joyce)
+        
+        lawrence = User.query.filter_by(email='lawrence@joycesuites.com').first()
+        if not lawrence:
+            lawrence = User(
+                email='lawrence@joycesuites.com',
+                username='lawrence_mathea',
+                first_name='Lawrence',
+                last_name='Mathea',
+                phone_number='+254722870077',
+                role='landlord',
+                national_id=10000011,
+                is_active=True
+            )
+            lawrence.password = 'Password@123'
+            db.session.add(lawrence)
+        
+        db.session.commit()
+        
+        # Create rooms only if none exist
+        existing_rooms = Property.query.count()
+        if existing_rooms == 0:
+            rooms_data = [
+                {'room': 1, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 2, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 3, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 4, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 5, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 6, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 8, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 9, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 10, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 11, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 12, 'type': 'bedsitter', 'rent': 5500, 'deposit': 5900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 13, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 14, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 15, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            ]
+            
+            for room_data in rooms_data:
+                new_room = Property(
+                    name=f"Room {room_data['room']}",
+                    property_type=room_data['type'],
+                    rent_amount=room_data['rent'],
+                    deposit_amount=room_data['deposit'],
+                    description=f"{room_data['type'].replace('_', ' ').title()} - KSh {room_data['rent']}/month",
+                    landlord_id=room_data['landlord'].id,
+                    status='vacant',
+                    paybill_number=room_data['paybill'],
+                    account_number=room_data['account']
+                )
+                db.session.add(new_room)
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Database seeded successfully!",
+            "users_created": User.query.count(),
+            "rooms_created": Property.query.count()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "error": f"Seeding failed: {str(e)}"
+        }), 500
+
+
+@auth_bp.route("/reset-and-seed-database", methods=["POST"])
+def reset_and_seed_database():
+    """Reset database and seed with all rooms from seed_rooms.py"""
+    try:
+        from models.property import Property
+        
+        # Delete all existing properties
+        Property.query.delete()
+        
+        # Create users if they don't exist
+        admin = User.query.filter_by(email='admin@joycesuites.com').first()
+        if not admin:
+            admin = User(
+                email='admin@joycesuites.com',
+                username='admin',
+                first_name='System',
+                last_name='Administrator',
+                phone_number='+254700000001',
+                role='admin',
+                national_id=99999999,
+                is_active=True
+            )
+            admin.password = 'Admin@123456'
+            db.session.add(admin)
+        
+        joyce = User.query.filter_by(email='joyce@joycesuites.com').first()
+        if not joyce:
+            joyce = User(
+                email='joyce@joycesuites.com',
+                username='joyce_muthoni',
+                first_name='Joyce',
+                last_name='Muthoni',
+                phone_number='0729175330',
+                role='landlord',
+                national_id=66183870,
+                is_active=True
+            )
+            joyce.password = 'Password@123'
+            db.session.add(joyce)
+        
+        lawrence = User.query.filter_by(email='lawrence@joycesuites.com').first()
+        if not lawrence:
+            lawrence = User(
+                email='lawrence@joycesuites.com',
+                username='lawrence_mathea',
+                first_name='Lawrence',
+                last_name='Mathea',
+                phone_number='+254722870077',
+                role='landlord',
+                national_id=10000011,
+                is_active=True
+            )
+            lawrence.password = 'Password@123'
+            db.session.add(lawrence)
+        
+        # Create caretaker user
+        caretaker = User.query.filter_by(email='caretaker@joycesuites.com').first()
+        if not caretaker:
+            caretaker = User(
+                email='caretaker@joycesuites.com',
+                username='caretaker',
+                first_name='Caretaker',
+                last_name='User',
+                phone_number='+254700000002',
+                role='caretaker',
+                national_id=88888888,
+                is_active=True
+            )
+            caretaker.password = 'Caretaker123!'
+            db.session.add(caretaker)
+        
+        db.session.commit()
+        
+        # Create all rooms from seed_rooms.py data
+        rooms_data = [
+            {'room': 1, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 2, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 3, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 4, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 5, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 6, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 8, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 9, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 10, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 11, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 12, 'type': 'bedsitter', 'rent': 5500, 'deposit': 5900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 13, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 14, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 15, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 21, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 22, 'type': 'bedsitter', 'rent': 5500, 'deposit': 5900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 23, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 24, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 25, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 26, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 17, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 18, 'type': 'one_bedroom', 'rent': 7000, 'deposit': 7400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 19, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 20, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+        ]
+        
+        created_rooms = []
+        for room_data in rooms_data:
+            new_room = Property(
+                name=f"Room {room_data['room']}",
+                property_type=room_data['type'],
+                rent_amount=room_data['rent'],
+                deposit_amount=room_data['deposit'],
+                description=f"{room_data['type'].replace('_', ' ').title()} - KSh {room_data['rent']}/month (Deposit: KSh {room_data['deposit']})",
+                landlord_id=room_data['landlord'].id,
+                status='vacant',  # All rooms start as vacant
+                paybill_number=room_data['paybill'],
+                account_number=room_data['account']
+            )
+            db.session.add(new_room)
+            created_rooms.append({
+                "room": room_data['room'],
+                "type": room_data['type'],
+                "rent": room_data['rent'],
+                "deposit": room_data['deposit'],
+                "landlord": "Joyce Muthoni" if room_data['landlord'] == joyce else "Lawrence Mathea"
+            })
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Database reset and seeded successfully!",
+            "users_created": User.query.count(),
+            "rooms_created": Property.query.count(),
+            "vacant_rooms": Property.query.filter_by(status='vacant').count(),
+            "created_rooms": created_rooms
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "error": f"Reset and seeding failed: {str(e)}"
+        }), 500

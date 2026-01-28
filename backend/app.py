@@ -96,7 +96,7 @@ def create_app():
          origins=cors_origins, 
          supports_credentials=True,
          methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-         allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+         allow_headers=['content-type', 'Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
          expose_headers=['Content-Type', 'Authorization'],
          max_age=3600,
          vary_header=True)
@@ -108,16 +108,22 @@ def create_app():
         # Debug logging
         app.logger.info(f"After request - Method: {request.method}, Origin: {origin}, Path: {request.path}")
         
-        # Only add CORS headers if not already present (Flask-CORS should handle this)
-        if not response.headers.get('Access-Control-Allow-Origin'):
-            if origin and origin in cors_origins:
-                response.headers['Access-Control-Allow-Origin'] = origin
-                app.logger.info(f"CORS allowed for origin: {origin}")
-            elif origin is None:
-                response.headers['Access-Control-Allow-Origin'] = '*'
-                app.logger.info("CORS allowed for requests with no Origin header")
-            else:
-                app.logger.warning(f"CORS blocked for origin: {origin}")
+        # Force CORS headers for all responses
+        if origin and origin in cors_origins:
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
+            response.headers['Access-Control-Allow-Headers'] = 'content-type, Content-Type, Authorization, X-Requested-With, Accept, Origin'
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            response.headers['Access-Control-Max-Age'] = '3600'
+            app.logger.info(f"CORS headers added for origin: {origin}")
+        elif origin is None:
+            # For requests without Origin (like mobile apps, Postman, etc.)
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
+            response.headers['Access-Control-Allow-Headers'] = 'content-type, Content-Type, Authorization, X-Requested-With, Accept, Origin'
+            app.logger.info("CORS headers added for requests with no Origin header")
+        else:
+            app.logger.warning(f"CORS blocked for origin: {origin}")
         
         return response
     
@@ -131,7 +137,7 @@ def create_app():
             response = app.make_default_options_response()
             response.headers.set('Access-Control-Allow-Origin', origin or '*')
             response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-            response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+            response.headers.set('Access-Control-Allow-Headers', 'content-type, Content-Type, Authorization')
             return response
         return jsonify({
             'message': 'CORS test endpoint',

@@ -147,6 +147,14 @@ class DepositRecord(BaseModel):
     refund_notes = Column(Text, nullable=True)
     refunded_by_admin_id = Column(Integer, ForeignKey('users.id'), nullable=True)
     
+    # Notification tracking
+    payment_notification_sent = Column(Boolean, default=False)
+    last_notification_date = Column(DateTime, nullable=True)
+    
+    # Auto-calculation flags
+    is_auto_calculated = Column(Boolean, default=True)
+    last_calculated = Column(DateTime, nullable=True)
+    
     # Relationships
     tenant = relationship('User', foreign_keys=[tenant_id], backref='deposit_records')
     property = relationship('Property', backref='deposit_records')
@@ -155,7 +163,7 @@ class DepositRecord(BaseModel):
     refunded_by_admin = relationship('User', foreign_keys=[refunded_by_admin_id])
     
     def calculate_balance(self):
-        """Calculate remaining deposit balance"""
+        """Calculate remaining deposit balance and update status"""
         amount_required = float(self.amount_required) if self.amount_required is not None else 0.0
         amount_paid = float(self.amount_paid) if self.amount_paid is not None else 0.0
         refund_amount = float(self.refund_amount) if self.refund_amount is not None else 0.0
@@ -171,6 +179,27 @@ class DepositRecord(BaseModel):
                 self.status = DepositStatus.PARTIALLY_REFUNDED
         else:
             self.status = DepositStatus.UNPAID
+        
+        self.last_calculated = datetime.now(timezone.utc)
+    
+    def mark_payment_notification_sent(self):
+        """Mark payment notification as sent"""
+        self.payment_notification_sent = True
+        self.last_notification_date = datetime.now(timezone.utc)
+    
+    @staticmethod
+    def create_deposit_record(tenant, property_obj, lease, amount_required, caretaker_id=None):
+        """Create a deposit record for a tenant"""
+        deposit_record = DepositRecord(
+            tenant_id=tenant.id,
+            property_id=property_obj.id,
+            lease_id=lease.id,
+            amount_required=amount_required,
+            balance=amount_required,
+            status=DepositStatus.UNPAID
+        )
+        
+        return deposit_record
     
     def mark_payment(self, amount_paid, caretaker_id, payment_method=None, payment_reference=None, notes=None):
         """Mark deposit payment by caretaker"""
@@ -217,6 +246,10 @@ class DepositRecord(BaseModel):
             'refund_notes': self.refund_notes,
             'refunded_by_admin_id': self.refunded_by_admin_id,
             'refunded_by_admin_name': self.refunded_by_admin.full_name if self.refunded_by_admin else None,
+            'payment_notification_sent': self.payment_notification_sent,
+            'last_notification_date': self.last_notification_date.isoformat() if self.last_notification_date else None,
+            'is_auto_calculated': self.is_auto_calculated,
+            'last_calculated': self.last_calculated.isoformat() if self.last_calculated else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

@@ -528,9 +528,24 @@ def debug_rooms():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@caretaker_bp.route("/rooms/public", methods=["GET"])
+@caretaker_bp.route("/rooms/public", methods=["GET", "OPTIONS"])
 def get_public_rooms():
     """Public endpoint for tenant registration."""
+    # Handle preflight OPTIONS request
+    if request.method == "OPTIONS":
+        response = current_app.make_default_options_response()
+        origin = request.headers.get('Origin')
+        if origin in ["https://joyce-suites.vercel.app", "https://joyce-suites-jcfw.vercel.app", "https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app"]:
+            response.headers.set('Access-Control-Allow-Origin', origin)
+            response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS')
+            response.headers.set('Access-Control-Allow-Headers', 'content-type, Content-Type, Authorization, X-Requested-With, Accept, Origin')
+            response.headers.set('Access-Control-Allow-Credentials', 'true')
+        else:
+            response.headers.set('Access-Control-Allow-Origin', '*')
+            response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS')
+            response.headers.set('Access-Control-Allow-Headers', 'content-type, Content-Type, Authorization, X-Requested-With, Accept, Origin')
+        return response
+    
     try:
         print("🔍 Debug: Starting get_public_rooms")
         
