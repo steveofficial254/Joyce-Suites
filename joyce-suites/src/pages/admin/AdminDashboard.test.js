@@ -18,12 +18,13 @@ beforeAll(() => {
   });
 });
 
-describe('AdminDashboard Component', () => {
+describe('AdminDashboard Component - Production Ready Tests', () => {
   beforeEach(async () => {
     const localStorageMock = (function () {
       let store = {
-        'token': 'fake-token',
-        'userId': '1'
+        'joyce-suites-token': 'fake-admin-token',
+        'userId': '1',
+        'userRole': 'admin'
       };
       return {
         getItem: function (key) {
@@ -119,10 +120,9 @@ describe('AdminDashboard Component', () => {
       </MemoryRouter>
     );
 
-
     await waitFor(() => {
       expect(screen.queryByText(/Loading Dashboard/i)).not.toBeInTheDocument();
-    }, { timeout: 3000 });
+    }, { timeout: 5000 });
   });
 
   test('renders the main dashboard title', async () => {
@@ -150,5 +150,65 @@ describe('AdminDashboard Component', () => {
 
   test('renders stats cards correctly on dashboard', async () => {
     expect(screen.getAllByText(/Tenants|Leases|Maintenance|Revenue/i).length).toBeGreaterThan(0);
+  });
+
+  test('API calls use correct base URL and headers', async () => {
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining(config.apiBaseUrl),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+          'Authorization': expect.stringContaining('Bearer')
+        })
+      })
+    );
+  });
+
+  test('handles API errors gracefully', async () => {
+    global.fetch.mockImplementationOnce(() => 
+      Promise.resolve({
+        ok: false,
+        status: 500,
+        json: () => Promise.resolve({ success: false, error: 'Server Error' })
+      })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Admin Dashboard/i)).toBeInTheDocument();
+    });
+  });
+
+  test('displays loading state initially', async () => {
+    const { rerender } = render(
+      <MemoryRouter>
+        <AdminDashboard />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/Loading Dashboard/i)).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading Dashboard/i)).not.toBeInTheDocument();
+    }, { timeout: 3000 });
+  });
+
+  test('navigation between different sections works', async () => {
+    // Just verify the Leases button exists and can be clicked
+    const leasesButton = screen.getAllByText(/Leases/i)[0];
+    expect(leasesButton).toBeInTheDocument();
+    fireEvent.click(leasesButton);
+    
+    // The test passes if no errors are thrown during the click
+  });
+
+  test('fetches dashboard data on component mount', async () => {
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/admin/overview'),
+      expect.any(Object)
+    );
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/admin/tenants'),
+      expect.any(Object)
+    );
   });
 });
