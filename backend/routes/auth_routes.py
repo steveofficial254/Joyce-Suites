@@ -727,63 +727,127 @@ def seed_database():
         }), 500
 
 
-@auth_bp.route("/add-test-room", methods=["POST"])
-def add_test_room():
-    """Add a test room for debugging purposes."""
+@auth_bp.route("/reset-and-seed-database", methods=["POST"])
+def reset_and_seed_database():
+    """Reset database and seed with all rooms from seed_rooms.py"""
     try:
         from models.property import Property
         
-        # Get or create a test landlord
-        test_landlord = User.query.filter_by(email='test@landlord.com').first()
-        if not test_landlord:
-            test_landlord = User(
-                email='test@landlord.com',
-                username='test_landlord',
-                first_name='Test',
-                last_name='Landlord',
-                phone_number='+254700000000',
-                role='landlord',
-                national_id=12345678,
+        # Delete all existing properties
+        Property.query.delete()
+        
+        # Create users if they don't exist
+        admin = User.query.filter_by(email='admin@joycesuites.com').first()
+        if not admin:
+            admin = User(
+                email='admin@joycesuites.com',
+                username='admin',
+                first_name='System',
+                last_name='Administrator',
+                phone_number='+254700000001',
+                role='admin',
+                national_id=99999999,
                 is_active=True
             )
-            test_landlord.password = 'Test@123456'
-            db.session.add(test_landlord)
-            db.session.commit()
+            admin.password = 'Admin@123456'
+            db.session.add(admin)
         
-        # Create a test room
-        test_room = Property(
-            name='Test Room 101',
-            property_type='bedsitter',
-            rent_amount=5000.0,
-            deposit_amount=5400.0,
-            description='Test bedsitter room for debugging',
-            landlord_id=test_landlord.id,
-            status='vacant',
-            paybill_number='123456',
-            account_number='TEST001'
-        )
+        joyce = User.query.filter_by(email='joyce@joycesuites.com').first()
+        if not joyce:
+            joyce = User(
+                email='joyce@joycesuites.com',
+                username='joyce_muthoni',
+                first_name='Joyce',
+                last_name='Muthoni',
+                phone_number='0729175330',
+                role='landlord',
+                national_id=66183870,
+                is_active=True
+            )
+            joyce.password = 'Password@123'
+            db.session.add(joyce)
         
-        db.session.add(test_room)
+        lawrence = User.query.filter_by(email='lawrence@joycesuites.com').first()
+        if not lawrence:
+            lawrence = User(
+                email='lawrence@joycesuites.com',
+                username='lawrence_mathea',
+                first_name='Lawrence',
+                last_name='Mathea',
+                phone_number='+254722870077',
+                role='landlord',
+                national_id=10000011,
+                is_active=True
+            )
+            lawrence.password = 'Password@123'
+            db.session.add(lawrence)
+        
+        db.session.commit()
+        
+        # Create all rooms from seed_rooms.py data
+        rooms_data = [
+            {'room': 1, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 2, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 3, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 4, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 5, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 6, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 8, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 9, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 10, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 11, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 12, 'type': 'bedsitter', 'rent': 5500, 'deposit': 5900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 13, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 14, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 15, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 21, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 22, 'type': 'bedsitter', 'rent': 5500, 'deposit': 5900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 23, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 24, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 25, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 26, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 17, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 18, 'type': 'one_bedroom', 'rent': 7000, 'deposit': 7400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 19, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 20, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+        ]
+        
+        created_rooms = []
+        for room_data in rooms_data:
+            new_room = Property(
+                name=f"Room {room_data['room']}",
+                property_type=room_data['type'],
+                rent_amount=room_data['rent'],
+                deposit_amount=room_data['deposit'],
+                description=f"{room_data['type'].replace('_', ' ').title()} - KSh {room_data['rent']}/month (Deposit: KSh {room_data['deposit']})",
+                landlord_id=room_data['landlord'].id,
+                status='vacant',  # All rooms start as vacant
+                paybill_number=room_data['paybill'],
+                account_number=room_data['account']
+            )
+            db.session.add(new_room)
+            created_rooms.append({
+                "room": room_data['room'],
+                "type": room_data['type'],
+                "rent": room_data['rent'],
+                "deposit": room_data['deposit'],
+                "landlord": "Joyce Muthoni" if room_data['landlord'] == joyce else "Lawrence Mathea"
+            })
+        
         db.session.commit()
         
         return jsonify({
             "success": True,
-            "message": "Test room created successfully!",
-            "room": {
-                "id": test_room.id,
-                "name": test_room.name,
-                "type": test_room.property_type,
-                "rent": test_room.rent_amount,
-                "deposit": test_room.deposit_amount,
-                "status": test_room.status
-            },
-            "total_rooms": Property.query.count(),
-            "vacant_rooms": Property.query.filter_by(status='vacant').count()
+            "message": "Database reset and seeded successfully!",
+            "users_created": User.query.count(),
+            "rooms_created": Property.query.count(),
+            "vacant_rooms": Property.query.filter_by(status='vacant').count(),
+            "created_rooms": created_rooms
         }), 200
         
     except Exception as e:
         db.session.rollback()
         return jsonify({
             "success": False,
-            "error": f"Failed to create test room: {str(e)}"
+            "error": f"Reset and seeding failed: {str(e)}"
         }), 500
