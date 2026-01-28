@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Menu, X } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
+import { useAuth } from '../context/AuthContext';
 import './TenantDashboard.css';
 import logo from '../../assets/image1.png';
 import quickActionsBg from '../../assets/image1.png';
@@ -16,6 +17,7 @@ import apartment6 from '../../assets/image11.jpg';
 
 const TenantDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const signatureRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
@@ -352,8 +354,14 @@ const TenantDashboard = () => {
 
   const fetchRentAndDepositRecords = async () => {
     try {
-      const userId = localStorage.getItem('userId');
-
+      // Get user ID from authenticated user context
+      const userId = user ? user.user_id : null;
+      
+      if (!userId) {
+        console.error('User not authenticated or user ID not found');
+        setError('User not authenticated');
+        return;
+      }
 
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth() + 1;
@@ -943,35 +951,30 @@ const TenantDashboard = () => {
                   className={`topbar-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
                   onClick={() => setActiveTab('dashboard')}
                 >
-                  <span className="nav-icon">📊</span>
                   Dashboard
                 </button>
                 <button
                   className={`topbar-nav-item ${activeTab === 'payments' ? 'active' : ''}`}
                   onClick={() => setActiveTab('payments')}
                 >
-                  <span className="nav-icon">💳</span>
                   Payments
                 </button>
                 <button
                   className={`topbar-nav-item ${activeTab === 'lease' ? 'active' : ''}`}
                   onClick={() => setActiveTab('lease')}
                 >
-                  <span className="nav-icon">📄</span>
                   Lease
                 </button>
                 <button
                   className={`topbar-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
                   onClick={() => setActiveTab('profile')}
                 >
-                  <span className="nav-icon">👤</span>
                   Profile
                 </button>
                 <button
                   className={`topbar-nav-item ${activeTab === 'vacate' ? 'active' : ''}`}
                   onClick={() => setActiveTab('vacate')}
                 >
-                  <span className="nav-icon">🚪</span>
                   Vacate
                 </button>
               </nav>
@@ -1046,31 +1049,31 @@ const TenantDashboard = () => {
                 className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
                 onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }}
               >
-                <span className="nav-icon">📊</span> Dashboard
+                Dashboard
               </button>
               <button
                 className={`mobile-nav-item ${activeTab === 'payments' ? 'active' : ''}`}
                 onClick={() => { setActiveTab('payments'); setMobileMenuOpen(false); }}
               >
-                <span className="nav-icon">💳</span> Payments
+                Payments
               </button>
               <button
                 className={`mobile-nav-item ${activeTab === 'lease' ? 'active' : ''}`}
                 onClick={() => { setActiveTab('lease'); setMobileMenuOpen(false); }}
               >
-                <span className="nav-icon">📄</span> Lease
+                Lease
               </button>
               <button
                 className={`mobile-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
                 onClick={() => { setActiveTab('profile'); setMobileMenuOpen(false); }}
               >
-                <span className="nav-icon">👤</span> Profile
+                Profile
               </button>
               <button
                 className={`mobile-nav-item ${activeTab === 'vacate' ? 'active' : ''}`}
                 onClick={() => { setActiveTab('vacate'); setMobileMenuOpen(false); }}
               >
-                <span className="nav-icon">🚪</span> Vacate
+                Vacate
               </button>
 
               <div className="mobile-menu-divider"></div>

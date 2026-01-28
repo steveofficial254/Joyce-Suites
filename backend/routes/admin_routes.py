@@ -22,6 +22,8 @@ from models.payment import Payment
 from models.maintenance import MaintenanceRequest
 from models.property import Property
 from models.vacate_notice import VacateNotice
+from models.water_bill import WaterBill, WaterBillStatus
+from models.rent_deposit import DepositRecord, DepositStatus
 from routes.auth_routes import token_required
 from utils.finance import calculate_outstanding_balance
 
@@ -1107,3 +1109,553 @@ def delete_vacate_notice(notice_id):
             'error': 'Server Error',
             'message': str(e)
         }), 500
+
+
+# Admin Water Bill Management Routes
+@admin_bp.route('/water-bills', methods=['GET'])
+@admin_required
+def get_all_water_bills():
+    """Get all water bills with filtering and pagination"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        month = request.args.get('month', type=int)
+        year = request.args.get('year', type=int)
+        status = request.args.get('status')
+        tenant_id = request.args.get('tenant_id', type=int)
+        property_id = request.args.get('property_id', type=int)
+        
+        query = WaterBill.query
+        
+        # Apply filters
+        if month:
+            query = query.filter(WaterBill.month == month)
+        if year:
+            query = query.filter(WaterBill.year == year)
+        if status:
+            query = query.filter(WaterBill.status == status)
+        if tenant_id:
+            query = query.filter(WaterBill.tenant_id == tenant_id)
+        if property_id:
+            query = query.filter(WaterBill.property_id == property_id)
+        
+        # Order by most recent
+        query = query.order_by(WaterBill.year.desc(), WaterBill.month.desc(), WaterBill.created_at.desc())
+        
+        # Paginate
+        water_bills = query.paginate(
+            page=page, 
+            per_page=per_page, 
+            error_out=False
+        )
+        
+        return jsonify({
+            'success': True,
+            'water_bills': [bill.to_dict() for bill in water_bills.items],
+            'total': water_bills.total,
+            'pages': water_bills.pages,
+            'current_page': page
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching water bills: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to fetch water bills: {str(e)}'}), 500
+
+@admin_bp.route('/water-bills/<int:bill_id>', methods=['GET'])
+@admin_required
+def get_water_bill_details(bill_id):
+    """Get detailed water bill information"""
+    try:
+        water_bill = WaterBill.query.get(bill_id)
+        if not water_bill:
+            return jsonify({'success': False, 'error': 'Water bill not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'water_bill': water_bill.to_dict()
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching water bill details: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to fetch water bill: {str(e)}'}), 500
+
+@admin_bp.route('/water-bills/<int:bill_id>', methods=['PUT'])
+@admin_required
+def update_water_bill(bill_id):
+    """Update water bill details (admin only)"""
+    try:
+        water_bill = WaterBill.query.get(bill_id)
+        if not water_bill:
+            return jsonify({'success': False, 'error': 'Water bill not found'}), 404
+        
+        data = request.get_json()
+        
+        # Update allowed fields
+        if 'current_reading' in data:
+            water_bill.current_reading = data['current_reading']
+        if 'previous_reading' in data:
+            water_bill.previous_reading = data['previous_reading']
+        if 'unit_rate' in data:
+            water_bill.unit_rate = data['unit_rate']
+        if 'amount_due' in data:
+            water_bill.amount_due = data['amount_due']
+        if 'notes' in data:
+            water_bill.notes = data['notes']
+        
+        # Recalculate if readings or rate changed
+        if 'current_reading' in data or 'previous_reading' in data or 'unit_rate' in data:
+            water_bill.calculate_amount()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Water bill updated successfully',
+            'water_bill': water_bill.to_dict()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error updating water bill: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to update water bill: {str(e)}'}), 500
+
+@admin_bp.route('/water-bills/<int:bill_id>', methods=['DELETE'])
+@admin_required
+def delete_water_bill(bill_id):
+    """Delete a water bill (admin only)"""
+    try:
+        water_bill = WaterBill.query.get(bill_id)
+        if not water_bill:
+            return jsonify({'success': False, 'error': 'Water bill not found'}), 404
+        
+        db.session.delete(water_bill)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Water bill deleted successfully'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting water bill: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to delete water bill: {str(e)}'}), 500
+
+@admin_bp.route('/water-bills/summary', methods=['GET'])
+@admin_required
+def get_admin_water_bill_summary():
+    """Get comprehensive water bill summary for admin dashboard"""
+    try:
+        month = request.args.get('month', datetime.now().month, type=int)
+        year = request.args.get('year', datetime.now().year, type=int)
+        
+        # Get water bills for the specified month
+        water_bills = WaterBill.query.filter_by(month=month, year=year).all()
+        
+        # Calculate summary statistics
+        total_bills = len(water_bills)
+        total_amount_due = sum(float(bill.amount_due) for bill in water_bills)
+        total_amount_paid = sum(float(bill.amount_paid) for bill in water_bills)
+        total_balance = sum(float(bill.balance) for bill in water_bills)
+        
+        # Status breakdown
+        status_counts = {
+            'unpaid': len([b for b in water_bills if b.status == WaterBillStatus.UNPAID]),
+            'partially_paid': len([b for b in water_bills if b.status == WaterBillStatus.PARTIALLY_PAID]),
+            'paid': len([b for b in water_bills if b.status == WaterBillStatus.PAID]),
+            'overdue': len([b for b in water_bills if b.status == WaterBillStatus.OVERDUE])
+        }
+        
+        # Property breakdown
+        property_breakdown = {}
+        for bill in water_bills:
+            prop_name = bill.property.name if bill.property else 'Unknown'
+            if prop_name not in property_breakdown:
+                property_breakdown[prop_name] = {
+                    'total_bills': 0,
+                    'total_due': 0,
+                    'total_paid': 0,
+                    'total_balance': 0
+                }
+            property_breakdown[prop_name]['total_bills'] += 1
+            property_breakdown[prop_name]['total_due'] += float(bill.amount_due)
+            property_breakdown[prop_name]['total_paid'] += float(bill.amount_paid)
+            property_breakdown[prop_name]['total_balance'] += float(bill.balance)
+        
+        # Monthly trend (last 6 months)
+        monthly_trend = []
+        for i in range(6):
+            trend_month = (month - i - 1) % 12 + 1
+            trend_year = year if month - i - 1 > 0 else year - 1
+            
+            trend_bills = WaterBill.query.filter_by(month=trend_month, year=trend_year).all()
+            monthly_trend.append({
+                'month': trend_month,
+                'year': trend_year,
+                'total_bills': len(trend_bills),
+                'total_amount': sum(float(bill.amount_due) for bill in trend_bills),
+                'collected': sum(float(bill.amount_paid) for bill in trend_bills)
+            })
+        
+        return jsonify({
+            'success': True,
+            'summary': {
+                'month': month,
+                'year': year,
+                'total_bills': total_bills,
+                'total_amount_due': total_amount_due,
+                'total_amount_paid': total_amount_paid,
+                'total_balance': total_balance,
+                'collection_rate': (total_amount_paid / total_amount_due * 100) if total_amount_due > 0 else 0,
+                'status_counts': status_counts,
+                'property_breakdown': property_breakdown,
+                'monthly_trend': monthly_trend[::-1]  # Reverse to show oldest to newest
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting admin water bill summary: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to get summary: {str(e)}'}), 500
+
+@admin_bp.route('/water-bills/export', methods=['GET'])
+@admin_required
+def export_water_bills():
+    """Export water bills to CSV format"""
+    try:
+        month = request.args.get('month', datetime.now().month, type=int)
+        year = request.args.get('year', datetime.now().year, type=int)
+        
+        water_bills = WaterBill.query.filter_by(month=month, year=year).all()
+        
+        # Create CSV data
+        csv_data = []
+        csv_data.append(['Tenant Name', 'Property', 'Month', 'Year', 'Previous Reading', 'Current Reading', 'Units Consumed', 'Unit Rate', 'Amount Due', 'Amount Paid', 'Balance', 'Status', 'Due Date'])
+        
+        for bill in water_bills:
+            csv_data.append([
+                bill.tenant.full_name if bill.tenant else 'Unknown',
+                bill.property.name if bill.property else 'Unknown',
+                bill.month,
+                bill.year,
+                float(bill.previous_reading),
+                float(bill.current_reading),
+                float(bill.units_consumed),
+                float(bill.unit_rate),
+                float(bill.amount_due),
+                float(bill.amount_paid),
+                float(bill.balance),
+                bill.status.value,
+                bill.due_date.strftime('%Y-%m-%d') if bill.due_date else ''
+            ])
+        
+        return jsonify({
+            'success': True,
+            'csv_data': csv_data,
+            'filename': f'water_bills_{year}_{month}.csv'
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error exporting water bills: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to export water bills: {str(e)}'}), 500
+
+
+# Admin Deposit Management Routes
+@admin_bp.route('/deposits', methods=['GET'])
+@admin_required
+def get_all_deposits():
+    """Get all deposit records with filtering and pagination"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        status = request.args.get('status')
+        tenant_id = request.args.get('tenant_id', type=int)
+        property_id = request.args.get('property_id', type=int)
+        
+        query = DepositRecord.query
+        
+        # Apply filters
+        if status:
+            query = query.filter(DepositRecord.status == status)
+        if tenant_id:
+            query = query.filter(DepositRecord.tenant_id == tenant_id)
+        if property_id:
+            query = query.filter(DepositRecord.property_id == property_id)
+        
+        # Order by most recent
+        query = query.order_by(DepositRecord.created_at.desc())
+        
+        # Paginate
+        deposits = query.paginate(
+            page=page, 
+            per_page=per_page, 
+            error_out=False
+        )
+        
+        return jsonify({
+            'success': True,
+            'deposits': [deposit.to_dict() for deposit in deposits.items],
+            'total': deposits.total,
+            'pages': deposits.pages,
+            'current_page': page
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching deposits: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to fetch deposits: {str(e)}'}), 500
+
+@admin_bp.route('/deposits/<int:deposit_id>', methods=['GET'])
+@admin_required
+def get_deposit_details(deposit_id):
+    """Get detailed deposit information"""
+    try:
+        deposit = DepositRecord.query.get(deposit_id)
+        if not deposit:
+            return jsonify({'success': False, 'error': 'Deposit record not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'deposit': deposit.to_dict()
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching deposit details: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to fetch deposit: {str(e)}'}), 500
+
+@admin_bp.route('/deposits/<int:deposit_id>', methods=['PUT'])
+@admin_required
+def update_deposit(deposit_id):
+    """Update deposit details (admin only)"""
+    try:
+        deposit = DepositRecord.query.get(deposit_id)
+        if not deposit:
+            return jsonify({'success': False, 'error': 'Deposit record not found'}), 404
+        
+        data = request.get_json()
+        
+        # Update allowed fields
+        if 'amount_required' in data:
+            deposit.amount_required = data['amount_required']
+        if 'amount_paid' in data:
+            deposit.amount_paid = data['amount_paid']
+        if 'payment_method' in data:
+            deposit.payment_method = data['payment_method']
+        if 'payment_reference' in data:
+            deposit.payment_reference = data['payment_reference']
+        if 'notes' in data:
+            deposit.notes = data['notes']
+        
+        # Recalculate balance
+        deposit.calculate_balance()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Deposit updated successfully',
+            'deposit': deposit.to_dict()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error updating deposit: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to update deposit: {str(e)}'}), 500
+
+@admin_bp.route('/deposits/<int:deposit_id>', methods=['DELETE'])
+@admin_required
+def delete_deposit(deposit_id):
+    """Delete a deposit record (admin only)"""
+    try:
+        deposit = DepositRecord.query.get(deposit_id)
+        if not deposit:
+            return jsonify({'success': False, 'error': 'Deposit record not found'}), 404
+        
+        db.session.delete(deposit)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Deposit record deleted successfully'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting deposit: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to delete deposit: {str(e)}'}), 500
+
+@admin_bp.route('/deposits/refund', methods=['POST'])
+@admin_required
+def process_deposit_refund():
+    """Process deposit refund (admin only)"""
+    current_user = db.session.get(User, request.user_id)
+    try:
+        data = request.get_json()
+        deposit_id = data.get('deposit_id')
+        refund_amount = data.get('refund_amount')
+        refund_method = data.get('refund_method')
+        refund_reference = data.get('refund_reference')
+        refund_notes = data.get('refund_notes')
+        send_notification = data.get('send_notification', True)
+        
+        if not deposit_id or refund_amount is None:
+            return jsonify({'success': False, 'error': 'Deposit ID and refund amount are required'}), 400
+        
+        deposit = DepositRecord.query.get(deposit_id)
+        if not deposit:
+            return jsonify({'success': False, 'error': 'Deposit record not found'}), 404
+        
+        # Process refund
+        deposit.mark_refund(
+            refund_amount=refund_amount,
+            admin_id=current_user.id,
+            refund_method=refund_method,
+            refund_reference=refund_reference,
+            refund_notes=refund_notes
+        )
+        
+        # Send notification to tenant
+        if send_notification:
+            notification = Notification(
+                user_id=deposit.tenant_id,
+                title="Deposit Refund Processed",
+                message=f"Your deposit refund of KES {refund_amount:,.2f} has been processed. Refund method: {refund_method or 'Not specified'}.",
+                type="deposit_refund",
+                is_read=False
+            )
+            db.session.add(notification)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Deposit refund processed successfully',
+            'deposit': deposit.to_dict()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error processing deposit refund: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to process refund: {str(e)}'}), 500
+
+@admin_bp.route('/deposits/summary', methods=['GET'])
+@admin_required
+def get_admin_deposit_summary():
+    """Get comprehensive deposit summary for admin dashboard"""
+    try:
+        # Get all deposit records
+        deposits = DepositRecord.query.all()
+        
+        # Calculate summary statistics
+        total_deposits = len(deposits)
+        total_amount_required = sum(float(d.amount_required) for d in deposits)
+        total_amount_paid = sum(float(d.amount_paid) for d in deposits)
+        total_refunded = sum(float(d.refund_amount) for d in deposits)
+        total_balance = sum(float(d.balance) for d in deposits)
+        
+        # Status breakdown
+        status_counts = {
+            'unpaid': len([d for d in deposits if d.status == DepositStatus.UNPAID]),
+            'paid': len([d for d in deposits if d.status == DepositStatus.PAID]),
+            'refunded': len([d for d in deposits if d.status == DepositStatus.REFUNDED]),
+            'partially_refunded': len([d for d in deposits if d.status == DepositStatus.PARTIALLY_REFUNDED])
+        }
+        
+        # Property breakdown
+        property_breakdown = {}
+        for deposit in deposits:
+            prop_name = deposit.property.name if deposit.property else 'Unknown'
+            if prop_name not in property_breakdown:
+                property_breakdown[prop_name] = {
+                    'total_deposits': 0,
+                    'total_required': 0,
+                    'total_paid': 0,
+                    'total_refunded': 0,
+                    'total_balance': 0,
+                    'status_counts': {'unpaid': 0, 'paid': 0, 'refunded': 0, 'partially_refunded': 0}
+                }
+            property_breakdown[prop_name]['total_deposits'] += 1
+            property_breakdown[prop_name]['total_required'] += float(deposit.amount_required)
+            property_breakdown[prop_name]['total_paid'] += float(deposit.amount_paid)
+            property_breakdown[prop_name]['total_refunded'] += float(deposit.refund_amount)
+            property_breakdown[prop_name]['total_balance'] += float(deposit.balance)
+            property_breakdown[prop_name]['status_counts'][deposit.status.value] += 1
+        
+        # Monthly trend (last 6 months)
+        monthly_trend = []
+        now = datetime.now(timezone.utc)
+        for i in range(6):
+            trend_month = (now.month - i - 1) % 12 + 1
+            trend_year = now.year if now.month - i - 1 > 0 else now.year - 1
+            
+            month_deposits = [d for d in deposits 
+                            if d.created_at and d.created_at.month == trend_month and d.created_at.year == trend_year]
+            
+            monthly_trend.append({
+                'month': trend_month,
+                'year': trend_year,
+                'total_deposits': len(month_deposits),
+                'total_amount': sum(float(d.amount_required) for d in month_deposits),
+                'collected': sum(float(d.amount_paid) for d in month_deposits),
+                'refunded': sum(float(d.refund_amount) for d in month_deposits)
+            })
+        
+        return jsonify({
+            'success': True,
+            'summary': {
+                'total_deposits': total_deposits,
+                'total_amount_required': total_amount_required,
+                'total_amount_paid': total_amount_paid,
+                'total_refunded': total_refunded,
+                'total_balance': total_balance,
+                'collection_rate': (total_amount_paid / total_amount_required * 100) if total_amount_required > 0 else 0,
+                'refund_rate': (total_refunded / total_amount_paid * 100) if total_amount_paid > 0 else 0,
+                'status_counts': status_counts,
+                'property_breakdown': property_breakdown,
+                'monthly_trend': monthly_trend[::-1]  # Reverse to show oldest to newest
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting admin deposit summary: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to get summary: {str(e)}'}), 500
+
+@admin_bp.route('/deposits/export', methods=['GET'])
+@admin_required
+def export_deposits():
+    """Export deposits to CSV format"""
+    try:
+        status = request.args.get('status')
+        
+        query = DepositRecord.query
+        if status:
+            query = query.filter(DepositRecord.status == status)
+        
+        deposits = query.all()
+        
+        # Create CSV data
+        csv_data = []
+        csv_data.append(['Tenant Name', 'Property', 'Amount Required', 'Amount Paid', 'Balance', 'Status', 'Payment Date', 'Payment Method', 'Refund Amount', 'Refund Date', 'Created Date'])
+        
+        for deposit in deposits:
+            csv_data.append([
+                deposit.tenant.full_name if deposit.tenant else 'Unknown',
+                deposit.property.name if deposit.property else 'Unknown',
+                float(deposit.amount_required),
+                float(deposit.amount_paid),
+                float(deposit.balance),
+                deposit.status.value,
+                deposit.payment_date.strftime('%Y-%m-%d') if deposit.payment_date else '',
+                deposit.payment_method or '',
+                float(deposit.refund_amount),
+                deposit.refund_date.strftime('%Y-%m-%d') if deposit.refund_date else '',
+                deposit.created_at.strftime('%Y-%m-%d') if deposit.created_at else ''
+            ])
+        
+        return jsonify({
+            'success': True,
+            'csv_data': csv_data,
+            'filename': f'deposits_{status or "all"}_{datetime.now().strftime("%Y%m%d")}.csv'
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error exporting deposits: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to export deposits: {str(e)}'}), 500

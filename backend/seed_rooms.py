@@ -15,7 +15,7 @@ def seed_rooms():
         db.session.commit()
         print("✅ All existing properties deleted")
         
-        print("\n�🔧 Creating/checking users...")
+        print("\n� Creating/checking users...")
         
         admin = User.query.filter_by(email='admin@joycesuites.com').first()
         if not admin:
@@ -69,6 +69,26 @@ def seed_rooms():
             lawrence.password = 'Password@123'
             db.session.add(lawrence)
             print("✅ Lawrence Mathea created")
+        
+        # Create caretaker user
+        caretaker = User.query.filter_by(email='caretaker@joycesuites.com').first()
+        if not caretaker:
+            print("Creating caretaker user...")
+            caretaker = User(
+                email='caretaker@joycesuites.com',
+                username='caretaker',
+                first_name='Caretaker',
+                last_name='User',
+                phone_number='+254700000002',
+                role='caretaker',
+                national_id=88888888,
+                is_active=True
+            )
+            caretaker.password = 'Caretaker123!'
+            db.session.add(caretaker)
+            print("✅ Caretaker user created: caretaker@joycesuites.com / Caretaker123!")
+        else:
+            print("⚠️ Caretaker user already exists")
         
         db.session.commit()
         
@@ -147,7 +167,7 @@ def seed_rooms():
         
         print("\n🔑 DEFAULT CREDENTIALS:")
         print(f"  • Admin:     admin@joycesuites.com / Admin@123456")
-        print(f"  • Caretaker: caretaker@joycesuites.com / Password@123")
+        print(f"  • Caretaker: caretaker@joycesuites.com / Caretaker123!")
         print(f"  • Landlord1: joyce@joycesuites.com / Password@123")
         print(f"  • Landlord2: lawrence@joycesuites.com / Password@123")
         
