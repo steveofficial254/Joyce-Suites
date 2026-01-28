@@ -260,51 +260,6 @@ def get_tenant_deposit_records(tenant_id):
         return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
 
 
-@rent_deposit_bp.route('/deposit/mark-payment', methods=['POST'])
-@token_required
-@role_required(['caretaker'])
-def mark_deposit_payment():
-    """Mark deposit payment by caretaker"""
-    current_user = db.session.get(User, request.user_id)
-    try:
-        data = request.get_json()
-        
-        deposit_id = data.get('deposit_id')
-        amount_paid = data.get('amount_paid')
-        payment_method = data.get('payment_method')
-        payment_reference = data.get('payment_reference')
-        notes = data.get('notes')
-        
-        if not deposit_id or not amount_paid:
-            return jsonify({'error': 'deposit_id and amount_paid are required'}), 400
-        
-        deposit_record = db.session.get(DepositRecord, deposit_id)
-        if not deposit_record:
-            return jsonify({'error': 'Deposit record not found'}), 404
-        
-        # Mark payment
-        deposit_record.mark_payment(
-            amount_paid=amount_paid,
-            caretaker_id=current_user.id,
-            payment_method=payment_method,
-            payment_reference=payment_reference,
-            notes=notes
-        )
-        
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Deposit payment marked successfully',
-            'deposit_record': deposit_record.to_dict()
-        }), 200
-        
-    except Exception as e:
-        db.session.rollback()
-        import traceback
-        current_app.logger.error(f"Error in {request.path}: {str(e)}\n{traceback.format_exc()}")
-        return jsonify({'error': str(e)}), 500
-
-
 @rent_deposit_bp.route('/deposit/mark-refund', methods=['POST'])
 @token_required
 @role_required(['admin'])
@@ -641,51 +596,6 @@ def create_water_bill():
             'message': 'Water bill created successfully',
             'water_bill': water_bill.to_dict()
         }), 201
-        
-    except Exception as e:
-        db.session.rollback()
-        import traceback
-        current_app.logger.error(f"Error in {request.path}: {str(e)}\n{traceback.format_exc()}")
-        return jsonify({'error': str(e)}), 500
-
-
-@rent_deposit_bp.route('/water-bill/mark-payment', methods=['POST'])
-@token_required
-@role_required(['caretaker'])
-def mark_water_bill_payment():
-    """Mark water bill payment by caretaker"""
-    current_user = db.session.get(User, request.user_id)
-    try:
-        data = request.get_json()
-        
-        water_bill_id = data.get('water_bill_id')
-        amount_paid = data.get('amount_paid')
-        payment_method = data.get('payment_method')
-        payment_reference = data.get('payment_reference')
-        notes = data.get('notes')
-        
-        if not water_bill_id or not amount_paid:
-            return jsonify({'error': 'water_bill_id and amount_paid are required'}), 400
-        
-        water_bill = db.session.get(WaterBill, water_bill_id)
-        if not water_bill:
-            return jsonify({'error': 'Water bill not found'}), 404
-        
-        # Mark payment
-        water_bill.mark_payment(
-            amount_paid=amount_paid,
-            caretaker_id=current_user.id,
-            payment_method=payment_method,
-            payment_reference=payment_reference,
-            notes=notes
-        )
-        
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Water bill payment marked successfully',
-            'water_bill': water_bill.to_dict()
-        }), 200
         
     except Exception as e:
         db.session.rollback()
