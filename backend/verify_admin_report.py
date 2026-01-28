@@ -5,7 +5,7 @@ from models.lease import Lease
 from models.user import User
 from models.property import Property
 from sqlalchemy import func
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import traceback
 
 app = create_app()
@@ -56,7 +56,7 @@ with app.app_context():
         print("Calculating monthly breakdown...")
         monthly_data = []
         for i in range(5, -1, -1):
-            month_start = datetime.utcnow().replace(day=1) - timedelta(days=30*i)
+            month_start = datetime.now(timezone.utc).replace(day=1) - timedelta(days=30*i)
             month_end = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
             
             print(f"Querying for {month_start.strftime('%b %Y')} ({month_start} to {month_end})")

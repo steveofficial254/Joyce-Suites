@@ -11,7 +11,7 @@ Handles admin-specific operations:
 
 from flask import Blueprint, request, jsonify
 from functools import wraps
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, or_
 import traceback
 
@@ -223,7 +223,7 @@ def get_admin_overview():
 def get_financial_summary():
     """Get financial summary for admin dashboard."""
     try:
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
         first_day_of_month = today.replace(day=1)
         last_day_of_month = (first_day_of_month.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
         
@@ -352,7 +352,7 @@ def get_tenant_details(tenant_id):
         
         maintenance_list = []
         for req in maintenance:
-            property_ = Property.query.get(req.property_id)
+            property_ = db.session.get(Property, req.property_id)
             maintenance_list.append({
                 'id': req.id,
                 'title': req.title,
@@ -371,7 +371,7 @@ def get_tenant_details(tenant_id):
         
         notices_list = []
         for notice in vacate_notices:
-            lease_obj = notice.lease if hasattr(notice, 'lease') else Lease.query.get(notice.lease_id)
+            lease_obj = notice.lease if hasattr(notice, 'lease') else db.session.get(Lease, notice.lease_id)
             property_ = lease_obj.property if lease_obj else None
             
             notices_list.append({
@@ -557,10 +557,10 @@ def delete_tenant(tenant_id):
         if active_lease:
             try:
                 active_lease.status = 'terminated'
-                active_lease.end_date = datetime.utcnow().date()
+                active_lease.end_date = datetime.now(timezone.utc).date()
                 
                 if active_lease.property_id:
-                    prop = Property.query.get(active_lease.property_id)
+                    prop = db.session.get(Property, active_lease.property_id)
                     if prop:
                         prop.status = 'vacant'
                         prop.current_tenant_id = None
@@ -672,7 +672,7 @@ def get_all_properties():
             current_lease = None
             
             if prop.current_tenant_id:
-                tenant = User.query.get(prop.current_tenant_id)
+                tenant = db.session.get(User, prop.current_tenant_id)
                 if tenant:
                     current_tenant = {
                         'id': tenant.id,
@@ -751,8 +751,8 @@ def get_all_maintenance():
         
         maintenance_requests = []
         for req in pagination.items:
-            reporter = User.query.get(req.reported_by_id)
-            property_ = Property.query.get(req.property_id)
+            reporter = db.session.get(User, req.reported_by_id)
+            property_ = db.session.get(Property, req.property_id)
             
             maintenance_requests.append({
                 "id": req.id,
@@ -832,7 +832,7 @@ def get_payment_report():
         
         monthly_data = []
         for i in range(5, -1, -1):
-            month_start = datetime.utcnow().replace(day=1) - timedelta(days=30*i)
+            month_start = datetime.now(timezone.utc).replace(day=1) - timedelta(days=30*i)
             month_end = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
             
             month_total = db.session.query(func.sum(Payment.amount))\
@@ -956,7 +956,7 @@ def get_vacate_notices():
         notices = []
         for notice in pagination.items:
             try:
-                lease = notice.lease if hasattr(notice, 'lease') else Lease.query.get(notice.lease_id)
+                lease = notice.lease if hasattr(notice, 'lease') else db.session.get(Lease, notice.lease_id)
                 
                 if not lease:
                     continue
@@ -1026,15 +1026,15 @@ def update_vacate_notice(notice_id):
                 'message': 'Valid status required (approved/rejected/pending/completed)'
             }), 400
         
-        notice = VacateNotice.query.get_or_404(notice_id)
+        notice = VacateNotice.session.get(notice_id)
         
         old_status = notice.status
         notice.status = status
         notice.admin_notes = admin_notes
-        notice.updated_at = datetime.utcnow()
+        notice.updated_at = datetime.now(timezone.utc)
         
         if status == 'approved' and old_status != 'approved':
-            lease = notice.lease if hasattr(notice, 'lease') else Lease.query.get(notice.lease_id)
+            lease = notice.lease if hasattr(notice, 'lease') else db.session.get(Lease, notice.lease_id)
             
             if lease:
                 property_ = lease.property
@@ -1045,7 +1045,7 @@ def update_vacate_notice(notice_id):
                     property_.current_tenant_id = None
                 
                 lease.status = 'terminated'
-                lease.end_date = datetime.utcnow().date()
+                lease.end_date = datetime.now(timezone.utc).date()
                 if hasattr(lease, 'termination_reason'):
                     lease.termination_reason = 'Tenant vacated'
                 
@@ -1088,7 +1088,7 @@ def update_vacate_notice(notice_id):
 def delete_vacate_notice(notice_id):
     """Delete a vacate notice"""
     try:
-        notice = VacateNotice.query.get_or_404(notice_id)
+        notice = VacateNotice.session.get(notice_id)
         
         db.session.delete(notice)
         db.session.commit()

@@ -11,14 +11,16 @@ class VacateNotice(BaseModel, SerializerMixin):
     __tablename__ = 'vacate_notices'
 
     lease_id = db.Column(db.Integer, db.ForeignKey('leases.id'), nullable=False)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     vacate_date = db.Column(db.Date, nullable=False)
     reason = db.Column(db.Text)
     status = db.Column(Enum(*VACATE_STATUSES, name='vacate_status_enum'), default='pending', nullable=False)
     admin_notes = db.Column(db.Text)
 
     lease = db.relationship('Lease', back_populates='vacate_notices')
+    tenant = db.relationship('User', backref='vacate_notices')
 
-    serialize_rules = ("-lease.vacate_notices",)
+    serialize_rules = ("-lease.vacate_notices", "-tenant.vacate_notices")
 
     @validates('status')
     def validate_status(self, key, value):

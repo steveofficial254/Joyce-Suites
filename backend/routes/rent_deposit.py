@@ -1,5 +1,4 @@
-from flask import Blueprint, request, jsonify
-import traceback
+from flask import Blueprint, request, jsonify, current_app
 import traceback
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_
@@ -14,7 +13,7 @@ rent_deposit_bp = Blueprint('rent_deposit', __name__)
 @role_required(['admin', 'caretaker'])
 def get_rent_records():
     """Get all rent records with optional filters"""
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
@@ -60,7 +59,7 @@ def get_rent_records():
 @token_required
 def get_tenant_rent_records(tenant_id):
     """Get rent records for a specific tenant"""
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         # Check if user is admin, caretaker, or the tenant themselves
         if current_user.role not in ['admin', 'caretaker'] and current_user.id != tenant_id:
@@ -92,7 +91,7 @@ def get_tenant_rent_records(tenant_id):
 @role_required(['caretaker'])
 def mark_rent_payment():
     """Mark rent payment by caretaker"""
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         data = request.get_json()
         
@@ -105,7 +104,7 @@ def mark_rent_payment():
         if not rent_id or not amount_paid:
             return jsonify({'error': 'rent_id and amount_paid are required'}), 400
         
-        rent_record = RentRecord.query.get(rent_id)
+        rent_record = db.session.get(RentRecord, rent_id)
         if not rent_record:
             return jsonify({'error': 'Rent record not found'}), 404
         
@@ -127,6 +126,8 @@ def mark_rent_payment():
         
     except Exception as e:
         db.session.rollback()
+        import traceback
+        current_app.logger.error(f"Error in {request.path}: {str(e)}\n{traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -135,7 +136,7 @@ def mark_rent_payment():
 @role_required(['admin', 'caretaker'])
 def generate_monthly_rent():
     """Generate rent records for all active tenants for a specific month"""
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         data = request.get_json()
         month = data.get('month')
@@ -143,6 +144,8 @@ def generate_monthly_rent():
         
         if not month or not year:
             return jsonify({'error': 'month and year are required'}), 400
+        
+        current_app.logger.info(f"DEBUG: Generating rent for {month}/{year}")
         
         # Get all active leases
         active_leases = Lease.query.filter_by(status='active').all()
@@ -187,6 +190,8 @@ def generate_monthly_rent():
         
     except Exception as e:
         db.session.rollback()
+        import traceback
+        current_app.logger.error(f"Error in {request.path}: {str(e)}\n{traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -196,7 +201,7 @@ def generate_monthly_rent():
 @role_required(['admin', 'caretaker'])
 def get_deposit_records():
     """Get all deposit records with optional filters"""
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
@@ -236,7 +241,7 @@ def get_deposit_records():
 @token_required
 def get_tenant_deposit_records(tenant_id):
     """Get deposit records for a specific tenant"""
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         # Check if user is admin, caretaker, or the tenant themselves
         if current_user.role not in ['admin', 'caretaker'] and current_user.id != tenant_id:
@@ -260,7 +265,7 @@ def get_tenant_deposit_records(tenant_id):
 @role_required(['caretaker'])
 def mark_deposit_payment():
     """Mark deposit payment by caretaker"""
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         data = request.get_json()
         
@@ -273,7 +278,7 @@ def mark_deposit_payment():
         if not deposit_id or not amount_paid:
             return jsonify({'error': 'deposit_id and amount_paid are required'}), 400
         
-        deposit_record = DepositRecord.query.get(deposit_id)
+        deposit_record = db.session.get(DepositRecord, deposit_id)
         if not deposit_record:
             return jsonify({'error': 'Deposit record not found'}), 404
         
@@ -295,6 +300,8 @@ def mark_deposit_payment():
         
     except Exception as e:
         db.session.rollback()
+        import traceback
+        current_app.logger.error(f"Error in {request.path}: {str(e)}\n{traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -303,7 +310,7 @@ def mark_deposit_payment():
 @role_required(['admin'])
 def mark_deposit_refund():
     """Mark deposit refund by admin"""
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         data = request.get_json()
         
@@ -316,7 +323,7 @@ def mark_deposit_refund():
         if not deposit_id or not refund_amount:
             return jsonify({'error': 'deposit_id and refund_amount are required'}), 400
         
-        deposit_record = DepositRecord.query.get(deposit_id)
+        deposit_record = db.session.get(DepositRecord, deposit_id)
         if not deposit_record:
             return jsonify({'error': 'Deposit record not found'}), 404
         
@@ -338,6 +345,8 @@ def mark_deposit_refund():
         
     except Exception as e:
         db.session.rollback()
+        import traceback
+        current_app.logger.error(f"Error in {request.path}: {str(e)}\n{traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -346,7 +355,7 @@ def mark_deposit_refund():
 @role_required(['admin', 'caretaker'])
 def create_deposit_record():
     """Create deposit record for a tenant"""
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         data = request.get_json()
         
@@ -390,6 +399,8 @@ def create_deposit_record():
         
     except Exception as e:
         db.session.rollback()
+        import traceback
+        current_app.logger.error(f"Error in {request.path}: {str(e)}\n{traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -399,7 +410,7 @@ def create_deposit_record():
 @role_required(['admin', 'caretaker'])
 def get_dashboard_summary():
     """Get dashboard summary for rent and deposits"""
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         # Get current month and year
         now = datetime.now()
@@ -495,7 +506,7 @@ def get_dashboard_summary():
 @role_required(['admin', 'caretaker'])
 def get_water_bill_records():
     """Get all water bill records with optional filters"""
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
@@ -541,7 +552,7 @@ def get_water_bill_records():
 @token_required
 def get_tenant_water_bills(tenant_id):
     """Get water bills for a specific tenant"""
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         # Check if user is admin, caretaker, or the tenant themselves
         if current_user.role not in ['admin', 'caretaker'] and current_user.id != tenant_id:
@@ -573,7 +584,7 @@ def get_tenant_water_bills(tenant_id):
 @role_required(['caretaker'])
 def create_water_bill():
     """Create water bill for tenant"""
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         data = request.get_json()
         
@@ -633,6 +644,8 @@ def create_water_bill():
         
     except Exception as e:
         db.session.rollback()
+        import traceback
+        current_app.logger.error(f"Error in {request.path}: {str(e)}\n{traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -641,7 +654,7 @@ def create_water_bill():
 @role_required(['caretaker'])
 def mark_water_bill_payment():
     """Mark water bill payment by caretaker"""
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         data = request.get_json()
         
@@ -654,7 +667,7 @@ def mark_water_bill_payment():
         if not water_bill_id or not amount_paid:
             return jsonify({'error': 'water_bill_id and amount_paid are required'}), 400
         
-        water_bill = WaterBill.query.get(water_bill_id)
+        water_bill = db.session.get(WaterBill, water_bill_id)
         if not water_bill:
             return jsonify({'error': 'Water bill not found'}), 404
         
@@ -676,6 +689,8 @@ def mark_water_bill_payment():
         
     except Exception as e:
         db.session.rollback()
+        import traceback
+        current_app.logger.error(f"Error in {request.path}: {str(e)}\n{traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -684,7 +699,7 @@ def mark_water_bill_payment():
 @role_required(['caretaker'])
 def bulk_create_water_bills():
     """Bulk create water bills for all active tenants for a specific month"""
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         data = request.get_json()
         
@@ -761,6 +776,8 @@ def bulk_create_water_bills():
         
     except Exception as e:
         db.session.rollback()
+        import traceback
+        current_app.logger.error(f"Error in {request.path}: {str(e)}\n{traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -774,7 +791,7 @@ def run_overdue_checks():
     Updates status to 'overdue' and sends notifications.
     Typically run after the 5th of the month.
     """
-    current_user = User.query.get(request.user_id)
+    current_user = db.session.get(User, request.user_id)
     try:
         from models import Notification
         
@@ -866,4 +883,6 @@ def run_overdue_checks():
 
     except Exception as e:
         db.session.rollback()
+        import traceback
+        current_app.logger.error(f"Error in {request.path}: {str(e)}\n{traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500

@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from functools import wraps
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import base64
 import os
 import traceback
@@ -18,7 +18,7 @@ from services.mpesa_service import MpesaService
 from config import Config
 from utils.finance import calculate_outstanding_balance
 
-tenant_bp = Blueprint("tenant", __name__, url_prefix="/api/tenant")
+tenant_bp = Blueprint("tenant", __name__)
 
 SIGNATURE_FOLDER = 'uploads/signatures'
 os.makedirs(SIGNATURE_FOLDER, exist_ok=True)
@@ -100,7 +100,7 @@ def dashboard():
     try:
         current_app.logger.info(f"🔍 Fetching dashboard for user_id: {request.user_id}")
         
-        user = User.query.get(request.user_id)
+        user = db.session.get(User, request.user_id)
         if not user:
             current_app.logger.error(f"❌ User not found: {request.user_id}")
             return jsonify({"success": False, "error": "User not found"}), 404
@@ -168,7 +168,7 @@ def dashboard():
 def get_tenant_profile():
     """Get tenant profile information."""
     try:
-        user = User.query.get(request.user_id)
+        user = db.session.get(User, request.user_id)
         if not user:
             return jsonify({"success": False, "error": "User not found"}), 404
         
@@ -218,7 +218,7 @@ def get_payment_details():
                 "error": "Please sign your lease agreement before accessing payment details"
             }), 400
         
-        property = Property.query.get(lease.property_id)
+        property = db.session.get(Property, lease.property_id)
         
         if not property:
             current_app.logger.warning(f"❌ Property not found for lease_id: {lease.id}")
@@ -270,7 +270,7 @@ def get_lease_details():
                 "has_lease": False
             }), 200
 
-        property = Property.query.get(lease.property_id) if lease.property_id else None
+        property = db.session.get(Property, lease.property_id) if lease.property_id else None
         
         lease_data = {
             "id": lease.id,
@@ -319,7 +319,7 @@ def sign_lease():
             current_app.logger.error("❌ Must accept terms and conditions")
             return jsonify({"success": False, "error": "Must accept terms and conditions"}), 400
         
-        user = User.query.get(request.user_id)
+        user = db.session.get(User, request.user_id)
         if not user:
             current_app.logger.error(f"❌ User not found: {request.user_id}")
             return jsonify({"success": False, "error": "User not found"}), 404
@@ -373,8 +373,8 @@ def sign_lease():
                 status='active',
                 rent_amount=property.rent_amount,
                 deposit_amount=property.deposit_amount,
-                start_date=datetime.utcnow().date(),
-                end_date=datetime.utcnow().date() + timedelta(days=365),
+                start_date=datetime.now(timezone.utc).date(),
+                end_date=datetime.now(timezone.utc).date() + timedelta(days=365),
                 signed_by_tenant=False,
                 terms_accepted=False
             )
@@ -407,7 +407,7 @@ def sign_lease():
         current_app.logger.info(f"✅ Lease {lease.id} signed successfully by user_id: {request.user_id}")
         
         try:
-            property = Property.query.get(lease.property_id)
+            property = db.session.get(Property, lease.property_id)
             
             caretakers = User.query.filter_by(role='caretaker').all()
             admins = User.query.filter_by(role='admin').all()
@@ -426,7 +426,7 @@ def sign_lease():
         except Exception as notif_error:
             current_app.logger.error(f"⚠️ Failed to create notifications: {notif_error}")
         
-        property = Property.query.get(lease.property_id) if lease.property_id else None
+        property = db.session.get(Property, lease.property_id) if lease.property_id else None
         
         return jsonify({
             "success": True,
@@ -557,7 +557,7 @@ def create_maintenance_request():
         if not data.get('title') or not data.get('description'):
             return jsonify({"success": False, "error": "Title and description required"}), 400
 
-        user = User.query.get(request.user_id)
+        user = db.session.get(User, request.user_id)
         lease = Lease.query.filter_by(tenant_id=request.user_id, status='active').first()
         
         property_id = None
@@ -686,7 +686,7 @@ def get_room_details(unit_number):
         
         landlord_info = {}
         if property.landlord_id:
-            landlord = User.query.get(property.landlord_id)
+            landlord = db.session.get(User, property.landlord_id)
             if landlord:
                 landlord_info = {
                     "name": f"{landlord.first_name} {landlord.last_name}",
@@ -756,6 +756,7 @@ def submit_vacate_notice():
         
         notice = VacateNotice(
             lease_id=lease.id,
+            tenant_id=request.user_id,
             vacate_date=move_date,
             reason=data.get('reason', ''),
             status='pending'
@@ -767,8 +768,8 @@ def submit_vacate_notice():
         current_app.logger.info(f"✅ Vacate notice created: {notice.id}")
         
         try:
-            user = User.query.get(request.user_id)
-            property = Property.query.get(lease.property_id) if lease.property_id else None
+            user = db.session.get(User, request.user_id)
+            property = db.session.get(Property, lease.property_id) if lease.property_id else None
             
             caretakers = User.query.filter_by(role='caretaker').all()
             admins = User.query.filter_by(role='admin').all()
@@ -851,12 +852,12 @@ def get_vacate_notices():
 def cancel_vacate_notice(notice_id):
     """Cancel pending vacate notice."""
     try:
-        notice = VacateNotice.query.get(notice_id)
+        notice = db.session.get(VacateNotice, notice_id)
         
         if not notice:
             return jsonify({"success": False, "error": "Notice not found"}), 404
         
-        lease = Lease.query.get(notice.lease_id)
+        lease = db.session.get(Lease, notice.lease_id)
         if not lease or lease.tenant_id != request.user_id:
             return jsonify({"success": False, "error": "Unauthorized"}), 403
         
@@ -976,7 +977,7 @@ def get_room_pricing(room_number):
 def get_lease_preview(room_id):
     """Get lease preview with room details for modal"""
     try:
-        room = Property.query.get(room_id)
+        room = db.session.get(Property, room_id)
         
         if not room:
             return jsonify({
@@ -984,7 +985,7 @@ def get_lease_preview(room_id):
                 "error": "Room not found"
             }), 404
         
-        user = User.query.get(request.user_id)
+        user = db.session.get(User, request.user_id)
         
         landlord_name = "JOYCE MUTHONI MATHEA"
         landlord_phone = "0758 999322"
@@ -1045,7 +1046,7 @@ def create_lease():
     try:
         current_app.logger.info(f"📝 Creating lease for user_id: {request.user_id}")
         
-        user = User.query.get(request.user_id)
+        user = db.session.get(User, request.user_id)
         if not user:
             return jsonify({"success": False, "error": "User not found"}), 404
         
@@ -1096,8 +1097,8 @@ def create_lease():
             status='active',
             rent_amount=property.rent_amount,
             deposit_amount=property.deposit_amount,
-            start_date=datetime.utcnow().date(),
-            end_date=datetime.utcnow().date() + timedelta(days=365),
+            start_date=datetime.now(timezone.utc).date(),
+            end_date=datetime.now(timezone.utc).date() + timedelta(days=365),
             signed_by_tenant=False,
             terms_accepted=False
         )
@@ -1133,7 +1134,7 @@ def tenant_health():
         "success": True,
         "service": "Tenant API",
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }), 200
 @tenant_bp.route("/payment-status/<checkout_id>", methods=["GET"])
 @tenant_required
@@ -1151,11 +1152,11 @@ def check_payment_status(checkout_id):
                 "message": "Payment already confirmed as successful"
             }), 200
             
-        lease = Lease.query.get(payment.lease_id)
+        lease = db.session.get(Lease, payment.lease_id)
         if not lease:
             return jsonify({"success": False, "error": "Lease not found"}), 404
             
-        property = Property.query.get(lease.property_id)
+        property = db.session.get(Property, lease.property_id)
         if not property or not property.paybill_number:
             return jsonify({"success": False, "error": "Property paybill configuration missing"}), 400
             

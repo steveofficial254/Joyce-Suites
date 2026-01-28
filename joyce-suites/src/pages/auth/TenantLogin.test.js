@@ -14,6 +14,7 @@ jest.mock('react-router-dom', () => {
 });
 
 import TenantLogin from './TenantLogin';
+import config from '../../config';
 
 const renderComponent = () => {
   return render(
@@ -28,12 +29,12 @@ const renderComponent = () => {
 
 
 beforeAll(() => {
-  
+
   if (global.localStorage) {
     try {
       global.localStorage.clear();
     } catch (e) {
-      
+
     }
   }
 });
@@ -41,31 +42,31 @@ beforeAll(() => {
 
 describe('TenantLogin Component', () => {
   beforeEach(() => {
-    
+
     mockNavigate.mockClear();
     mockNavigate.mockReset();
-    
-    
+
+
     jest.restoreAllMocks();
-    
-    
+
+
     jest.clearAllMocks();
-    
-    
+
+
     if (global.fetch && global.fetch.mockRestore) {
       global.fetch.mockRestore();
     }
     global.fetch = jest.fn();
 
-    
+
     if (Object.getOwnPropertyDescriptor(global, 'localStorage')) {
       delete global.localStorage;
     }
 
-    
+
     const store = {};
 
-    
+
     const mockLocalStorage = {
       getItem: (key) => store[key] ?? null,
       setItem: (key, value) => {
@@ -86,7 +87,7 @@ describe('TenantLogin Component', () => {
       },
     };
 
-    
+
     Object.defineProperty(global, 'localStorage', {
       value: mockLocalStorage,
       writable: true,
@@ -98,8 +99,8 @@ describe('TenantLogin Component', () => {
     mockNavigate.mockClear();
     mockNavigate.mockReset();
     jest.restoreAllMocks();
-    
-    
+
+
     if (Object.getOwnPropertyDescriptor(global, 'localStorage')) {
       if (global.localStorage && global.localStorage.clear) {
         global.localStorage.clear();
@@ -177,6 +178,7 @@ describe('TenantLogin Component', () => {
             () =>
               resolve({
                 ok: true,
+                headers: { get: () => 'application/json' },
                 json: () =>
                   Promise.resolve({
                     token: 'test-token',
@@ -208,6 +210,7 @@ describe('TenantLogin Component', () => {
   test('handles successful login with lease signed', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
+      headers: { get: () => 'application/json' },
       json: () =>
         Promise.resolve({
           token: 'test-token-12345',
@@ -228,13 +231,12 @@ describe('TenantLogin Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Login$/i }));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/auth/login', {
+      expect(global.fetch).toHaveBeenCalledWith(`${config.apiBaseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: 'test@example.com',
-          password: 'password123',
-          role: 'tenant',
+          password: 'password123'
         }),
       });
     });
@@ -250,6 +252,7 @@ describe('TenantLogin Component', () => {
   test('handles successful login with lease not signed', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
+      headers: { get: () => 'application/json' },
       json: () =>
         Promise.resolve({
           token: 'test-token-45678',
@@ -278,48 +281,50 @@ describe('TenantLogin Component', () => {
   });
 
   test('handles login failure with error message from server', async () => {
-  
-  localStorage.setItem('token', 'test-token');
 
-  jest.spyOn(global, 'fetch').mockResolvedValueOnce({
-    ok: false,
-    json: () =>
-      Promise.resolve({
-        message: 'Invalid email or password',
-      }),
+    localStorage.setItem('token', 'test-token');
+
+    jest.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: false,
+      headers: { get: () => 'application/json' },
+      json: () =>
+        Promise.resolve({
+          message: 'Invalid email or password',
+        }),
+    });
+
+    renderComponent();
+
+    fireEvent.change(screen.getByLabelText(/Email Address/i), {
+      target: { value: 'wrong@example.com' },
+    });
+    fireEvent.change(screen.getByLabelText(/Password/i), {
+      target: { value: 'wrongpassword' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /^Login$/i }));
+
+
+    await waitFor(() =>
+      expect(screen.getByText(/Invalid email or password/i)).toBeInTheDocument()
+    );
+
+
+    await waitFor(() => {
+      expect(localStorage.getItem('token')).toBeNull();
+      expect(localStorage.getItem('userRole')).toBeNull();
+      expect(localStorage.getItem('userId')).toBeNull();
+    });
+
+
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
-
-  renderComponent();
-
-  fireEvent.change(screen.getByLabelText(/Email Address/i), {
-    target: { value: 'wrong@example.com' },
-  });
-  fireEvent.change(screen.getByLabelText(/Password/i), {
-    target: { value: 'wrongpassword' },
-  });
-
-  fireEvent.click(screen.getByRole('button', { name: /^Login$/i }));
-
-  
-  await waitFor(() =>
-    expect(screen.getByText(/Invalid email or password/i)).toBeInTheDocument()
-  );
-
-  
-  await waitFor(() => {
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(localStorage.getItem('userRole')).toBeNull();
-    expect(localStorage.getItem('userId')).toBeNull();
-  });
-
- 
-  expect(mockNavigate).not.toHaveBeenCalled();
-});
 
 
   test('handles login failure with generic error message', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: false,
+      headers: { get: () => 'application/json' },
       json: () => Promise.resolve({}),
     });
 
@@ -371,10 +376,12 @@ describe('TenantLogin Component', () => {
       .spyOn(global, 'fetch')
       .mockResolvedValueOnce({
         ok: false,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ message: 'Login failed' }),
       })
       .mockResolvedValueOnce({
         ok: true,
+        headers: { get: () => 'application/json' },
         json: () =>
           Promise.resolve({
             token: 'success-token',
@@ -385,7 +392,7 @@ describe('TenantLogin Component', () => {
 
     renderComponent();
 
-   
+
     fireEvent.change(screen.getByLabelText(/Email Address/i), {
       target: { value: 'test@example.com' },
     });
@@ -399,7 +406,7 @@ describe('TenantLogin Component', () => {
       expect(screen.getByText(/Login failed/i)).toBeInTheDocument();
     });
 
-    
+
     fireEvent.change(screen.getByLabelText(/Email Address/i), {
       target: { value: 'correct@example.com' },
     });
@@ -418,6 +425,7 @@ describe('TenantLogin Component', () => {
   test('sends correct request payload to API', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: true,
+      headers: { get: () => 'application/json' },
       json: () =>
         Promise.resolve({
           token: 'test-token',
@@ -441,13 +449,12 @@ describe('TenantLogin Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Login$/i }));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/auth/login', {
+      expect(global.fetch).toHaveBeenCalledWith(`${config.apiBaseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: testEmail,
-          password: testPassword,
-          role: 'tenant',
+          password: testPassword
         }),
       });
     });
@@ -456,6 +463,7 @@ describe('TenantLogin Component', () => {
   test('button text changes back to Login after error', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce({
       ok: false,
+      headers: { get: () => 'application/json' },
       json: () => Promise.resolve({ message: 'Login failed' }),
     });
 

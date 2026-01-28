@@ -57,7 +57,7 @@ class TestTenant:
 
             prop = Property(
                 name="Test Property",
-                property_type="apartment",
+                property_type="one_bedroom",
                 rent_amount=15000.0,
                 landlord_id=landlord.id,
                 description="A nice apartment"
@@ -108,7 +108,7 @@ class TestTenant:
 
             prop = Property(
                 name="Test Property 2",
-                property_type="apartment",
+                property_type="one_bedroom",
                 rent_amount=15000.0,
                 landlord_id=landlord.id,
                 description="Another nice apartment"

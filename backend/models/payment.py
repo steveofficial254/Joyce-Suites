@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy_serializer import SerializerMixin
 from .base import BaseModel, db
 
@@ -54,7 +54,7 @@ class Payment(BaseModel, SerializerMixin):
         self.status = 'paid'
         if reference_number:
             self.reference_number = reference_number
-        self.payment_date = datetime.utcnow()
+        self.payment_date = datetime.now(timezone.utc)
         return self
     
     def mark_as_failed(self):
