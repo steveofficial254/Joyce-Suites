@@ -725,3 +725,65 @@ def seed_database():
             "success": False,
             "error": f"Seeding failed: {str(e)}"
         }), 500
+
+
+@auth_bp.route("/add-test-room", methods=["POST"])
+def add_test_room():
+    """Add a test room for debugging purposes."""
+    try:
+        from models.property import Property
+        
+        # Get or create a test landlord
+        test_landlord = User.query.filter_by(email='test@landlord.com').first()
+        if not test_landlord:
+            test_landlord = User(
+                email='test@landlord.com',
+                username='test_landlord',
+                first_name='Test',
+                last_name='Landlord',
+                phone_number='+254700000000',
+                role='landlord',
+                national_id=12345678,
+                is_active=True
+            )
+            test_landlord.password = 'Test@123456'
+            db.session.add(test_landlord)
+            db.session.commit()
+        
+        # Create a test room
+        test_room = Property(
+            name='Test Room 101',
+            property_type='bedsitter',
+            rent_amount=5000.0,
+            deposit_amount=5400.0,
+            description='Test bedsitter room for debugging',
+            landlord_id=test_landlord.id,
+            status='vacant',
+            paybill_number='123456',
+            account_number='TEST001'
+        )
+        
+        db.session.add(test_room)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Test room created successfully!",
+            "room": {
+                "id": test_room.id,
+                "name": test_room.name,
+                "type": test_room.property_type,
+                "rent": test_room.rent_amount,
+                "deposit": test_room.deposit_amount,
+                "status": test_room.status
+            },
+            "total_rooms": Property.query.count(),
+            "vacant_rooms": Property.query.filter_by(status='vacant').count()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "error": f"Failed to create test room: {str(e)}"
+        }), 500
