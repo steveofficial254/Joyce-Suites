@@ -2,8 +2,29 @@ from flask import Blueprint, request, jsonify, current_app
 import traceback
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_
-from models import db, RentRecord, DepositRecord, WaterBill, RentStatus, DepositStatus, WaterBillStatus, User, Property, Lease
-from utils.auth import token_required, role_required
+from models.base import db
+from models.user import User
+from models.property import Property
+from models.lease import Lease
+from models.rent_deposit import RentRecord, DepositRecord, RentStatus, DepositStatus
+from models.water_bill import WaterBill, WaterBillStatus
+from routes.auth_routes import token_required
+from functools import wraps
+
+def role_required(allowed_roles):
+    """Decorator requiring specific roles."""
+    def decorator(f):
+        @wraps(f)
+        @token_required
+        def decorated(*args, **kwargs):
+            if request.user_role not in allowed_roles:
+                return jsonify({
+                    "success": False,
+                    "error": f"Access denied. Required roles: {', '.join(allowed_roles)}"
+                }), 403
+            return f(*args, **kwargs)
+        return decorated
+    return decorator
 
 rent_deposit_bp = Blueprint('rent_deposit', __name__)
 

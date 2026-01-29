@@ -503,8 +503,13 @@ const MenuPage = () => {
         footer: {
             backgroundColor: '#111827',
             color: 'white',
-            padding: '4rem 2rem',
+            padding: '4rem 2rem 2rem 2rem',
             marginTop: 'auto',
+            width: '100%',
+            minWidth: '100vw',
+            position: 'relative',
+            left: '50%',
+            transform: 'translateX(-50%)',
         },
         footerContent: {
             maxWidth: '1200px',
@@ -512,6 +517,7 @@ const MenuPage = () => {
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
             gap: '3rem',
+            width: '100%',
         },
         footerTitle: {
             fontSize: '1.25rem',
@@ -600,8 +606,15 @@ const MenuPage = () => {
             .section - padding { padding: 3rem 1rem!important; }
             .contact - grid { grid - template - columns: 1fr!important; gap: 2rem!important; }
             .ad - clip - container { height: 300px!important; margin: 2rem 0!important; }
-            .footer - content { grid - template - columns: 1fr!important; gap: 2rem!important; }
-            .nav - padding { padding: 1rem!important; }
+            .footer-content { grid-template-columns: 1fr!important; gap: 2rem!important; }
+            .nav-padding { padding: 1rem!important; }
+            footer {
+                padding: 3rem 1rem 1.5rem 1rem!important;
+                width: 100vw!important;
+                min-width: 100vw!important;
+                left: 0!important;
+                transform: none!important;
+            }
 }
 `}
             </style>

@@ -77,7 +77,7 @@ const CaretakerDeposits = () => {
 
   const fetchTenants = async () => {
     try {
-      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/users/tenants`);
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/caretaker/tenants`);
       if (response.ok) {
         const data = await response.json();
         setTenants(data.tenants || []);
