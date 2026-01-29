@@ -409,7 +409,7 @@ const AdminDashboard = () => {
 
   const fetchMaintenanceRequests = async () => {
     try {
-      const data = await apiCall('/api/caretaker/maintenance?page=1&per_page=100');
+      const data = await apiCall('/api/admin/maintenance?page=1&per_page=100');
       if (data && data.success) {
         setMaintenanceRequests(data.requests || []);
       }
@@ -527,7 +527,7 @@ const AdminDashboard = () => {
 
   const handleUpdateMaintenanceStatus = async (requestId, newStatus) => {
     try {
-      const data = await apiCall(`/api/caretaker/maintenance/${requestId}`, {
+      const data = await apiCall(`/api/admin/maintenance/${requestId}`, {
         method: 'PUT',
         body: JSON.stringify({ status: newStatus })
       });

@@ -359,18 +359,6 @@ const TenantDashboard = () => {
     }
   };
 
-  const calculateOutstandingBalance = () => {
-    if (!dashboardData?.rent_amount || !paymentsData.length) {
-      return dashboardData?.rent_amount || 0;
-    }
-
-    const totalPaid = paymentsData
-      .filter(payment => payment.status === 'completed')
-      .reduce((sum, payment) => sum + (payment.amount || 0), 0);
-    
-    return dashboardData.rent_amount - totalPaid;
-  };
-
   const fetchRentAndDepositRecords = async () => {
     try {
       // Get user ID from authenticated user context
@@ -1549,11 +1537,7 @@ const TenantDashboard = () => {
                     View Lease Agreement
                   </button>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Other tabs content would go here */}
+                
                 <h3>Payment History</h3>
                 <div className="table-container">
                   <table className="payments-table">
@@ -1607,7 +1591,6 @@ const TenantDashboard = () => {
 
           {activeTab === 'profile' && profileData && (
             <div className="content">
-              { }
               <div className="card" style={{ marginBottom: '20px', backgroundColor: '#f8f9fa', border: '1px solid #dee2e6' }}>
                 <h4>Profile Information</h4>
                 <div className="debug-info" style={{ fontSize: '12px', fontFamily: 'monospace' }}>
@@ -1833,10 +1816,9 @@ const TenantDashboard = () => {
             </div>
           )}
         </main>
-      </div >
+      </div>
 
-      { }
-      < footer className="dashboard-footer" >
+      <footer className="dashboard-footer">
         <div className="footer-content">
           <div className="footer-section">
             <h4>Joyce Suites Apartments</h4>
@@ -1885,11 +1867,9 @@ const TenantDashboard = () => {
             </div>
           </div>
         </div>
-      </footer >
+      </footer>
 
-      { }
-      {
-        showPaymentModal && (
+      {showPaymentModal && (
           <div className="modal-overlay" onClick={() => setShowPaymentModal(false)}>
             <div className="modal modal-payment" onClick={(e) => e.stopPropagation()}>
               <button className="modal-close" onClick={() => setShowPaymentModal(false)}>×</button>

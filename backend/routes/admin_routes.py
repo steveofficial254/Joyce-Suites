@@ -24,6 +24,7 @@ from models.water_bill import WaterBill, WaterBillStatus
 from models.maintenance import MaintenanceRequest
 from models.notification import Notification
 from models.vacate_notice import VacateNotice
+from models.payment import Payment
 from routes.auth_routes import token_required
 from utils.finance import calculate_outstanding_balance
 

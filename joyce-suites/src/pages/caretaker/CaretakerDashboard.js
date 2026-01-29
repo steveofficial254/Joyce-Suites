@@ -3436,3 +3436,6 @@ const NotificationsPage = ({ tenants, onSendNotification }) => {
     </div>
   );
 };
+
+
+export default CaretakerDashboard;
