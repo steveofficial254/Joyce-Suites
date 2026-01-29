@@ -11,13 +11,755 @@ import {
   Receipt, FileWarning, ShieldCheck, ShieldX, CalendarCheck, CalendarX,
   BedDouble, Bath, Square, Layers, MapPin, Droplet
 } from 'lucide-react';
-import CaretakerMaintenancePage from './CaretakerMaintenancePage';
-import CaretakerWaterBill from './CaretakerWaterBill';
-import CaretakerDeposits from './CaretakerDeposits';
 
 import config from '../../config';
 
 const API_BASE_URL = config.apiBaseUrl;
+
+const WaterBillPage = () => {
+  const [waterBillRecords, setWaterBillRecords] = useState([]);
+  const [tenants, setTenants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [showReadingModal, setShowReadingModal] = useState(false);
+  const [selectedTenant, setSelectedTenant] = useState(null);
+  const [readingForm, setReadingForm] = useState({
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear(),
+    reading_date: new Date().toISOString().split('T')[0],
+    previous_reading: '',
+    current_reading: '',
+    unit_rate: 50.0
+  });
+
+  const [filters, setFilters] = useState({
+    status: '',
+    tenant_id: '',
+    month: '',
+    year: ''
+  });
+
+  const fetchWithAuth = async (url, options = {}) => {
+    const token = localStorage.getItem('joyce-suites-token');
+    const defaultOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+      ...options,
+    };
+    return fetch(url, defaultOptions);
+  };
+
+  useEffect(() => {
+    fetchWaterBillRecords();
+    fetchTenants();
+  }, []);
+
+  const fetchWaterBillRecords = async () => {
+    try {
+      setLoading(true);
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/water-bill/records`);
+      if (response.ok) {
+        const data = await response.json();
+        setWaterBillRecords(data.records || []);
+      } else {
+        setError('Failed to fetch water bill records');
+      }
+    } catch (err) {
+      setError('Error fetching water bill records');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTenants = async () => {
+    try {
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/tenants-with-leases`);
+      if (response.ok) {
+        const data = await response.json();
+        setTenants(data.tenants || []);
+      }
+    } catch (err) {
+      // Error fetching tenants
+    }
+  };
+
+  const handleCreateWaterBill = async () => {
+    try {
+      const units_consumed = parseFloat(readingForm.current_reading) - parseFloat(readingForm.previous_reading);
+      const amount = units_consumed * parseFloat(readingForm.unit_rate);
+
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/water-bill/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: selectedTenant.id,
+          property_id: selectedTenant.property_id,
+          month: readingForm.month,
+          year: readingForm.year,
+          reading_date: readingForm.reading_date,
+          previous_reading: parseFloat(readingForm.previous_reading),
+          current_reading: parseFloat(readingForm.current_reading),
+          unit_rate: parseFloat(readingForm.unit_rate),
+          amount: amount
+        })
+      });
+
+      if (response.ok) {
+        setSuccess('Water bill created successfully');
+        setShowReadingModal(false);
+        setReadingForm({
+          month: new Date().getMonth() + 1,
+          year: new Date().getFullYear(),
+          reading_date: new Date().toISOString().split('T')[0],
+          previous_reading: '',
+          current_reading: '',
+          unit_rate: 50.0
+        });
+        setSelectedTenant(null);
+        fetchWaterBillRecords();
+      } else {
+        setError('Failed to create water bill');
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      'paid': '#10b981',
+      'unpaid': '#ef4444',
+      'partial': '#f59e0b'
+    };
+    return colors[status] || '#6b7280';
+  };
+
+  const getMonthName = (month) => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[month - 1] || 'Unknown';
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #f3f4f6',
+          borderTop: '4px solid #3b82f6',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <p style={{ color: '#6b7280', fontSize: '16px' }}>Loading water bill records...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111827', margin: 0 }}>
+          Water Bill Management
+        </h2>
+        <button
+          onClick={() => setShowReadingModal(true)}
+          style={{
+            padding: '10px 16px',
+            backgroundColor: '#3b82f6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '14px',
+            fontWeight: '500'
+          }}
+        >
+          <Droplet size={16} />
+          Record Reading
+        </button>
+      </div>
+
+      {error && (
+        <div style={{
+          backgroundColor: '#fee2e2',
+          color: '#991b1b',
+          padding: '12px 16px',
+          borderRadius: '6px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <AlertCircle size={16} />
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div style={{
+          backgroundColor: '#dcfce7',
+          color: '#166534',
+          padding: '12px 16px',
+          borderRadius: '6px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <CheckCircle size={16} />
+          {success}
+        </div>
+      )}
+
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        padding: '20px'
+      }}>
+        <table style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          fontSize: '14px'
+        }}>
+          <thead style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+            <tr>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Tenant</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Period</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Units</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Amount</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {waterBillRecords.map(record => (
+              <tr key={record.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                <td style={{ padding: '12px 16px', color: '#6b7280' }}>{record.tenant_name}</td>
+                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
+                  {getMonthName(record.month)} {record.year}
+                </td>
+                <td style={{ padding: '12px 16px', color: '#6b7280' }}>{record.units_consumed || 0}</td>
+                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
+                  KSh {(record.amount || 0).toLocaleString()}
+                </td>
+                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    backgroundColor: getStatusColor(record.status) + '20',
+                    color: getStatusColor(record.status)
+                  }}>
+                    {record.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Reading Modal */}
+      {showReadingModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '500px',
+            padding: '20px'
+          }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
+              Record Water Reading
+            </h3>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+                Select Tenant
+              </label>
+              <select
+                value={selectedTenant?.id || ''}
+                onChange={(e) => {
+                  const tenant = tenants.find(t => t.id == e.target.value);
+                  setSelectedTenant(tenant);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="">Choose a tenant...</option>
+                {tenants.map(tenant => (
+                  <option key={tenant.id} value={tenant.id}>
+                    {tenant.tenant_name} - {tenant.property_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+                  Previous Reading
+                </label>
+                <input
+                  type="number"
+                  value={readingForm.previous_reading}
+                  onChange={(e) => setReadingForm({ ...readingForm, previous_reading: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+                  Current Reading
+                </label>
+                <input
+                  type="number"
+                  value={readingForm.current_reading}
+                  onChange={(e) => setReadingForm({ ...readingForm, current_reading: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button
+                onClick={() => setShowReadingModal(false)}
+                style={{
+                  padding: '10px 16px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  backgroundColor: 'white',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateWaterBill}
+                disabled={!selectedTenant || !readingForm.previous_reading || !readingForm.current_reading}
+                style={{
+                  padding: '10px 16px',
+                  border: '1px solid #10b981',
+                  borderRadius: '6px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  opacity: (!selectedTenant || !readingForm.previous_reading || !readingForm.current_reading) ? 0.5 : 1
+                }}
+              >
+                Create Bill
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const DepositsPage = () => {
+  const [depositRecords, setDepositRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [paymentForm, setPaymentForm] = useState({
+    amount_paid: '',
+    payment_method: 'Cash',
+    payment_reference: '',
+    notes: ''
+  });
+
+  const fetchWithAuth = async (url, options = {}) => {
+    const token = localStorage.getItem('joyce-suites-token');
+    const defaultOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+      ...options,
+    };
+    return fetch(url, defaultOptions);
+  };
+
+  useEffect(() => {
+    fetchDepositRecords();
+  }, []);
+
+  const fetchDepositRecords = async () => {
+    try {
+      setLoading(true);
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/deposit/records`);
+      if (response.ok) {
+        const data = await response.json();
+        setDepositRecords(data.records || []);
+      } else {
+        setError('Failed to fetch deposit records');
+      }
+    } catch (err) {
+      setError('Error fetching deposit records');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkPayment = async () => {
+    try {
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/deposit/mark-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deposit_id: selectedRecord.id,
+          ...paymentForm
+        })
+      });
+
+      if (response.ok) {
+        setSuccess('Payment marked successfully');
+        setShowPaymentModal(false);
+        setPaymentForm({ amount_paid: '', payment_method: 'Cash', payment_reference: '', notes: '' });
+        setSelectedRecord(null);
+        fetchDepositRecords();
+      } else {
+        setError('Failed to mark payment');
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      'paid': '#10b981',
+      'unpaid': '#ef4444',
+      'partial': '#f59e0b'
+    };
+    return colors[status] || '#6b7280';
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(amount);
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #f3f4f6',
+          borderTop: '4px solid #3b82f6',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <p style={{ color: '#6b7280', fontSize: '16px' }}>Loading deposit records...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111827', margin: 0 }}>
+          Deposit Management
+        </h2>
+      </div>
+
+      {error && (
+        <div style={{
+          backgroundColor: '#fee2e2',
+          color: '#991b1b',
+          padding: '12px 16px',
+          borderRadius: '6px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <AlertCircle size={16} />
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div style={{
+          backgroundColor: '#dcfce7',
+          color: '#166534',
+          padding: '12px 16px',
+          borderRadius: '6px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <CheckCircle size={16} />
+          {success}
+        </div>
+      )}
+
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        padding: '20px'
+      }}>
+        <table style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          fontSize: '14px'
+        }}>
+          <thead style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+            <tr>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Tenant</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Property</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Required</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Paid</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Balance</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Status</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {depositRecords.map(record => (
+              <tr key={record.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                <td style={{ padding: '12px 16px', color: '#6b7280' }}>{record.tenant_name}</td>
+                <td style={{ padding: '12px 16px', color: '#6b7280' }}>{record.property_name}</td>
+                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
+                  {formatCurrency(record.amount_required)}
+                </td>
+                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
+                  {formatCurrency(record.amount_paid || 0)}
+                </td>
+                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
+                  {formatCurrency(record.balance || 0)}
+                </td>
+                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    backgroundColor: getStatusColor(record.status) + '20',
+                    color: getStatusColor(record.status)
+                  }}>
+                    {record.status}
+                  </span>
+                </td>
+                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => {
+                        setSelectedRecord(record);
+                        setShowPaymentModal(true);
+                      }}
+                      style={{
+                        padding: '6px 8px',
+                        border: '1px solid #10b981',
+                        borderRadius: '4px',
+                        backgroundColor: '#10b981',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <DollarSign size={14} />
+                      Mark Payment
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedRecord && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '500px',
+            padding: '20px'
+          }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
+              Mark Deposit Payment
+            </h3>
+            <div style={{
+              backgroundColor: '#f9fafb',
+              padding: '16px',
+              borderRadius: '6px',
+              marginBottom: '16px'
+            }}>
+              <div style={{ fontSize: '13px', color: '#0c4a6e', lineHeight: '1.5' }}>
+                <div><strong>Tenant:</strong> {selectedRecord.tenant_name}</div>
+                <div><strong>Property:</strong> {selectedRecord.property_name}</div>
+                <div><strong>Required Amount:</strong> {formatCurrency(selectedRecord.amount_required)}</div>
+                <div><strong>Current Balance:</strong> {formatCurrency(selectedRecord.balance)}</div>
+              </div>
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
+                Amount Paid
+              </label>
+              <input
+                type="number"
+                value={paymentForm.amount_paid}
+                onChange={(e) => setPaymentForm({ ...paymentForm, amount_paid: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
+                Payment Method
+              </label>
+              <select
+                value={paymentForm.payment_method}
+                onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="Cash">Cash</option>
+                <option value="M-Pesa">M-Pesa</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+              </select>
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
+                Payment Reference
+              </label>
+              <input
+                type="text"
+                value={paymentForm.payment_reference}
+                onChange={(e) => setPaymentForm({ ...paymentForm, payment_reference: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+                placeholder="Transaction ID, Reference number, etc."
+              />
+            </div>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
+                Notes
+              </label>
+              <textarea
+                value={paymentForm.notes}
+                onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  minHeight: '80px',
+                  resize: 'vertical'
+                }}
+                placeholder="Additional notes about this payment..."
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                style={{
+                  padding: '10px 16px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  backgroundColor: 'white',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleMarkPayment}
+                style={{
+                  padding: '10px 16px',
+                  border: '1px solid #10b981',
+                  borderRadius: '6px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Mark Payment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const CaretakerDashboard = () => {
   const navigate = useNavigate();
@@ -77,7 +819,6 @@ const CaretakerDashboard = () => {
     const token = getToken();
 
     if (!token) {
-      console.error('No token available');
       localStorage.clear();
       window.location.href = '/caretaker-login';
       return null;
@@ -107,7 +848,6 @@ const CaretakerDashboard = () => {
 
       return data;
     } catch (err) {
-      console.error('API call error:', err);
       throw err;
     }
   };
@@ -120,7 +860,7 @@ const CaretakerDashboard = () => {
         setOverview(data.overview);
       }
     } catch (err) {
-      console.error('Failed to fetch overview:', err);
+      // Failed to fetch overview
     }
   };
 
@@ -131,7 +871,7 @@ const CaretakerDashboard = () => {
         setMaintenanceRequests(data.requests || []);
       }
     } catch (err) {
-      console.error('Failed to fetch maintenance requests:', err);
+      // Failed to fetch maintenance requests
     }
   };
 
@@ -142,7 +882,7 @@ const CaretakerDashboard = () => {
         setAvailableRooms(data.available_rooms || []);
       }
     } catch (err) {
-      console.error('Failed to fetch available rooms:', err);
+      // Error occurred
     }
   };
 
@@ -153,7 +893,7 @@ const CaretakerDashboard = () => {
         setOccupiedRooms(data.occupied_rooms || []);
       }
     } catch (err) {
-      console.error('Failed to fetch occupied rooms:', err);
+      // Error occurred
     }
   };
 
@@ -164,7 +904,7 @@ const CaretakerDashboard = () => {
         setAllRooms(data.rooms || []);
       }
     } catch (err) {
-      console.error('Failed to fetch all rooms:', err);
+      // Error occurred
     }
   };
 
@@ -175,7 +915,7 @@ const CaretakerDashboard = () => {
         setTenants(data.tenants || []);
       }
     } catch (err) {
-      console.error('Failed to fetch tenants:', err);
+      // Error occurred
     }
   };
 
@@ -186,7 +926,7 @@ const CaretakerDashboard = () => {
         setPendingPayments(data.tenants_with_arrears || []);
       }
     } catch (err) {
-      console.error('Failed to fetch pending payments:', err);
+      // Error occurred
     }
   };
 
@@ -197,7 +937,7 @@ const CaretakerDashboard = () => {
         setAllTenantsPaymentStatus(data.tenants || []);
       }
     } catch (err) {
-      console.error('Failed to fetch payment status:', err);
+      // Error occurred
     }
   };
 
@@ -208,7 +948,7 @@ const CaretakerDashboard = () => {
         setVacateNotices(data.notices || []);
       }
     } catch (err) {
-      console.error('Failed to fetch vacate notices:', err);
+      // Error occurred
     }
   };
 
@@ -226,7 +966,7 @@ const CaretakerDashboard = () => {
         setTimeout(() => setSuccessMessage(''), 3000);
       }
     } catch (err) {
-      console.error('Failed to update maintenance:', err);
+      // Failed to update maintenance
     }
   };
 
@@ -279,7 +1019,7 @@ const CaretakerDashboard = () => {
         setNotifications(data.notifications || []);
       }
     } catch (err) {
-      console.error('Failed to fetch notifications:', err);
+      // Failed to fetch notifications
     }
   };
 
@@ -290,7 +1030,7 @@ const CaretakerDashboard = () => {
         prev.map(n => n.id === id ? { ...n, is_read: true } : n)
       );
     } catch (err) {
-      console.error('Failed to mark notification read:', err);
+      // Failed to mark notification read
     }
   };
 
@@ -409,7 +1149,7 @@ const CaretakerDashboard = () => {
         });
       }
     } catch (err) {
-      console.error('Logout error:', err);
+      // Logout error
     } finally {
       localStorage.clear();
       navigate('/caretaker-login');
@@ -431,13 +1171,13 @@ const CaretakerDashboard = () => {
         switch (activePage) {
           case 'dashboard':
             await Promise.all([
-              fetchOverview().catch(err => console.error('Overview fetch failed:', err)),
-              fetchMaintenanceRequests().catch(err => console.error('Maintenance fetch failed:', err)),
-              fetchAvailableRooms().catch(err => console.error('Rooms fetch failed:', err)),
-              fetchTenants().catch(err => console.error('Tenants fetch failed:', err)),
-              fetchPendingPayments().catch(err => console.error('Payments fetch failed:', err)),
-              fetchVacateNotices().catch(err => console.error('Vacate notices fetch failed:', err)),
-              fetchNotifications().catch(err => console.error('Notifications fetch failed:', err))
+              fetchOverview().catch(() => {}),
+              fetchMaintenanceRequests().catch(() => {}),
+              fetchAvailableRooms().catch(() => {}),
+              fetchTenants().catch(() => {}),
+              fetchPendingPayments().catch(() => {}),
+              fetchVacateNotices().catch(() => {}),
+              fetchNotifications().catch(() => {})
             ]);
             break;
           case 'maintenance':
@@ -473,7 +1213,7 @@ const CaretakerDashboard = () => {
             break;
         }
       } catch (err) {
-        console.error('Page data fetch error:', err);
+        // Page data fetch error
       } finally {
         setLoading(false);
       }
@@ -887,15 +1627,11 @@ const CaretakerDashboard = () => {
         );
       case 'maintenance':
         return (
-          <CaretakerMaintenancePage
+          <MaintenancePage
             requests={maintenanceRequests}
             loading={loading}
             onUpdateStatus={handleUpdateMaintenanceStatus}
-            onViewDetails={(request) => {
-              setSelectedMaintenanceRequest(request);
-              setShowMaintenanceModal(true);
-            }}
-            onCreateMaintenance={() => setShowCreateMaintenanceModal(true)}
+            onViewDetails={handleViewMaintenanceDetails}
           />
         );
       case 'properties':
@@ -1087,9 +1823,9 @@ const CaretakerDashboard = () => {
           </div>
         );
       case 'water-bill':
-        return <CaretakerWaterBill />;
+        return <WaterBillPage />;
       case 'deposits':
-        return <CaretakerDeposits />;
+        return <DepositsPage />;
       default:
         return null;
     }

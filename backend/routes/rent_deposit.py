@@ -217,7 +217,41 @@ def generate_monthly_rent():
 
 
 # Deposit Management Routes
-@rent_deposit_bp.route('/deposit/records', methods=['GET'])
+@rent_deposit_bp.route('/tenants-with-leases', methods=['GET'])
+@token_required
+@role_required(['caretaker'])
+def get_tenants_with_leases():
+    """Get all tenants with active leases for caretaker management"""
+    try:
+        # Get all tenants with active leases
+        active_leases = Lease.query.filter_by(status='active').all()
+        
+        tenants_data = []
+        for lease in active_leases:
+            tenant_data = {
+                'tenant_id': lease.tenant_id,
+                'tenant_name': lease.tenant.name if lease.tenant else 'Unknown',
+                'tenant_email': lease.tenant.email if lease.tenant else 'Unknown',
+                'property_id': lease.property_id,
+                'property_name': lease.property.name if lease.property else 'Unknown',
+                'room_number': lease.tenant.room_number if lease.tenant else 'Unknown',
+                'lease_id': lease.id,
+                'rent_amount': lease.rent_amount,
+                'deposit_amount': lease.deposit_amount
+            }
+            tenants_data.append(tenant_data)
+        
+        return jsonify({
+            'success': True,
+            'tenants': tenants_data
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching tenants with leases: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@rent_deposit_bp.route('/deposits/tenants', methods=['GET'])
 @token_required
 @role_required(['admin', 'caretaker'])
 def get_deposit_records():
@@ -559,14 +593,13 @@ def get_tenant_water_bills(tenant_id):
 @token_required
 @role_required(['caretaker'])
 def create_water_bill():
-    """Create water bill for tenant"""
+    """Create water bill for tenant (caretaker simplified version)"""
     current_user = db.session.get(User, request.user_id)
     try:
         data = request.get_json()
         
         tenant_id = data.get('tenant_id')
         property_id = data.get('property_id')
-        lease_id = data.get('lease_id')
         month = data.get('month')
         year = data.get('year')
         reading_date = data.get('reading_date')
@@ -574,8 +607,17 @@ def create_water_bill():
         current_reading = data.get('current_reading')
         unit_rate = data.get('unit_rate', 50.0)  # Default rate
         
-        if not all([tenant_id, property_id, lease_id, month, year, reading_date, previous_reading, current_reading]):
+        if not all([tenant_id, property_id, month, year, reading_date, previous_reading, current_reading]):
             return jsonify({'error': 'All fields are required'}), 400
+        
+        # Get tenant's active lease automatically
+        active_lease = Lease.query.filter_by(
+            tenant_id=tenant_id, 
+            status='active'
+        ).first()
+        
+        if not active_lease:
+            return jsonify({'error': 'No active lease found for this tenant'}), 400
         
         # Check if water bill already exists for this tenant and month
         existing_bill = WaterBill.query.filter(
@@ -599,7 +641,7 @@ def create_water_bill():
         water_bill = WaterBill(
             tenant_id=tenant_id,
             property_id=property_id,
-            lease_id=lease_id,
+            lease_id=active_lease.id,
             month=month,
             year=year,
             reading_date=datetime.fromisoformat(reading_date),
