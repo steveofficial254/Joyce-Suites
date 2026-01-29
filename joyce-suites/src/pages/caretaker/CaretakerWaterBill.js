@@ -1,3 +1,5 @@
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, Droplet, Users, Calendar, AlertCircle, CheckCircle, Clock, DollarSign, FileText, Plus, Edit, Trash2, Eye } from 'lucide-react';
 import config from '../../config';
 import './CaretakerWaterBill.css';
 

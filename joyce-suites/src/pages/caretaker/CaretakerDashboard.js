@@ -482,6 +482,381 @@ const CaretakerDashboard = () => {
     fetchPageData();
   }, [activePage]);
 
+  // Dashboard Page Component
+  const DashboardPage = ({ overview, maintenanceRequests, availableRooms, pendingPayments, vacateNotices, loading, onUpdateStatus, onViewDetails, onCreateMaintenance, onViewAllMaintenance, onMarkPayment, onViewVacateNotice }) => {
+    if (loading) {
+      return (
+        <div style={styles.loadingContainer}>
+          <div style={styles.spinner}></div>
+          <p>Loading dashboard...</p>
+        </div>
+      );
+    }
+
+    return (
+      <div style={styles.section}>
+        <h2 style={styles.pageTitle}>Dashboard Overview</h2>
+        
+        {/* Stats Cards */}
+        <div style={styles.statsGrid}>
+          <div style={styles.statCard}>
+            <Home size={24} style={styles.statIcon} />
+            <div>
+              <div style={styles.statNumber}>{availableRooms?.length || 0}</div>
+              <div style={styles.statLabel}>Available Rooms</div>
+            </div>
+          </div>
+          <div style={styles.statCard}>
+            <Users size={24} style={styles.statIcon} />
+            <div>
+              <div style={styles.statNumber}>{overview?.total_tenants || 0}</div>
+              <div style={styles.statLabel}>Total Tenants</div>
+            </div>
+          </div>
+          <div style={styles.statCard}>
+            <Wrench size={24} style={styles.statIcon} />
+            <div>
+              <div style={styles.statNumber}>{maintenanceRequests?.filter(m => m.status === 'pending').length || 0}</div>
+              <div style={styles.statLabel}>Pending Maintenance</div>
+            </div>
+          </div>
+          <div style={styles.statCard}>
+            <CreditCard size={24} style={styles.statIcon} />
+            <div>
+              <div style={styles.statNumber}>{pendingPayments?.length || 0}</div>
+              <div style={styles.statLabel}>Pending Payments</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Maintenance Requests */}
+        <div style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <h3 style={styles.sectionTitle}>Recent Maintenance Requests</h3>
+            <button style={styles.btnSecondary} onClick={onViewAllMaintenance}>
+              View All
+            </button>
+          </div>
+          {maintenanceRequests?.slice(0, 5).map(request => (
+            <div key={request.id} style={styles.card}>
+              <div style={styles.cardHeader}>
+                <span style={styles.cardTitle}>{request.title}</span>
+                <span style={{
+                  ...styles.statusBadge,
+                  backgroundColor: request.status === 'pending' ? '#fef3c7' : '#dcfce7',
+                  color: request.status === 'pending' ? '#92400e' : '#166534'
+                }}>
+                  {request.status}
+                </span>
+              </div>
+              <p style={styles.cardDescription}>{request.description}</p>
+              <div style={styles.cardActions}>
+                <button style={styles.btnSmallPrimary} onClick={() => onViewDetails(request)}>
+                  View Details
+                </button>
+                {request.status === 'pending' && (
+                  <button style={styles.btnSmallSecondary} onClick={() => onUpdateStatus(request.id, 'in_progress')}>
+                    Start Work
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Tenants Page Component
+  const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNotification, onViewDetails, onCreateVacateNotice }) => {
+    if (loading) {
+      return (
+        <div style={styles.loadingContainer}>
+          <div style={styles.spinner}></div>
+          <p>Loading tenants...</p>
+        </div>
+      );
+    }
+
+    return (
+      <div style={styles.section}>
+        <h2 style={styles.pageTitle}>Tenants Management</h2>
+        
+        {tenants?.length === 0 ? (
+          <div style={styles.emptyState}>
+            <Users size={48} />
+            <p>No tenants found</p>
+          </div>
+        ) : (
+          <div style={styles.tableContainer}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Name</th>
+                  <th style={styles.th}>Room</th>
+                  <th style={styles.th}>Rent</th>
+                  <th style={styles.th}>Payment Status</th>
+                  <th style={styles.th}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tenants?.map(tenant => (
+                  <tr key={tenant.id} style={styles.tr}>
+                    <td style={styles.td}>
+                      <div style={styles.userCell}>
+                        <User size={16} />
+                        <span>{tenant.name}</span>
+                      </div>
+                    </td>
+                    <td style={styles.td}>{tenant.room_number}</td>
+                    <td style={styles.td}>KSh {tenant.rent_amount?.toLocaleString() || '0'}</td>
+                    <td style={styles.td}>
+                      <span style={{
+                        ...styles.statusBadge,
+                        backgroundColor: paymentStatus?.[tenant.id]?.status === 'paid' ? '#dcfce7' : '#fef3c7',
+                        color: paymentStatus?.[tenant.id]?.status === 'paid' ? '#166534' : '#92400e'
+                      }}>
+                        {paymentStatus?.[tenant.id]?.status || 'Unknown'}
+                      </span>
+                    </td>
+                    <td style={styles.td}>
+                      <div style={styles.actionButtons}>
+                        <button style={styles.btnSmallPrimary} onClick={() => onViewDetails(tenant)}>
+                          View
+                        </button>
+                        {paymentStatus?.[tenant.id]?.status !== 'paid' && (
+                          <button style={styles.btnSmallSecondary} onClick={() => onMarkPayment(tenant)}>
+                            Mark Paid
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Payments Page Component
+  const PaymentsPage = ({ pendingPayments, allPayments, loading, onMarkPayment }) => {
+    if (loading) {
+      return (
+        <div style={styles.loadingContainer}>
+          <div style={styles.spinner}></div>
+          <p>Loading payments...</p>
+        </div>
+      );
+    }
+
+    return (
+      <div style={styles.section}>
+        <h2 style={styles.pageTitle}>Payments Management</h2>
+        
+        <div style={styles.section}>
+          <h3 style={styles.sectionTitle}>Pending Payments</h3>
+          {pendingPayments?.length === 0 ? (
+            <div style={styles.emptyState}>
+              <CreditCard size={48} />
+              <p>No pending payments</p>
+            </div>
+          ) : (
+            <div style={styles.tableContainer}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Tenant</th>
+                    <th style={styles.th}>Room</th>
+                    <th style={styles.th}>Amount</th>
+                    <th style={styles.th}>Due Date</th>
+                    <th style={styles.th}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingPayments?.map(payment => (
+                    <tr key={payment.id} style={styles.tr}>
+                      <td style={styles.td}>{payment.tenant_name}</td>
+                      <td style={styles.td}>{payment.room_number}</td>
+                      <td style={styles.td}>KSh {payment.amount?.toLocaleString() || '0'}</td>
+                      <td style={styles.td}>{payment.due_date}</td>
+                      <td style={styles.td}>
+                        <button style={styles.btnSmallPrimary} onClick={() => onMarkPayment(payment)}>
+                          Mark as Paid
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Vacate Page Component
+  const VacatePage = ({ notices, loading, onViewDetails, onUpdateStatus, onDelete, onCreateNotice }) => {
+    if (loading) {
+      return (
+        <div style={styles.loadingContainer}>
+          <div style={styles.spinner}></div>
+          <p>Loading vacate notices...</p>
+        </div>
+      );
+    }
+
+    return (
+      <div style={styles.section}>
+        <div style={styles.sectionHeader}>
+          <h2 style={styles.pageTitle}>Vacate Notices</h2>
+          <button style={styles.btnPrimary} onClick={onCreateNotice}>
+            Create Notice
+          </button>
+        </div>
+        
+        {notices?.length === 0 ? (
+          <div style={styles.emptyState}>
+            <DoorOpen size={48} />
+            <p>No vacate notices found</p>
+          </div>
+        ) : (
+          <div style={styles.cardsGrid}>
+            {notices?.map(notice => (
+              <div key={notice.id} style={styles.card}>
+                <div style={styles.cardHeader}>
+                  <span style={styles.cardTitle}>{notice.tenant_name}</span>
+                  <span style={{
+                    ...styles.statusBadge,
+                    backgroundColor: notice.status === 'pending' ? '#fef3c7' : '#dcfce7',
+                    color: notice.status === 'pending' ? '#92400e' : '#166534'
+                  }}>
+                    {notice.status}
+                  </span>
+                </div>
+                <div style={styles.cardDetails}>
+                  <p><strong>Room:</strong> {notice.room_number}</p>
+                  <p><strong>Notice Date:</strong> {notice.notice_date}</p>
+                  <p><strong>Vacate Date:</strong> {notice.vacate_date}</p>
+                </div>
+                <div style={styles.cardActions}>
+                  <button style={styles.btnSmallPrimary} onClick={() => onViewDetails(notice)}>
+                    View Details
+                  </button>
+                  {notice.status === 'pending' && (
+                    <button style={styles.btnSmallSecondary} onClick={() => onUpdateStatus(notice.id, 'approved')}>
+                      Approve
+                    </button>
+                  )}
+                  <button style={styles.btnSmallDanger} onClick={() => onDelete(notice.id)}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Properties Page Component
+  const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading, onViewDetails }) => {
+    if (loading) {
+      return (
+        <div style={styles.loadingContainer}>
+          <div style={styles.spinner}></div>
+          <p>Loading properties...</p>
+        </div>
+      );
+    }
+
+    return (
+      <div style={styles.section}>
+        <h2 style={styles.pageTitle}>Properties Management</h2>
+
+        <div style={styles.section}>
+          <h3 style={styles.sectionTitle}>Available Rooms ({availableRooms?.length || 0})</h3>
+          {availableRooms?.length === 0 ? (
+            <div style={styles.emptyState}>
+              <Building size={48} />
+              <p>No available rooms found</p>
+            </div>
+          ) : (
+            <div style={styles.roomsGrid}>
+              {availableRooms?.map(room => (
+                <div key={room.id} style={styles.roomCard} onClick={() => onViewDetails(room)}>
+                  <div style={styles.roomHeader}>
+                    <Building size={20} />
+                    <span style={styles.roomName}>{room.name}</span>
+                    <span style={styles.roomTypeBadge}>{room.property_type}</span>
+                  </div>
+                  <div style={styles.roomDetails}>
+                    <div style={styles.roomDetail}>
+                      <span style={styles.detailLabel}>Monthly Rent:</span>
+                      <span style={styles.detailValue}>KSh {room.rent_amount?.toLocaleString() || '0'}</span>
+                    </div>
+                    <div style={styles.roomDetail}>
+                      <span style={styles.detailLabel}>Deposit:</span>
+                      <span style={styles.detailValue}>KSh {room.deposit_amount?.toLocaleString() || '0'}</span>
+                    </div>
+                    <div style={styles.roomDetail}>
+                      <span style={styles.detailLabel}>Status:</span>
+                      <span style={{ ...styles.statusBadge, backgroundColor: '#dcfce7', color: '#166534' }}>
+                        Vacant
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={styles.section}>
+          <h3 style={styles.sectionTitle}>Occupied Rooms ({occupiedRooms?.length || 0})</h3>
+          {occupiedRooms?.length === 0 ? (
+            <div style={styles.emptyState}>
+              <Home size={48} />
+              <p>No occupied rooms found</p>
+            </div>
+          ) : (
+            <div style={styles.roomsGrid}>
+              {occupiedRooms?.map(room => (
+                <div key={room.id} style={styles.roomCard} onClick={() => onViewDetails(room)}>
+                  <div style={styles.roomHeader}>
+                    <Home size={20} />
+                    <span style={styles.roomName}>{room.name}</span>
+                    <span style={styles.roomTypeBadge}>{room.property_type}</span>
+                  </div>
+                  <div style={styles.roomDetails}>
+                    <div style={styles.roomDetail}>
+                      <span style={styles.detailLabel}>Monthly Rent:</span>
+                      <span style={styles.detailValue}>KSh {room.rent_amount?.toLocaleString() || '0'}</span>
+                    </div>
+                    <div style={styles.roomDetail}>
+                      <span style={styles.detailLabel}>Tenant:</span>
+                      <span style={styles.detailValue}>{room.current_tenant || 'N/A'}</span>
+                    </div>
+                    <div style={styles.roomDetail}>
+                      <span style={styles.detailLabel}>Status:</span>
+                      <span style={{ ...styles.statusBadge, backgroundColor: '#fef3c7', color: '#92400e' }}>
+                        Occupied
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderContent = () => {
     switch (activePage) {
       case 'dashboard':
@@ -3548,6 +3923,225 @@ const styles = {
     objectFit: 'cover',
     borderRadius: '8px',
     border: '1px solid #e5e7eb'
+  },
+  // Dashboard and Page Styles
+  pageTitle: {
+    fontSize: '2rem',
+    fontWeight: '700',
+    marginBottom: '2rem',
+    color: '#111827'
+  },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '1.5rem'
+  },
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '1.5rem',
+    marginBottom: '2rem'
+  },
+  statCard: {
+    backgroundColor: 'white',
+    padding: '1.5rem',
+    borderRadius: '0.75rem',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem'
+  },
+  statIcon: {
+    color: '#3b82f6',
+    flexShrink: 0
+  },
+  statNumber: {
+    fontSize: '1.5rem',
+    fontWeight: '700',
+    color: '#111827'
+  },
+  statLabel: {
+    fontSize: '0.875rem',
+    color: '#6b7280'
+  },
+  // Table Styles
+  tableContainer: {
+    backgroundColor: 'white',
+    borderRadius: '0.75rem',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    overflow: 'hidden'
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse'
+  },
+  th: {
+    backgroundColor: '#f9fafb',
+    padding: '1rem',
+    textAlign: 'left',
+    fontWeight: '600',
+    color: '#374151',
+    borderBottom: '1px solid #e5e7eb'
+  },
+  td: {
+    padding: '1rem',
+    borderBottom: '1px solid #f3f4f6',
+    color: '#374151'
+  },
+  tr: {
+    transition: 'backgroundColor 0.2s'
+  },
+  userCell: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem'
+  },
+  actionButtons: {
+    display: 'flex',
+    gap: '0.5rem'
+  },
+  // Room Card Styles
+  roomsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+    gap: '1.5rem'
+  },
+  roomCard: {
+    backgroundColor: 'white',
+    borderRadius: '0.75rem',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    overflow: 'hidden',
+    cursor: 'pointer',
+    transition: 'transform 0.2s, box-shadow 0.2s'
+  },
+  roomHeader: {
+    padding: '1rem',
+    backgroundColor: '#f9fafb',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    borderBottom: '1px solid #e5e7eb'
+  },
+  roomName: {
+    fontWeight: '600',
+    color: '#111827',
+    flex: 1
+  },
+  roomTypeBadge: {
+    fontSize: '0.75rem',
+    padding: '0.25rem 0.5rem',
+    borderRadius: '9999px',
+    backgroundColor: '#e0f2fe',
+    color: '#0369a1'
+  },
+  roomDetails: {
+    padding: '1rem'
+  },
+  roomDetail: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: '0.5rem'
+  },
+  detailLabel: {
+    fontSize: '0.875rem',
+    color: '#6b7280'
+  },
+  detailValue: {
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#111827'
+  },
+  // Card Styles
+  cardsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+    gap: '1.5rem'
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: '0.75rem',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    overflow: 'hidden'
+  },
+  cardHeader: {
+    padding: '1rem',
+    backgroundColor: '#f9fafb',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottom: '1px solid #e5e7eb'
+  },
+  cardTitle: {
+    fontWeight: '600',
+    color: '#111827'
+  },
+  cardDescription: {
+    padding: '1rem',
+    color: '#6b7280',
+    lineHeight: '1.5'
+  },
+  cardDetails: {
+    padding: '0 1rem 1rem'
+  },
+  cardActions: {
+    padding: '1rem',
+    borderTop: '1px solid #f3f4f6',
+    display: 'flex',
+    gap: '0.5rem'
+  },
+  // Button Styles
+  btnPrimary: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    padding: '0.5rem 1rem',
+    borderRadius: '0.375rem',
+    border: 'none',
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'backgroundColor 0.2s'
+  },
+  btnSecondary: {
+    backgroundColor: '#f3f4f6',
+    color: '#374151',
+    padding: '0.5rem 1rem',
+    borderRadius: '0.375rem',
+    border: '1px solid #d1d5db',
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'backgroundColor 0.2s'
+  },
+  btnSmallPrimary: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    padding: '0.25rem 0.75rem',
+    borderRadius: '0.25rem',
+    border: 'none',
+    fontSize: '0.75rem',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  btnSmallSecondary: {
+    backgroundColor: '#f3f4f6',
+    color: '#374151',
+    padding: '0.25rem 0.75rem',
+    borderRadius: '0.25rem',
+    border: '1px solid #d1d5db',
+    fontSize: '0.75rem',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  btnSmallDanger: {
+    backgroundColor: '#fee2e2',
+    color: '#991b1b',
+    padding: '0.25rem 0.75rem',
+    borderRadius: '0.25rem',
+    border: '1px solid #fecaca',
+    fontSize: '0.75rem',
+    fontWeight: '500',
+    cursor: 'pointer'
   }
 };
 

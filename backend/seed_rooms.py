@@ -1,7 +1,13 @@
 
+import os
+from dotenv import load_dotenv
+
 from app import create_app, db
 from models.property import Property
 from models.user import User
+
+# Load environment variables
+load_dotenv()
 
 def seed_rooms():
     """Add all rooms to the database with correct pricing and payment details"""
@@ -30,7 +36,7 @@ def seed_rooms():
                 national_id=99999999,
                 is_active=True
             )
-            admin.password = 'Admin@123456'  # Use the password setter
+            admin.password = os.getenv('DEFAULT_ADMIN_PASSWORD', 'Admin@123456')  # Use environment variable
             db.session.add(admin)
             print("✅ Admin user created: admin@joycesuites.com / Admin@123456")
         else:
@@ -49,7 +55,7 @@ def seed_rooms():
                 national_id=66183870,
                 is_active=True
             )
-            joyce.password = 'Password@123'
+            joyce.password = os.getenv('DEFAULT_LANDLORD_PASSWORD', 'Password@123')
             db.session.add(joyce)
             print("✅ Joyce Muthoni created")
         
@@ -66,7 +72,7 @@ def seed_rooms():
                 national_id=10000011,
                 is_active=True
             )
-            lawrence.password = 'Password@123'
+            lawrence.password = os.getenv('DEFAULT_LANDLORD_PASSWORD', 'Password@123')
             db.session.add(lawrence)
             print("✅ Lawrence Mathea created")
         
@@ -84,7 +90,7 @@ def seed_rooms():
                 national_id=88888888,
                 is_active=True
             )
-            caretaker.password = 'Caretaker123!'
+            caretaker.password = os.getenv('DEFAULT_CARETAKER_PASSWORD', 'Caretaker123!')
             db.session.add(caretaker)
             print("✅ Caretaker user created: caretaker@joycesuites.com / Caretaker123!")
         else:
@@ -102,30 +108,35 @@ def seed_rooms():
             {'room': 4, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
             {'room': 5, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
             {'room': 6, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            
+            {'room': 7, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
             {'room': 8, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
             {'room': 9, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
             {'room': 10, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
             
-            # Lawrence Mathea's rooms (paybill 222111)
-            {'room': 11, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222111', 'account': '54544'},
-            {'room': 12, 'type': 'bedsitter', 'rent': 5500, 'deposit': 5900, 'landlord': lawrence, 'paybill': '222111', 'account': '54544'},  # Bigger bedsitter
-            {'room': 13, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222111', 'account': '54544'},
-            {'room': 14, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222111', 'account': '54544'},
-            {'room': 15, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222111', 'account': '54544'},
-            {'room': 17, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222111', 'account': '54544'},
-            {'room': 18, 'type': 'one_bedroom', 'rent': 7000, 'deposit': 7400, 'landlord': lawrence, 'paybill': '222111', 'account': '54544'},  # Special pricing
-            {'room': 19, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222111', 'account': '54544'},
-            {'room': 20, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222111', 'account': '54544'},
-            {'room': 21, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222111', 'account': '54544'},
-            {'room': 22, 'type': 'bedsitter', 'rent': 5500, 'deposit': 5900, 'landlord': lawrence, 'paybill': '222111', 'account': '54544'},  # Bigger bedsitter
-            {'room': 23, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222111', 'account': '54544'},
-            {'room': 24, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222111', 'account': '54544'},
-            {'room': 25, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222111', 'account': '54544'},
-            {'room': 26, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222111', 'account': '54544'},
+            {'room': 11, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 12, 'type': 'bedsitter', 'rent': 5500, 'deposit': 5900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 13, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 14, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 15, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 16, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 17, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 18, 'type': 'one_bedroom', 'rent': 7000, 'deposit': 7400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 19, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 20, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 21, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 22, 'type': 'bedsitter', 'rent': 5500, 'deposit': 5900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 23, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 24, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 25, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 26, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
         ]
         
         created_count = 0
-        for room_data in rooms_data:
+        for i, room_data in enumerate(rooms_data):
+            # Make rooms 25 and 26 occupied (last 2 rooms)
+            status = 'occupied' if room_data['room'] in [25, 26] else 'vacant'
+            
             new_room = Property(
                 name=f"Room {room_data['room']}",
                 property_type=room_data['type'],
@@ -133,7 +144,7 @@ def seed_rooms():
                 deposit_amount=room_data['deposit'],
                 description=f"{room_data['type'].replace('_', ' ').title()} - KSh {room_data['rent']}/month (Deposit: KSh {room_data['deposit']})",
                 landlord_id=room_data['landlord'].id,
-                status='vacant',
+                status=status,
                 paybill_number=room_data['paybill'],
                 account_number=room_data['account']
             )
@@ -141,7 +152,8 @@ def seed_rooms():
             created_count += 1
             room_type_display = 'Bedsitter' if room_data['type'] == 'bedsitter' else '1-Bedroom'
             landlord_name = 'Joyce Muthoni' if room_data['landlord'] == joyce else 'Lawrence Mathea'
-            print(f"  Added Room {room_data['room']:2d}: {room_type_display:12s} KSh {room_data['rent']:4d} | Deposit: KSh {room_data['deposit']:4d} | {landlord_name}")
+            status_display = 'OCCUPIED' if status == 'occupied' else 'VACANT'
+            print(f"  Added Room {room_data['room']:2d}: {room_type_display:12s} KSh {room_data['rent']:4d} | Deposit: KSh {room_data['deposit']:4d} | {landlord_name} | {status_display}")
         
         db.session.commit()
         print(f"\n✅ Successfully created {created_count} rooms!")
@@ -164,13 +176,12 @@ def seed_rooms():
         print(f"\n💰 PAYMENT INFORMATION:")
         print(f"  • Joyce Muthoni:   Paybill 222111 (Account: 2536316)")
         print(f"  • Lawrence Mathea: Paybill 222111 (Account: 54544)")
-        print(f"  • All rooms use paybill number: 222111")
         
         print("\n🔑 DEFAULT CREDENTIALS:")
-        print(f"  • Admin:     admin@joycesuites.com / Admin@123456")
-        print(f"  • Caretaker: caretaker@joycesuites.com / Caretaker123!")
-        print(f"  • Landlord1: joyce@joycesuites.com / Password@123")
-        print(f"  • Landlord2: lawrence@joycesuites.com / Password@123")
+        print(f"  • Admin:     admin@joycesuites.com / {os.getenv('DEFAULT_ADMIN_PASSWORD', 'Admin@123456')}")
+        print(f"  • Caretaker: caretaker@joycesuites.com / {os.getenv('DEFAULT_CARETAKER_PASSWORD', 'Caretaker123!')}")
+        print(f"  • Landlord1: joyce@joycesuites.com / {os.getenv('DEFAULT_LANDLORD_PASSWORD', 'Password@123')}")
+        print(f"  • Landlord2: lawrence@joycesuites.com / {os.getenv('DEFAULT_LANDLORD_PASSWORD', 'Password@123')}")
         
         print("\n🎉 Seeding complete!")
 

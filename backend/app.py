@@ -169,6 +169,9 @@ def create_app():
     register_error_handlers(app)
     register_cli_commands(app)
     register_request_logging(app)
+    
+    # Auto-seed database in production if empty
+    auto_seed_if_needed(app)
 
     app.logger.info("Application initialized")
 
@@ -434,6 +437,38 @@ def register_request_logging(app: Flask) -> None:
                 f"IP: {request.remote_addr} | "
                 f"User-Agent: {request.headers.get('User-Agent', 'Unknown')[:50]}"
             )
+
+
+def auto_seed_if_needed(app: Flask) -> None:
+    """Automatically seed database if it's empty (only in production)."""
+    if os.getenv("FLASK_ENV") != "production":
+        return
+        
+    try:
+        with app.app_context():
+            from models.property import Property
+            from models.user import User
+            
+            # Check if database is empty
+            property_count = Property.query.count()
+            user_count = User.query.count()
+            
+            app.logger.info(f"Database check - Properties: {property_count}, Users: {user_count}")
+            
+            if property_count == 0 and user_count == 0:
+                app.logger.info("🌱 Database is empty. Auto-seeding...")
+                
+                # Import and run seed_rooms function
+                from seed_rooms import seed_rooms
+                seed_rooms()
+                
+                app.logger.info("✅ Database auto-seeded successfully!")
+            else:
+                app.logger.info("✅ Database already has data - skipping auto-seed")
+                
+    except Exception as e:
+        app.logger.error(f"❌ Auto-seed failed: {e}")
+        # Don't raise the error to prevent app startup failure
 
 
 app = create_app()

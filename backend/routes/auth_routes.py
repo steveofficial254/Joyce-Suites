@@ -11,6 +11,7 @@ from flask import Blueprint, request, jsonify, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from functools import wraps
+import os
 from datetime import datetime, timezone, timedelta
 from enum import Enum
 import jwt
@@ -486,6 +487,72 @@ def get_available_rooms():
             "error": f"Failed to fetch available rooms: {str(e)}"
         }), 500
 
+
+@auth_bp.route("/seed-database", methods=["POST"])
+def seed_database():
+    """
+    Seed the database with initial data (admin only endpoint)
+    """
+    try:
+        from seed_rooms import seed_rooms
+        
+        # Force complete reseed by deleting all existing properties first
+        from models.property import Property
+        Property.query.delete()
+        
+        # Run the seeding
+        seed_rooms()
+        
+        # Count total rooms after seeding
+        total_rooms = Property.query.count()
+        
+        return jsonify({
+            "success": True,
+            "message": "Database seeded successfully",
+            "total_rooms": total_rooms
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Failed to seed database: {str(e)}"
+        }), 500
+
+
+@auth_bp.route("/migration-status", methods=["GET"])
+def migration_status():
+    """Check database migration status and table information"""
+    try:
+        from sqlalchemy import inspect
+        
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        
+        # Get table info
+        table_info = {}
+        for table in tables:
+            columns = inspector.get_columns(table)
+            table_info[table] = {
+                'columns': [col['name'] for col in columns],
+                'column_count': len(columns)
+            }
+        
+        return jsonify({
+            "success": True,
+            "database_uri": str(db.engine.url).replace('password', '***'),
+            "tables": tables,
+            "table_count": len(tables),
+            "table_info": table_info,
+            "migration_files": len([f for f in os.listdir('/opt/render/project/src/backend/migrations/versions') if f.endswith('.py')]) if os.path.exists('/opt/render/project/src/backend/migrations/versions') else 0
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Failed to check migration status: {str(e)}"
+        }), 500
+
+
 @auth_bp.route("/delete/<int:user_id>", methods=["DELETE"])
 @admin_required
 def delete_user(user_id: int):
@@ -619,112 +686,6 @@ def mark_notification_read(notification_id):
         return jsonify({"success": True, "message": "Notification marked as read"}), 200
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
-
-
-@auth_bp.route("/seed-database", methods=["POST"])
-def seed_database():
-    """Seed the database with initial users and rooms."""
-    try:
-        from models.property import Property
-        
-        # Check if admin exists
-        admin = User.query.filter_by(email='admin@joycesuites.com').first()
-        if not admin:
-            admin = User(
-                email='admin@joycesuites.com',
-                username='admin',
-                first_name='System',
-                last_name='Administrator',
-                phone_number='+254700000001',
-                role='admin',
-                national_id=99999999,
-                is_active=True
-            )
-            admin.password = 'Admin@123456'
-            db.session.add(admin)
-        
-        # Create landlords
-        joyce = User.query.filter_by(email='joyce@joycesuites.com').first()
-        if not joyce:
-            joyce = User(
-                email='joyce@joycesuites.com',
-                username='joyce_muthoni',
-                first_name='Joyce',
-                last_name='Muthoni',
-                phone_number='0729175330',
-                role='landlord',
-                national_id=66183870,
-                is_active=True
-            )
-            joyce.password = 'Password@123'
-            db.session.add(joyce)
-        
-        lawrence = User.query.filter_by(email='lawrence@joycesuites.com').first()
-        if not lawrence:
-            lawrence = User(
-                email='lawrence@joycesuites.com',
-                username='lawrence_mathea',
-                first_name='Lawrence',
-                last_name='Mathea',
-                phone_number='+254722870077',
-                role='landlord',
-                national_id=10000011,
-                is_active=True
-            )
-            lawrence.password = 'Password@123'
-            db.session.add(lawrence)
-        
-        db.session.commit()
-        
-        # Create rooms only if none exist
-        existing_rooms = Property.query.count()
-        if existing_rooms == 0:
-            rooms_data = [
-                {'room': 1, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
-                {'room': 2, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
-                {'room': 3, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
-                {'room': 4, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
-                {'room': 5, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
-                {'room': 6, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
-                {'room': 8, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
-                {'room': 9, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
-                {'room': 10, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
-                {'room': 11, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
-                {'room': 12, 'type': 'bedsitter', 'rent': 5500, 'deposit': 5900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
-                {'room': 13, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
-                {'room': 14, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
-                {'room': 15, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
-            ]
-            
-            for room_data in rooms_data:
-                new_room = Property(
-                    name=f"Room {room_data['room']}",
-                    property_type=room_data['type'],
-                    rent_amount=room_data['rent'],
-                    deposit_amount=room_data['deposit'],
-                    description=f"{room_data['type'].replace('_', ' ').title()} - KSh {room_data['rent']}/month",
-                    landlord_id=room_data['landlord'].id,
-                    status='vacant',
-                    paybill_number=room_data['paybill'],
-                    account_number=room_data['account']
-                )
-                db.session.add(new_room)
-        
-        db.session.commit()
-        
-        return jsonify({
-            "success": True,
-            "message": "Database seeded successfully!",
-            "users_created": User.query.count(),
-            "rooms_created": Property.query.count()
-        }), 200
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            "success": False,
-            "error": f"Seeding failed: {str(e)}"
-        }), 500
 
 
 @auth_bp.route("/reset-and-seed-database", methods=["POST"])
