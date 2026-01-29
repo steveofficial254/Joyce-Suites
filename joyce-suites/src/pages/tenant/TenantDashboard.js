@@ -226,7 +226,9 @@ const TenantDashboard = () => {
 
 
   const getAccountDetails = (roomNumber) => {
+    console.log('🏠 getAccountDetails called with roomNumber:', roomNumber);
     const roomNum = parseInt(roomNumber);
+    console.log('🏠 Parsed roomNum:', roomNum);
 
 
     const joyceRooms = [1, 2, 3, 4, 5, 6, 8, 9, 10];
@@ -279,7 +281,7 @@ const TenantDashboard = () => {
       accountNumber = 'N/A';
     }
 
-    return {
+    const result = {
       roomNumber: roomNum,
       roomType,
       rentAmount,
@@ -289,6 +291,9 @@ const TenantDashboard = () => {
       accountNumber,
       fullAccountName: `${accountNumber} - ${landlordName}`
     };
+
+    console.log('🏠 getAccountDetails result:', result);
+    return result;
   };
 
   const fetchUserProfile = async () => {
@@ -938,7 +943,12 @@ const TenantDashboard = () => {
 
 
   const roomNumber = dashboardData?.unit_number || profileData?.room_number || 'Not Assigned';
+  console.log('🔍 Debug - roomNumber:', roomNumber);
+  console.log('🔍 Debug - dashboardData:', dashboardData);
+  console.log('🔍 Debug - profileData:', profileData);
+  console.log('🔍 Debug - accountDetails:', accountDetails);
   const currentAccountDetails = accountDetails || getAccountDetails(roomNumber);
+  console.log('🔍 Debug - currentAccountDetails:', currentAccountDetails);
 
 
   const outstandingBalance = dashboardData?.outstanding_balance !== undefined

@@ -3433,9 +3433,389 @@ const NotificationsPage = ({ tenants, onSendNotification }) => {
           </div>
         )}
       </div>
+
+      <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+        <button
+          onClick={() => {
+            setMessageTitle('');
+            setMessageContent('');
+            setSelectedTenant('');
+          }}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#f3f4f6',
+            color: '#374151',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '14px'
+          }}
+        >
+          Clear
+        </button>
+        <button
+          onClick={handleSendMessage}
+          disabled={loading}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: loading ? '#9ca3af' : '#3b82f6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontSize: '14px'
+          }}
+        >
+          {loading ? 'Sending...' : `Send Message${messageType === 'all' ? ' to All Tenants' : ''}`}
+        </button>
+      </div>
+
+      {messageType === 'all' && (
+        <div style={{
+          marginTop: '16px',
+          padding: '12px 16px',
+          backgroundColor: '#fef3c7',
+          border: '1px solid #f59e0b',
+          borderRadius: '6px',
+          fontSize: '14px',
+          color: '#92400e'
+        }}>
+          <strong>Note:</strong> This message will be sent to all {activeTenantsCount} active tenants.
+        </div>
+      )}
     </div>
   );
 };
 
+// Styles object
+const styles = {
+  container: {
+    display: 'flex',
+    minHeight: '100vh',
+    backgroundColor: '#f5f5f5',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+  },
+  sidebar: {
+    width: '260px',
+    backgroundColor: '#1f2937',
+    color: 'white',
+    transition: 'all 0.3s ease',
+    position: 'fixed',
+    height: '100vh',
+    zIndex: 1000,
+    overflowY: 'auto'
+  },
+  sidebarHidden: {
+    transform: 'translateX(-100%)'
+  },
+  sidebarHeader: {
+    padding: '20px',
+    borderBottom: '1px solid #374151',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  sidebarTitle: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: '600'
+  },
+  closeBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'white',
+    cursor: 'pointer',
+    padding: '4px'
+  },
+  navItem: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '12px 20px',
+    cursor: 'pointer',
+    border: 'none',
+    background: 'none',
+    color: '#d1d5db',
+    width: '100%',
+    textAlign: 'left',
+    fontSize: '14px',
+    transition: 'background-color 0.2s'
+  },
+  navItemActive: {
+    backgroundColor: '#374151',
+    color: 'white'
+  },
+  logoutBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '12px 20px',
+    cursor: 'pointer',
+    border: 'none',
+    background: '#dc2626',
+    color: 'white',
+    width: '100%',
+    textAlign: 'left',
+    fontSize: '14px',
+    marginTop: '20px'
+  },
+  header: {
+    backgroundColor: 'white',
+    padding: '16px 24px',
+    borderBottom: '1px solid #e5e7eb',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    position: 'sticky',
+    top: 0,
+    zIndex: 100
+  },
+  headerLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  headerTitle: {
+    margin: 0,
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#1f2937'
+  },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  menuBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '8px'
+  },
+  homeBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '8px'
+  },
+  refreshBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '8px'
+  },
+  mainContent: {
+    flex: 1,
+    marginLeft: '260px',
+    padding: '24px',
+    transition: 'margin-left 0.3s ease'
+  },
+  mainContentFull: {
+    marginLeft: 0
+  },
+  errorBanner: {
+    backgroundColor: '#fee2e2',
+    color: '#991b1b',
+    padding: '12px 16px',
+    borderRadius: '6px',
+    marginBottom: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  successBanner: {
+    backgroundColor: '#dcfce7',
+    color: '#166534',
+    padding: '12px 16px',
+    borderRadius: '6px',
+    marginBottom: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  closeBannerBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    marginLeft: 'auto',
+    padding: '4px'
+  },
+  overlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 999
+  },
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '40px'
+  },
+  spinner: {
+    width: '40px',
+    height: '40px',
+    border: '4px solid #e5e7eb',
+    borderTop: '4px solid #3b82f6',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite'
+  },
+  section: {
+    marginBottom: '24px'
+  },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px'
+  },
+  sectionTitle: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#1f2937'
+  },
+  pageHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '24px'
+  },
+  pageTitle: {
+    margin: 0,
+    fontSize: '24px',
+    fontWeight: '600',
+    color: '#1f2937'
+  },
+  headerActions: {
+    display: 'flex',
+    gap: '12px'
+  },
+  btnPrimary: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px'
+  },
+  btnSecondary: {
+    backgroundColor: '#6b7280',
+    color: 'white',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px'
+  },
+  btnSmallPrimary: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '12px'
+  },
+  btnSmallSecondary: {
+    backgroundColor: '#6b7280',
+    color: 'white',
+    border: 'none',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '12px'
+  },
+  btnSmallDanger: {
+    backgroundColor: '#dc2626',
+    color: 'white',
+    border: 'none',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '12px'
+  },
+  card: {
+    backgroundColor: 'white',
+    padding: '16px',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb',
+    marginBottom: '12px'
+  },
+  cardTitle: {
+    margin: '0 0 8px 0',
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#1f2937'
+  },
+  cardDescription: {
+    margin: '0 0 12px 0',
+    fontSize: '14px',
+    color: '#6b7280'
+  },
+  cardActions: {
+    display: 'flex',
+    gap: '8px'
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    border: '1px solid #e5e7eb'
+  },
+  th: {
+    padding: '12px',
+    textAlign: 'left',
+    backgroundColor: '#f9fafb',
+    borderBottom: '1px solid #e5e7eb',
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#1f2937'
+  },
+  td: {
+    padding: '12px',
+    borderBottom: '1px solid #e5e7eb',
+    fontSize: '14px',
+    color: '#4b5563'
+  },
+  actionButtons: {
+    display: 'flex',
+    gap: '6px'
+  },
+  roomsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+    gap: '16px'
+  },
+  roomCard: {
+    backgroundColor: 'white',
+    padding: '16px',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb',
+    cursor: 'pointer',
+    transition: 'box-shadow 0.2s'
+  },
+  roomHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '8px'
+  },
+  roomName: {
+    fontWeight: '600',
+    color: '#1f2937'
+  }
+};
 
 export default CaretakerDashboard;
