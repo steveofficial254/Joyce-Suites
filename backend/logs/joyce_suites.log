@@ -15036,3 +15036,43 @@ NameError: name 'month' is not defined
 2026-01-28 09:33:58,233 - INFO - GET /api/health | IP: 127.0.0.1 | User-Agent: curl/8.5.0
 2026-01-28 09:33:58,233 - INFO - After request - Method: GET, Origin: None, Path: /api/health
 2026-01-28 09:33:58,233 - INFO - CORS allowed for requests with no Origin header
+2026-01-29 14:21:21,745 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:21:21,861 - INFO - Application initialized
+2026-01-29 14:21:21,864 - INFO - CORS origins: ['http://localhost:3000', 'http://localhost:5000', 'https://joycesuites.onrender.com', 'https://your-frontend-app.onrender.com', 'https://joyce-suites.vercel.app', 'https://joyce-suites-jcfw.vercel.app', 'https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app', 'https://joyce-suites.onrender.com', 'https://joyce-suites-xdkp.onrender.com']
+2026-01-29 14:21:21,865 - INFO - CORS fix deployed - v4.0 - Comprehensive solution
+2026-01-29 14:21:21,867 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:21:21,867 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:21:21,976 - INFO - Application initialized
+2026-01-29 14:21:21,976 - INFO - Application initialized
+2026-01-29 14:22:03,604 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:22:03,709 - INFO - Application initialized
+2026-01-29 14:22:03,712 - INFO - CORS origins: ['http://localhost:3000', 'http://localhost:5000', 'https://joycesuites.onrender.com', 'https://your-frontend-app.onrender.com', 'https://joyce-suites.vercel.app', 'https://joyce-suites-jcfw.vercel.app', 'https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app', 'https://joyce-suites.onrender.com', 'https://joyce-suites-xdkp.onrender.com']
+2026-01-29 14:22:03,713 - INFO - CORS fix deployed - v4.0 - Comprehensive solution
+2026-01-29 14:22:03,717 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:22:03,717 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:22:03,815 - INFO - Application initialized
+2026-01-29 14:22:03,815 - INFO - Application initialized
+2026-01-29 14:22:32,885 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:22:32,995 - INFO - Application initialized
+2026-01-29 14:22:32,997 - INFO - CORS origins: ['http://localhost:3000', 'http://localhost:5000', 'https://joycesuites.onrender.com', 'https://your-frontend-app.onrender.com', 'https://joyce-suites.vercel.app', 'https://joyce-suites-jcfw.vercel.app', 'https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app', 'https://joyce-suites.onrender.com', 'https://joyce-suites-xdkp.onrender.com']
+2026-01-29 14:22:32,998 - INFO - CORS fix deployed - v4.0 - Comprehensive solution
+2026-01-29 14:22:33,000 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:22:33,000 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:22:33,117 - INFO - Application initialized
+2026-01-29 14:22:33,117 - INFO - Application initialized
+2026-01-29 14:23:49,474 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:23:49,674 - INFO - Application initialized
+2026-01-29 14:23:49,678 - INFO - CORS origins: ['http://localhost:3000', 'http://localhost:5000', 'https://joycesuites.onrender.com', 'https://your-frontend-app.onrender.com', 'https://joyce-suites.vercel.app', 'https://joyce-suites-jcfw.vercel.app', 'https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app', 'https://joyce-suites.onrender.com', 'https://joyce-suites-xdkp.onrender.com']
+2026-01-29 14:23:49,679 - INFO - CORS fix deployed - v4.0 - Comprehensive solution
+2026-01-29 14:23:49,684 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:23:49,684 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:23:49,843 - INFO - Application initialized
+2026-01-29 14:23:49,843 - INFO - Application initialized
+2026-01-29 14:24:13,115 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:24:13,220 - INFO - Application initialized
+2026-01-29 14:24:13,222 - INFO - CORS origins: ['http://localhost:3000', 'http://localhost:5000', 'https://joycesuites.onrender.com', 'https://your-frontend-app.onrender.com', 'https://joyce-suites.vercel.app', 'https://joyce-suites-jcfw.vercel.app', 'https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app', 'https://joyce-suites.onrender.com', 'https://joyce-suites-xdkp.onrender.com']
+2026-01-29 14:24:13,223 - INFO - CORS fix deployed - v4.0 - Comprehensive solution
+2026-01-29 14:24:13,225 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:24:13,225 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:24:13,340 - INFO - Application initialized
+2026-01-29 14:24:13,340 - INFO - Application initialized
