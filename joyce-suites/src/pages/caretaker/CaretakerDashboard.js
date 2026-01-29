@@ -11,7 +11,7 @@ import {
   Receipt, FileWarning, ShieldCheck, ShieldX, CalendarCheck, CalendarX,
   BedDouble, Bath, Square, Layers, MapPin, Droplet
 } from 'lucide-react';
-import MaintenancePage from './MaintenancePage';
+import CaretakerMaintenancePage from './CaretakerMaintenancePage';
 import CaretakerWaterBill from './CaretakerWaterBill';
 import CaretakerDeposits from './CaretakerDeposits';
 
@@ -887,7 +887,7 @@ const CaretakerDashboard = () => {
         );
       case 'maintenance':
         return (
-          <MaintenancePage
+          <CaretakerMaintenancePage
             requests={maintenanceRequests}
             loading={loading}
             onUpdateStatus={handleUpdateMaintenanceStatus}

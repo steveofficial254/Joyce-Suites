@@ -1,8 +1,9 @@
+import React, { useState, useEffect } from 'react';
 import config from '../../config';
 import './AdminRentDeposit.css';
 
-const AdminRentDeposit = () => {
-  const [activeTab, setActiveTab] = useState('rent');
+const AdminRentDeposit = ({ defaultTab = 'rent' }) => {
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [rentRecords, setRentRecords] = useState([]);
   const [depositRecords, setDepositRecords] = useState([]);
   const [waterBillRecords, setWaterBillRecords] = useState([]);

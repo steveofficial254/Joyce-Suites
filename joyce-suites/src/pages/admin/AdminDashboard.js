@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 
 import config from '../../config';
-import MaintenancePage from '../caretaker/MaintenancePage';
+import AdminMaintenancePage from './AdminMaintenancePage';
 import AdminRentDeposit from './AdminRentDeposit';
 
 const API_BASE_URL = config.apiBaseUrl;
@@ -485,14 +485,14 @@ const AdminDashboard = () => {
           />
         );
       case 'rent-deposit':
-        return <AdminRentDeposit />;
+        return <AdminRentDeposit defaultTab="rent" />;
       case 'water-bill':
-        return <AdminRentDeposit />;
+        return <AdminRentDeposit defaultTab="water" />;
       case 'properties':
         return <PropertiesPage availableRooms={availableRooms} loading={loading} />;
       case 'maintenance':
         return (
-          <MaintenancePage
+          <AdminMaintenancePage
             requests={maintenanceRequests}
             loading={loading}
             onUpdateStatus={handleUpdateMaintenanceStatus}

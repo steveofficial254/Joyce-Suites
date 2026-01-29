@@ -170,8 +170,8 @@ def create_app():
     register_cli_commands(app)
     register_request_logging(app)
     
-    # Auto-seed database in production if empty
-    auto_seed_if_needed(app)
+    # Auto-seed database in production if empty (disabled for cleaner logs)
+    # auto_seed_if_needed(app)
 
     app.logger.info("Application initialized")
 
