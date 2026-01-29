@@ -37,18 +37,23 @@ def update_schema():
                     if not os.access(db_dir, os.W_OK):
                         print(f"⚠️ Warning: Directory {db_dir} is NOT writable!", flush=True)
             
-            # Check if database exists and has data
+            # Create all tables first (this doesn't delete existing data)
+            db.create_all()
+            print("✅ Database tables created successfully!", flush=True)
+            
+            # Now check if database exists and has data
             from models.property import Property
             from models.user import User
             
-            existing_properties = Property.query.count()
-            existing_users = User.query.count()
+            try:
+                existing_properties = Property.query.count()
+                existing_users = User.query.count()
+                print(f"📊 Existing data - Properties: {existing_properties}, Users: {existing_users}", flush=True)
+            except Exception as e:
+                print(f"⚠️ Could not query existing data: {e}", flush=True)
+                existing_properties = 0
+                existing_users = 0
             
-            print(f"📊 Existing data - Properties: {existing_properties}, Users: {existing_users}", flush=True)
-            
-            # Create all tables (this doesn't delete existing data)
-            db.create_all()
-            print("✅ Database schema updated successfully!", flush=True)
             print("📊 All tables and columns are now in sync with models.", flush=True)
             
             # Only seed if completely empty

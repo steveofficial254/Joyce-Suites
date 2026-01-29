@@ -446,14 +446,23 @@ def auto_seed_if_needed(app: Flask) -> None:
         
     try:
         with app.app_context():
+            # Create tables first
+            from models.base import db
+            db.create_all()
+            app.logger.info("✅ Database tables created/verified")
+            
             from models.property import Property
             from models.user import User
             
             # Check if database is empty
-            property_count = Property.query.count()
-            user_count = User.query.count()
-            
-            app.logger.info(f"Database check - Properties: {property_count}, Users: {user_count}")
+            try:
+                property_count = Property.query.count()
+                user_count = User.query.count()
+                app.logger.info(f"Database check - Properties: {property_count}, Users: {user_count}")
+            except Exception as e:
+                app.logger.warning(f"Could not query database: {e}")
+                property_count = 0
+                user_count = 0
             
             if property_count == 0 and user_count == 0:
                 app.logger.info("🌱 Database is empty. Auto-seeding...")
