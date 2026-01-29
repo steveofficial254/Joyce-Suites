@@ -6,10 +6,12 @@ import {
   Check, AlertCircle, Home, Plus, Calendar, DollarSign,
   Building, Users, CreditCard, Key, CheckCircle, Clock, UserPlus,
   RefreshCw, XCircle, Wrench, AlertTriangle, UserX, MessageSquare,
-  TrendingUp, PieChart, FileSpreadsheet, DoorOpen, List
+  TrendingUp, PieChart, FileSpreadsheet, DoorOpen, List, Droplet
 } from 'lucide-react';
 
 import config from '../../config';
+import MaintenancePage from '../caretaker/MaintenancePage';
+import AdminRentDeposit from './AdminRentDeposit';
 
 const API_BASE_URL = config.apiBaseUrl;
 
@@ -417,6 +419,10 @@ const AdminDashboard = () => {
           case 'reports':
             await Promise.all([fetchPaymentReport(), fetchOccupancyReport()]);
             break;
+          case 'rent-deposit':
+          case 'water-bill':
+            // AdminRentDeposit handles its own data fetching
+            break;
           case 'properties':
             await fetchAvailableRooms();
             break;
@@ -478,6 +484,10 @@ const AdminDashboard = () => {
             tenants={tenants}
           />
         );
+      case 'rent-deposit':
+        return <AdminRentDeposit />;
+      case 'water-bill':
+        return <AdminRentDeposit />;
       case 'properties':
         return <PropertiesPage availableRooms={availableRooms} loading={loading} />;
       case 'maintenance':
@@ -615,6 +625,8 @@ const AdminDashboard = () => {
           {[
             { id: 'dashboard', label: 'Dashboard', icon: Home },
             { id: 'contracts', label: 'Leases', icon: FileText },
+            { id: 'rent-deposit', label: 'Rent & Deposits', icon: DollarSign },
+            { id: 'water-bill', label: 'Water Bills', icon: Droplet },
             { id: 'maintenance', label: 'Maintenance', icon: Wrench },
             { id: 'vacate', label: 'Vacate Notices', icon: DoorOpen },
             { id: 'notifications', label: 'Notifications', icon: Bell },

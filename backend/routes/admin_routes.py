@@ -565,8 +565,6 @@ def delete_tenant(tenant_id):
                     prop = db.session.get(Property, active_lease.property_id)
                     if prop:
                         prop.status = 'vacant'
-                        prop.current_tenant_id = None
-                
                 
                 db.session.add(active_lease)
                 if active_lease.property_id and prop:

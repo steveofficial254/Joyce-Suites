@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, DollarSign, Calendar, User, AlertCircle, CheckCircle, Clock, X, Plus } from 'lucide-react';
+import { Search, Filter, DollarSign, Calendar, User, AlertCircle, CheckCircle, Clock, X, Plus, Eye, Edit, Trash2 } from 'lucide-react';
 import apiService from '../../services/api';
 import config from '../../config';
+import './CaretakerDeposits.css';
 
 const fetchWithAuth = async (url, options = {}) => {
   const token = localStorage.getItem('joyce-suites-token');
@@ -84,6 +85,35 @@ const CaretakerDeposits = () => {
       }
     } catch (err) {
       console.error('Error fetching tenants:', err);
+    }
+  };
+
+  const handleRecordPayment = async () => {
+    try {
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/deposit/payment`, {
+        method: 'POST',
+        body: JSON.stringify({
+          deposit_id: selectedRecord.id,
+          ...paymentForm
+        })
+      });
+
+      if (response.ok) {
+        setSuccess('Payment recorded successfully');
+        setShowPaymentModal(false);
+        setSelectedRecord(null);
+        setPaymentForm({
+          amount_paid: '',
+          payment_method: 'Cash',
+          payment_reference: '',
+          notes: ''
+        });
+        fetchDepositRecords();
+      } else {
+        setError('Failed to record payment');
+      }
+    } catch (err) {
+      setError('Error recording payment');
     }
   };
 
@@ -233,6 +263,15 @@ const CaretakerDeposits = () => {
       {/* Filters */}
       <div className="filters-section">
         <div className="filters">
+          <div className="search-box">
+            <Search size={18} />
+            <input
+              type="text"
+              placeholder="Search by tenant or property..."
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            />
+          </div>
           <select
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
@@ -250,69 +289,101 @@ const CaretakerDeposits = () => {
             <option value="">All Tenants</option>
             {tenants.map(tenant => (
               <option key={tenant.id} value={tenant.id}>
-                {tenant.full_name}
+                {tenant.full_name || tenant.name}
               </option>
             ))}
           </select>
-          <div className="search-box">
-            <Search size={18} />
-            <input
-              type="text"
-              placeholder="Search deposits..."
-              value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-            />
-          </div>
+          <button className="filter-btn" onClick={fetchDepositRecords}>
+            <Filter size={16} />
+            Apply Filters
+          </button>
         </div>
       </div>
 
-      {/* Deposits Table */}
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Tenant</th>
-              <th>Property</th>
-              <th>Amount Required</th>
-              <th>Amount Paid</th>
-              <th>Balance</th>
-              <th>Status</th>
-              <th>Created Date</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredRecords.map(record => (
-              <tr key={record.id}>
-                <td>{record.tenant_name}</td>
-                <td>{record.property_name}</td>
-                <td>KSh {parseFloat(record.amount_required || 0).toLocaleString()}</td>
-                <td>KSh {parseFloat(record.amount_paid || 0).toLocaleString()}</td>
-                <td>KSh {parseFloat(record.balance || 0).toLocaleString()}</td>
-                <td>
-                  <div className="status-badge" style={{ color: getStatusColor(record.status) }}>
-                    {getStatusIcon(record.status)}
-                    {record.status?.replace('_', ' ').toUpperCase()}
-                  </div>
-                </td>
-                <td>{new Date(record.created_at).toLocaleDateString()}</td>
-                <td>
-                  {record.status !== 'paid' && (
-                    <button
-                      className="btn-small btn-primary"
-                      onClick={() => {
-                        setSelectedRecord(record);
-                        setShowPaymentModal(true);
-                      }}
-                    >
-                      Mark Payment
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Records Table */}
+      <div className="records-table">
+        {filteredRecords.length === 0 ? (
+          <div className="empty-state">
+            <DollarSign size={48} />
+            <h3>No deposit records found</h3>
+            <p>Try adjusting your filters or create a new deposit record</p>
+          </div>
+        ) : (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tenant</th>
+                  <th>Property</th>
+                  <th>Amount Required</th>
+                  <th>Amount Paid</th>
+                  <th>Balance</th>
+                  <th>Due Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRecords.map((record) => (
+                  <tr key={record.id}>
+                    <td>
+                      <div className="tenant-cell">
+                        <User size={16} />
+                        <div>
+                          <div className="tenant-name">{record.tenant_name}</div>
+                          <div className="tenant-id">ID: {record.tenant_id}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{record.property_name || `Property ${record.property_id}`}</td>
+                    <td className="amount">KSh {parseFloat(record.amount_required || 0).toLocaleString()}</td>
+                    <td className="amount">KSh {parseFloat(record.amount_paid || 0).toLocaleString()}</td>
+                    <td className={`amount ${parseFloat(record.balance || 0) > 0 ? 'unpaid' : 'paid'}`}>
+                      KSh {parseFloat(record.balance || 0).toLocaleString()}
+                    </td>
+                    <td>{record.due_date ? new Date(record.due_date).toLocaleDateString() : 'N/A'}</td>
+                    <td>
+                      <div className="status-badge">
+                        {getStatusIcon(record.status)}
+                        <span className="status-text">{record.status.replace('_', ' ')}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          className="btn-icon"
+                          onClick={() => {
+                            setSelectedRecord(record);
+                            setShowPaymentModal(true);
+                          }}
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        {record.status !== 'paid' && (
+                          <button
+                            className="btn-icon btn-primary"
+                            onClick={() => {
+                              setSelectedRecord(record);
+                              setPaymentForm({
+                                ...paymentForm,
+                                amount_paid: record.balance.toString()
+                              });
+                              setShowPaymentModal(true);
+                            }}
+                            title="Record Payment"
+                          >
+                            <DollarSign size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Pagination */}
@@ -321,13 +392,17 @@ const CaretakerDeposits = () => {
           <button
             disabled={currentPage === 1}
             onClick={() => setCurrentPage(currentPage - 1)}
+            className="btn-secondary"
           >
             Previous
           </button>
-          <span>Page {currentPage} of {totalPages}</span>
+          <span className="page-info">
+            Page {currentPage} of {totalPages}
+          </span>
           <button
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage(currentPage + 1)}
+            className="btn-secondary"
           >
             Next
           </button>
@@ -340,58 +415,65 @@ const CaretakerDeposits = () => {
           <div className="modal">
             <div className="modal-header">
               <h3>Create Deposit Record</h3>
-              <button onClick={() => setShowCreateModal(false)}>
+              <button onClick={() => setShowCreateModal(false)} className="close-btn">
                 <X size={20} />
               </button>
             </div>
             <div className="modal-body">
-              <div className="form-group">
-                <label>Tenant</label>
-                <select
-                  value={createForm.tenant_id}
-                  onChange={(e) => setCreateForm({ ...createForm, tenant_id: e.target.value })}
-                >
-                  <option value="">Select Tenant</option>
-                  {tenants.map(tenant => (
-                    <option key={tenant.id} value={tenant.id}>
-                      {tenant.full_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Property ID</label>
-                <input
-                  type="number"
-                  value={createForm.property_id}
-                  onChange={(e) => setCreateForm({ ...createForm, property_id: e.target.value })}
-                  placeholder="Property ID"
-                />
-              </div>
-              <div className="form-group">
-                <label>Lease ID</label>
-                <input
-                  type="number"
-                  value={createForm.lease_id}
-                  onChange={(e) => setCreateForm({ ...createForm, lease_id: e.target.value })}
-                  placeholder="Lease ID"
-                />
-              </div>
-              <div className="form-group">
-                <label>Amount Required</label>
-                <input
-                  type="number"
-                  value={createForm.amount_required}
-                  onChange={(e) => setCreateForm({ ...createForm, amount_required: e.target.value })}
-                  placeholder="Amount Required"
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setShowCreateModal(false)}>Cancel</button>
-              <button onClick={handleCreateDeposit} className="btn-primary">
-                Create Deposit
-              </button>
+              <form onSubmit={(e) => { e.preventDefault(); handleCreateDeposit(); }}>
+                <div className="form-group">
+                  <label>Tenant *</label>
+                  <select
+                    value={createForm.tenant_id}
+                    onChange={(e) => setCreateForm({ ...createForm, tenant_id: e.target.value })}
+                    required
+                  >
+                    <option value="">Select Tenant</option>
+                    {tenants.map(tenant => (
+                      <option key={tenant.id} value={tenant.id}>
+                        {tenant.full_name || tenant.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Property *</label>
+                  <select
+                    value={createForm.property_id}
+                    onChange={(e) => setCreateForm({ ...createForm, property_id: e.target.value })}
+                    required
+                  >
+                    <option value="">Select Property</option>
+                    <option value="1">Property 1</option>
+                    <option value="2">Property 2</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Lease ID *</label>
+                  <input
+                    type="number"
+                    value={createForm.lease_id}
+                    onChange={(e) => setCreateForm({ ...createForm, lease_id: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Amount Required (KSh) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={createForm.amount_required}
+                    onChange={(e) => setCreateForm({ ...createForm, amount_required: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="modal-actions">
+                  <button type="submit" className="btn-primary">Create Record</button>
+                  <button type="button" onClick={() => setShowCreateModal(false)} className="btn-secondary">
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
@@ -402,61 +484,84 @@ const CaretakerDeposits = () => {
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
-              <h3>Mark Deposit Payment</h3>
-              <button onClick={() => setShowPaymentModal(false)}>
+              <h3>Record Payment</h3>
+              <button onClick={() => setShowPaymentModal(false)} className="close-btn">
                 <X size={20} />
               </button>
             </div>
             <div className="modal-body">
-              <div className="payment-details">
-                <p><strong>Tenant:</strong> {selectedRecord.tenant_name}</p>
-                <p><strong>Amount Required:</strong> KSh {parseFloat(selectedRecord.amount_required || 0).toLocaleString()}</p>
-                <p><strong>Current Balance:</strong> KSh {parseFloat(selectedRecord.balance || 0).toLocaleString()}</p>
+              <div className="record-info">
+                <h4>Deposit Information</h4>
+                <div className="info-grid">
+                  <div>
+                    <label>Tenant:</label>
+                    <span>{selectedRecord.tenant_name}</span>
+                  </div>
+                  <div>
+                    <label>Property:</label>
+                    <span>{selectedRecord.property_name}</span>
+                  </div>
+                  <div>
+                    <label>Amount Required:</label>
+                    <span>KSh {parseFloat(selectedRecord.amount_required || 0).toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <label>Balance:</label>
+                    <span className={parseFloat(selectedRecord.balance || 0) > 0 ? 'unpaid' : 'paid'}>
+                      KSh {parseFloat(selectedRecord.balance || 0).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Amount Paid</label>
-                <input
-                  type="number"
-                  value={paymentForm.amount_paid}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, amount_paid: e.target.value })}
-                  placeholder="Amount Paid"
-                />
-              </div>
-              <div className="form-group">
-                <label>Payment Method</label>
-                <select
-                  value={paymentForm.payment_method}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
-                >
-                  <option value="cash">Cash</option>
-                  <option value="mpesa">M-Pesa</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="cheque">Cheque</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Payment Reference</label>
-                <input
-                  type="text"
-                  value={paymentForm.payment_reference}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, payment_reference: e.target.value })}
-                  placeholder="Transaction ID / Reference"
-                />
-              </div>
-              <div className="form-group">
-                <label>Notes</label>
-                <textarea
-                  value={paymentForm.notes}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
-                  placeholder="Additional notes..."
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setShowPaymentModal(false)}>Cancel</button>
-              <button onClick={handleMarkPayment} className="btn-primary">
-                Mark Payment
-              </button>
+              <form onSubmit={(e) => { e.preventDefault(); handleRecordPayment(); }}>
+                <div className="form-group">
+                  <label>Amount Paid (KSh) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={paymentForm.amount_paid}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, amount_paid: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Payment Method *</label>
+                  <select
+                    value={paymentForm.payment_method}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
+                    required
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="M-Pesa">M-Pesa</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Cheque">Cheque</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Payment Reference</label>
+                  <input
+                    type="text"
+                    value={paymentForm.payment_reference}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, payment_reference: e.target.value })}
+                    placeholder="Transaction ID, Cheque number, etc."
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Notes</label>
+                  <textarea
+                    value={paymentForm.notes}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                    rows="3"
+                    placeholder="Additional payment notes..."
+                  />
+                </div>
+                <div className="modal-actions">
+                  <button type="submit" className="btn-primary">Record Payment</button>
+                  <button type="button" onClick={() => setShowPaymentModal(false)} className="btn-secondary">
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
