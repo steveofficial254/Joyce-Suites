@@ -132,7 +132,10 @@ def seed_rooms():
         ]
         
         created_count = 0
-        for room_data in rooms_data:
+        for i, room_data in enumerate(rooms_data):
+            # Make rooms 25 and 26 occupied (last 2 rooms)
+            status = 'occupied' if room_data['room'] in [25, 26] else 'vacant'
+            
             new_room = Property(
                 name=f"Room {room_data['room']}",
                 property_type=room_data['type'],
@@ -140,7 +143,7 @@ def seed_rooms():
                 deposit_amount=room_data['deposit'],
                 description=f"{room_data['type'].replace('_', ' ').title()} - KSh {room_data['rent']}/month (Deposit: KSh {room_data['deposit']})",
                 landlord_id=room_data['landlord'].id,
-                status='vacant',
+                status=status,
                 paybill_number=room_data['paybill'],
                 account_number=room_data['account']
             )
@@ -148,7 +151,8 @@ def seed_rooms():
             created_count += 1
             room_type_display = 'Bedsitter' if room_data['type'] == 'bedsitter' else '1-Bedroom'
             landlord_name = 'Joyce Muthoni' if room_data['landlord'] == joyce else 'Lawrence Mathea'
-            print(f"  Added Room {room_data['room']:2d}: {room_type_display:12s} KSh {room_data['rent']:4d} | Deposit: KSh {room_data['deposit']:4d} | {landlord_name}")
+            status_display = 'OCCUPIED' if status == 'occupied' else 'VACANT'
+            print(f"  Added Room {room_data['room']:2d}: {room_type_display:12s} KSh {room_data['rent']:4d} | Deposit: KSh {room_data['deposit']:4d} | {landlord_name} | {status_display}")
         
         db.session.commit()
         print(f"\n✅ Successfully created {created_count} rooms!")

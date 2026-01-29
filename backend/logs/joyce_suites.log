@@ -15134,3 +15134,31 @@ NameError: name 'month' is not defined
 2026-01-29 13:42:44,316 - INFO - ✅ Database already has data - skipping auto-seed
 2026-01-29 13:42:44,316 - INFO - Application initialized
 2026-01-29 13:42:44,316 - INFO - Application initialized
+2026-01-29 14:04:21,408 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:04:21,498 - INFO - Database check - Properties: 26, Users: 5
+2026-01-29 14:04:21,498 - INFO - ✅ Database already has data - skipping auto-seed
+2026-01-29 14:04:21,498 - INFO - Application initialized
+2026-01-29 14:04:21,501 - INFO - CORS origins: ['http://localhost:3000', 'http://localhost:5000', 'https://joycesuites.onrender.com', 'https://your-frontend-app.onrender.com', 'https://joyce-suites.vercel.app', 'https://joyce-suites-jcfw.vercel.app', 'https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app', 'https://joyce-suites.onrender.com', 'https://joyce-suites-xdkp.onrender.com']
+2026-01-29 14:04:21,502 - INFO - CORS fix deployed - v4.0 - Comprehensive solution
+2026-01-29 14:04:21,503 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:04:21,503 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:04:21,598 - INFO - Database check - Properties: 26, Users: 5
+2026-01-29 14:04:21,598 - INFO - Database check - Properties: 26, Users: 5
+2026-01-29 14:04:21,598 - INFO - ✅ Database already has data - skipping auto-seed
+2026-01-29 14:04:21,598 - INFO - ✅ Database already has data - skipping auto-seed
+2026-01-29 14:04:21,598 - INFO - Application initialized
+2026-01-29 14:04:21,598 - INFO - Application initialized
+2026-01-29 14:12:18,966 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:12:19,214 - INFO - Database check - Properties: 26, Users: 5
+2026-01-29 14:12:19,215 - INFO - ✅ Database already has data - skipping auto-seed
+2026-01-29 14:12:19,216 - INFO - Application initialized
+2026-01-29 14:12:19,224 - INFO - CORS origins: ['http://localhost:3000', 'http://localhost:5000', 'https://joycesuites.onrender.com', 'https://your-frontend-app.onrender.com', 'https://joyce-suites.vercel.app', 'https://joyce-suites-jcfw.vercel.app', 'https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app', 'https://joyce-suites.onrender.com', 'https://joyce-suites-xdkp.onrender.com']
+2026-01-29 14:12:19,225 - INFO - CORS fix deployed - v4.0 - Comprehensive solution
+2026-01-29 14:12:19,227 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:12:19,227 - INFO - Joyce Suites API started - Env: production
+2026-01-29 14:12:19,448 - INFO - Database check - Properties: 26, Users: 5
+2026-01-29 14:12:19,448 - INFO - Database check - Properties: 26, Users: 5
+2026-01-29 14:12:19,449 - INFO - ✅ Database already has data - skipping auto-seed
+2026-01-29 14:12:19,449 - INFO - ✅ Database already has data - skipping auto-seed
+2026-01-29 14:12:19,449 - INFO - Application initialized
+2026-01-29 14:12:19,449 - INFO - Application initialized
