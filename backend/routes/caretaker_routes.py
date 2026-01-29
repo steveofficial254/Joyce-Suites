@@ -156,7 +156,11 @@ def get_maintenance_requests():
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 10, type=int)
 
-        query = MaintenanceRequest.query
+        # Eagerly load tenant data
+        query = MaintenanceRequest.query.options(
+            db.joinedload(MaintenanceRequest.tenant)
+        )
+        
         if status:
             query = query.filter_by(status=status)
         if priority:
@@ -866,6 +870,162 @@ def mark_payment_status():
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@caretaker_bp.route("/financial-summary", methods=["GET"])
+@caretaker_required
+def get_financial_summary():
+    """Get comprehensive financial summary for caretaker dashboard"""
+    try:
+        from models.rent_deposit import RentRecord, DepositRecord, RentStatus, DepositStatus
+        from models.water_bill import WaterBill, WaterBillStatus
+        from datetime import datetime, timedelta
+        
+        current_month = datetime.now().month
+        current_year = datetime.now().year
+        
+        # Rent Statistics
+        total_rent_records = RentRecord.query.count()
+        paid_rent = RentRecord.query.filter_by(status=RentStatus.PAID).count()
+        unpaid_rent = RentRecord.query.filter_by(status=RentStatus.UNPAID).count()
+        overdue_rent = RentRecord.query.filter_by(status=RentStatus.OVERDUE).count()
+        
+        # Current month rent
+        current_month_rent = RentRecord.query.filter(
+            RentRecord.month == current_month,
+            RentRecord.year == current_year
+        ).all()
+        
+        current_month_paid = sum(r.amount_paid for r in current_month_rent)
+        current_month_due = sum(r.amount_due for r in current_month_rent)
+        current_month_balance = sum(r.balance for r in current_month_rent)
+        
+        # Deposit Statistics
+        total_deposits = DepositRecord.query.count()
+        paid_deposits = DepositRecord.query.filter_by(status=DepositStatus.PAID).count()
+        pending_deposits = DepositRecord.query.filter_by(status=DepositStatus.PENDING).count()
+        refunded_deposits = DepositRecord.query.filter_by(status=DepositStatus.REFUNDED).count()
+        
+        total_deposit_amount = sum(d.amount_required for d in DepositRecord.query.all())
+        total_deposit_paid = sum(d.amount_paid for d in DepositRecord.query.all())
+        
+        # Water Bill Statistics
+        total_water_bills = WaterBill.query.count()
+        paid_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.PAID).count()
+        unpaid_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.UNPAID).count()
+        overdue_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.OVERDUE).count()
+        
+        total_water_amount = sum(w.amount_due for w in WaterBill.query.all())
+        total_water_paid = sum(w.amount_paid for w in WaterBill.query.all())
+        
+        # Recent transactions (last 30 days)
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        recent_payments = Payment.query.filter(
+            Payment.created_at >= thirty_days_ago
+        ).count()
+        
+        # Calculate collection rates
+        rent_collection_rate = (paid_rent / total_rent_records * 100) if total_rent_records > 0 else 0
+        deposit_collection_rate = (paid_deposits / total_deposits * 100) if total_deposits > 0 else 0
+        water_collection_rate = (paid_water_bills / total_water_bills * 100) if total_water_bills > 0 else 0
+        
+        return jsonify({
+            "success": True,
+            "summary": {
+                "rent": {
+                    "total_records": total_rent_records,
+                    "paid": paid_rent,
+                    "unpaid": unpaid_rent,
+                    "overdue": overdue_rent,
+                    "collection_rate": round(rent_collection_rate, 2),
+                    "current_month": {
+                        "paid": float(current_month_paid),
+                        "due": float(current_month_due),
+                        "balance": float(current_month_balance)
+                    }
+                },
+                "deposits": {
+                    "total_records": total_deposits,
+                    "paid": paid_deposits,
+                    "pending": pending_deposits,
+                    "refunded": refunded_deposits,
+                    "collection_rate": round(deposit_collection_rate, 2),
+                    "total_amount": float(total_deposit_amount),
+                    "total_paid": float(total_deposit_paid),
+                    "outstanding": float(total_deposit_amount - total_deposit_paid)
+                },
+                "water_bills": {
+                    "total_records": total_water_bills,
+                    "paid": paid_water_bills,
+                    "unpaid": unpaid_water_bills,
+                    "overdue": overdue_water_bills,
+                    "collection_rate": round(water_collection_rate, 2),
+                    "total_amount": float(total_water_amount),
+                    "total_paid": float(total_water_paid),
+                    "outstanding": float(total_water_amount - total_water_paid)
+                },
+                "overall": {
+                    "recent_transactions": recent_payments,
+                    "total_outstanding": float(current_month_balance + (total_deposit_amount - total_deposit_paid) + (total_water_amount - total_water_paid)),
+                    "monthly_revenue": float(current_month_paid)
+                }
+            }
+        }), 200
+
+    except Exception as e:
+        print(f"Error in get_financial_summary: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@caretaker_bp.route("/notifications/send-bulk", methods=["POST"])
+@token_required
+def send_bulk_notifications():
+    """Send notifications to multiple tenants"""
+    try:
+        data = request.get_json()
+        recipient_ids = data.get("recipient_ids", [])
+        title = data.get("title", "")
+        message = data.get("message", "")
+        notification_type = data.get("type", "general")
+
+        if not recipient_ids or not title or not message:
+            return jsonify({
+                "success": False,
+                "error": "Recipients, title, and message are required"
+            }), 400
+
+        notifications_created = []
+        for tenant_id in recipient_ids:
+            notification = Notification(
+                user_id=tenant_id,
+                title=title,
+                message=message,
+                notification_type=notification_type,
+                is_read=False
+            )
+            db.session.add(notification)
+            notifications_created.append({
+                "tenant_id": tenant_id,
+                "title": title,
+                "message": message
+            })
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": f"Successfully sent {len(notifications_created)} notifications",
+            "notifications": notifications_created
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "error": f"Failed to send notifications: {str(e)}"
+        }), 500
 
 
 @caretaker_bp.route("/tenants", methods=["GET"])

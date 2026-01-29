@@ -18,12 +18,12 @@ import traceback
 from models.base import db
 from models.user import User
 from models.lease import Lease
-from models.payment import Payment
-from models.maintenance import MaintenanceRequest
 from models.property import Property
-from models.vacate_notice import VacateNotice
+from models.rent_deposit import RentRecord, DepositRecord
 from models.water_bill import WaterBill, WaterBillStatus
-from models.rent_deposit import DepositRecord, DepositStatus
+from models.maintenance import MaintenanceRequest
+from models.notification import Notification
+from models.vacate_notice import VacateNotice
 from routes.auth_routes import token_required
 from utils.finance import calculate_outstanding_balance
 
@@ -555,40 +555,85 @@ def delete_tenant(tenant_id):
         if not tenant:
             return jsonify({"success": False, "error": "Tenant not found"}), 404
         
+        current_app.logger.info(f"Attempting to delete tenant: {tenant.full_name} (ID: {tenant_id})")
+        
+        # Check for active lease and terminate it
         active_lease = Lease.query.filter_by(tenant_id=tenant_id, status='active').first()
         if active_lease:
             try:
+                current_app.logger.info(f"Terminating active lease: {active_lease.id}")
                 active_lease.status = 'terminated'
                 active_lease.end_date = datetime.now(timezone.utc).date()
                 
                 if active_lease.property_id:
                     prop = db.session.get(Property, active_lease.property_id)
                     if prop:
+                        current_app.logger.info(f"Vacating property: {prop.name}")
                         prop.status = 'vacant'
+                        db.session.add(prop)
                 
                 db.session.add(active_lease)
-                if active_lease.property_id and prop:
-                    db.session.add(prop)
+                db.session.commit()
+                current_app.logger.info("Lease terminated successfully")
                     
             except Exception as e:
                 db.session.rollback()
+                current_app.logger.error(f"Failed to terminate lease: {str(e)}")
+                import traceback
+                current_app.logger.error(f"Traceback: {traceback.format_exc()}")
                 return jsonify({
                     "success": False,
                     "error": f"Failed to terminate lease: {str(e)}"
                 }), 500
         
+        # Check for related records before deletion
+        related_records = []
+        
+        # Check for rent records
+        rent_records = RentRecord.query.filter_by(tenant_id=tenant_id).count()
+        if rent_records > 0:
+            related_records.append(f"{rent_records} rent records")
+            
+        # Check for deposit records
+        deposit_records = DepositRecord.query.filter_by(tenant_id=tenant_id).count()
+        if deposit_records > 0:
+            related_records.append(f"{deposit_records} deposit records")
+            
+        # Check for water bills
+        water_bills = WaterBill.query.filter_by(tenant_id=tenant_id).count()
+        if water_bills > 0:
+            related_records.append(f"{water_bills} water bills")
+            
+        # Check for maintenance requests
+        maintenance_requests = MaintenanceRequest.query.filter_by(tenant_id=tenant_id).count()
+        if maintenance_requests > 0:
+            related_records.append(f"{maintenance_requests} maintenance requests")
+            
+        # Check for notifications
+        notifications = Notification.query.filter_by(user_id=tenant_id).count()
+        if notifications > 0:
+            related_records.append(f"{notifications} notifications")
+            
+        if related_records:
+            current_app.logger.warning(f"Tenant has related records: {', '.join(related_records)}")
+        
+        # Delete the tenant
+        current_app.logger.info(f"Deleting tenant record for: {tenant.full_name}")
         db.session.delete(tenant)
         db.session.commit()
         
+        current_app.logger.info(f"Tenant {tenant.full_name} deleted successfully")
+        
         return jsonify({
             "success": True,
-            "message": "Tenant deleted successfully (Lease terminated, Room vacated)"
+            "message": "Tenant deleted successfully" + (f" (Related records: {', '.join(related_records)})" if related_records else "")
         }), 200
 
     except Exception as e:
         db.session.rollback()
-        print(f"Error in delete_tenant: {str(e)}")
-        traceback.print_exc()
+        current_app.logger.error(f"Error in delete_tenant: {str(e)}")
+        import traceback
+        current_app.logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({
             "success": False, 
             "error": "Failed to delete tenant",

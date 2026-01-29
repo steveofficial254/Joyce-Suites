@@ -22,42 +22,20 @@ const WaterBillPage = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [financialSummary, setFinancialSummary] = useState(null);
   const [showReadingModal, setShowReadingModal] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [tenants, setTenants] = useState([]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedBillForPayment, setSelectedBillForPayment] = useState(null);
   const [readingForm, setReadingForm] = useState({
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
-    reading_date: new Date().toISOString().split('T')[0],
     previous_reading: '',
     current_reading: '',
     unit_rate: 50.0
   });
-
-  const [filters, setFilters] = useState({
-    status: '',
-    tenant_id: '',
-    month: '',
-    year: ''
-  });
-
-  const fetchWithAuth = async (url, options = {}) => {
-    const token = localStorage.getItem('joyce-suites-token');
-    const defaultOptions = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
-      ...options,
-    };
-    return fetch(url, defaultOptions);
-  };
-
-  useEffect(() => {
-    fetchWaterBillRecords();
-    fetchTenants();
-  }, []);
 
   const fetchWaterBillRecords = async () => {
     try {
@@ -78,13 +56,13 @@ const WaterBillPage = () => {
 
   const fetchTenants = async () => {
     try {
-      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/tenants-with-leases`);
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/caretaker/tenants`);
       if (response.ok) {
         const data = await response.json();
         setTenants(data.tenants || []);
       }
     } catch (err) {
-      // Error fetching tenants
+      console.error('Failed to fetch tenants:', err);
     }
   };
 
@@ -97,15 +75,14 @@ const WaterBillPage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tenant_id: selectedTenant.id,
-          property_id: selectedTenant.property_id,
+          tenant_id: selectedTenant,
           month: readingForm.month,
           year: readingForm.year,
-          reading_date: readingForm.reading_date,
           previous_reading: parseFloat(readingForm.previous_reading),
           current_reading: parseFloat(readingForm.current_reading),
+          units_consumed: units_consumed,
           unit_rate: parseFloat(readingForm.unit_rate),
-          amount: amount
+          amount_due: amount
         })
       });
 
@@ -115,7 +92,6 @@ const WaterBillPage = () => {
         setReadingForm({
           month: new Date().getMonth() + 1,
           year: new Date().getFullYear(),
-          reading_date: new Date().toISOString().split('T')[0],
           previous_reading: '',
           current_reading: '',
           unit_rate: 50.0
@@ -130,17 +106,38 @@ const WaterBillPage = () => {
     }
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      'paid': '#10b981',
-      'unpaid': '#ef4444',
-      'partial': '#f59e0b'
-    };
-    return colors[status] || '#6b7280';
+  const handleRecordPayment = async (billId, paymentData) => {
+    try {
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/water-bill/mark-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bill_id: billId,
+          ...paymentData
+        })
+      });
+
+      if (response.ok) {
+        setSuccess('Payment recorded successfully');
+        setShowPaymentModal(false);
+        setSelectedBillForPayment(null);
+        fetchWaterBillRecords();
+      } else {
+        setError('Failed to record payment');
+      }
+    } catch (err) {
+      setError('Failed to record payment');
+    }
   };
 
+  useEffect(() => {
+    fetchWaterBillRecords();
+    fetchTenants();
+  }, []);
+
   const getMonthName = (month) => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                   'July', 'August', 'September', 'October', 'November', 'December'];
     return months[month - 1] || 'Unknown';
   };
 
@@ -175,101 +172,120 @@ const WaterBillPage = () => {
             border: 'none',
             borderRadius: '6px',
             cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
             fontSize: '14px',
             fontWeight: '500'
           }}
         >
-          <Droplet size={16} />
-          Record Reading
+          Create Water Bill
         </button>
       </div>
 
       {error && (
         <div style={{
-          backgroundColor: '#fee2e2',
-          color: '#991b1b',
           padding: '12px 16px',
+          backgroundColor: '#fee2e2',
+          border: '1px solid #fecaca',
           borderRadius: '6px',
           marginBottom: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
+          color: '#991b1b'
         }}>
-          <AlertCircle size={16} />
           {error}
         </div>
       )}
 
       {success && (
         <div style={{
-          backgroundColor: '#dcfce7',
-          color: '#166534',
           padding: '12px 16px',
+          backgroundColor: '#dcfce7',
+          border: '1px solid #bbf7d0',
           borderRadius: '6px',
           marginBottom: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
+          color: '#166534'
         }}>
-          <CheckCircle size={16} />
           {success}
         </div>
       )}
 
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-        padding: '20px'
-      }}>
-        <table style={{
-          width: '100%',
-          borderCollapse: 'collapse',
-          fontSize: '14px'
-        }}>
-          <thead style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead style={{ backgroundColor: '#f9fafb' }}>
             <tr>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Tenant</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Period</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Units</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Amount</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Status</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Tenant</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Period</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Units</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Amount</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Status</th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {waterBillRecords.map(record => (
               <tr key={record.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>{record.tenant_name}</td>
+                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
+                  <div>
+                    <div style={{ fontWeight: '500', color: '#111827' }}>{record.tenant_name || 'Unknown'}</div>
+                    <div style={{ fontSize: '12px', color: '#9ca3af' }}>{record.property_name || 'N/A'}</div>
+                  </div>
+                </td>
                 <td style={{ padding: '12px 16px', color: '#6b7280' }}>
                   {getMonthName(record.month)} {record.year}
                 </td>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>{record.units_consumed || 0}</td>
                 <td style={{ padding: '12px 16px', color: '#6b7280' }}>
-                  KSh {(record.amount || 0).toLocaleString()}
+                  {record.units_consumed} units
                 </td>
                 <td style={{ padding: '12px 16px', color: '#6b7280' }}>
+                  KSh {record.amount_due?.toLocaleString() || 0}
+                </td>
+                <td style={{ padding: '12px 16px' }}>
                   <span style={{
-                    display: 'inline-block',
                     padding: '4px 8px',
                     borderRadius: '4px',
                     fontSize: '12px',
                     fontWeight: '500',
-                    backgroundColor: getStatusColor(record.status) + '20',
-                    color: getStatusColor(record.status)
+                    backgroundColor: record.status === 'paid' ? '#dcfce7' : 
+                                     record.status === 'overdue' ? '#fee2e2' : '#fef3c7',
+                    color: record.status === 'paid' ? '#166534' : 
+                           record.status === 'overdue' ? '#991b1b' : '#92400e'
                   }}>
                     {record.status}
                   </span>
+                </td>
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {record.status !== 'paid' && (
+                      <button
+                        onClick={() => {
+                          setSelectedBillForPayment(record);
+                          setShowPaymentModal(true);
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        Record Payment
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        
+        {waterBillRecords.length === 0 && (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+            No water bill records found
+          </div>
+        )}
       </div>
 
-      {/* Reading Modal */}
+      {/* Create Water Bill Modal */}
       {showReadingModal && (
         <div style={{
           position: 'fixed',
@@ -279,35 +295,29 @@ const WaterBillPage = () => {
           bottom: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'center',
+          alignItems: 'center',
           zIndex: 1000
         }}>
           <div style={{
             backgroundColor: 'white',
+            padding: '24px',
             borderRadius: '8px',
             width: '90%',
-            maxWidth: '500px',
-            padding: '20px'
+            maxWidth: '500px'
           }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
-              Record Water Reading
-            </h3>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600' }}>Create Water Bill</h3>
+            
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-                Select Tenant
-              </label>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Tenant</label>
               <select
-                value={selectedTenant?.id || ''}
-                onChange={(e) => {
-                  const tenant = tenants.find(t => t.id == e.target.value);
-                  setSelectedTenant(tenant);
-                }}
+                value={selectedTenant || ''}
+                onChange={(e) => setSelectedTenant(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
                   border: '1px solid #d1d5db',
-                  borderRadius: '6px',
+                  borderRadius: '4px',
                   fontSize: '14px'
                 }}
               >
@@ -319,53 +329,106 @@ const WaterBillPage = () => {
                 ))}
               </select>
             </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-                  Previous Reading
-                </label>
-                <input
-                  type="number"
-                  value={readingForm.previous_reading}
-                  onChange={(e) => setReadingForm({ ...readingForm, previous_reading: e.target.value })}
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Month</label>
+                <select
+                  value={readingForm.month}
+                  onChange={(e) => setReadingForm({...readingForm, month: parseInt(e.target.value)})}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
                     border: '1px solid #d1d5db',
-                    borderRadius: '6px',
+                    borderRadius: '4px',
                     fontSize: '14px'
                   }}
-                />
+                >
+                  {['January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'].map((month, index) => (
+                    <option key={month} value={index + 1}>{month}</option>
+                  ))}
+                </select>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-                  Current Reading
-                </label>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Year</label>
                 <input
                   type="number"
-                  value={readingForm.current_reading}
-                  onChange={(e) => setReadingForm({ ...readingForm, current_reading: e.target.value })}
+                  value={readingForm.year}
+                  onChange={(e) => setReadingForm({...readingForm, year: parseInt(e.target.value)})}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
                     border: '1px solid #d1d5db',
-                    borderRadius: '6px',
+                    borderRadius: '4px',
                     fontSize: '14px'
                   }}
                 />
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Previous Reading</label>
+                <input
+                  type="number"
+                  value={readingForm.previous_reading}
+                  onChange={(e) => setReadingForm({...readingForm, previous_reading: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Current Reading</label>
+                <input
+                  type="number"
+                  value={readingForm.current_reading}
+                  onChange={(e) => setReadingForm({...readingForm, current_reading: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Unit Rate (KSh)</label>
+              <input
+                type="number"
+                value={readingForm.unit_rate}
+                onChange={(e) => setReadingForm({...readingForm, unit_rate: parseFloat(e.target.value)})}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button
-                onClick={() => setShowReadingModal(false)}
+                onClick={() => {
+                  setShowReadingModal(false);
+                  setSelectedTenant(null);
+                }}
                 style={{
                   padding: '10px 16px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
                   border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  backgroundColor: 'white',
-                  color: '#6b7280',
-                  cursor: 'pointer',
-                  fontSize: '14px'
+                  borderRadius: '4px',
+                  cursor: 'pointer'
                 }}
               >
                 Cancel
@@ -375,12 +438,11 @@ const WaterBillPage = () => {
                 disabled={!selectedTenant || !readingForm.previous_reading || !readingForm.current_reading}
                 style={{
                   padding: '10px 16px',
-                  border: '1px solid #10b981',
-                  borderRadius: '6px',
-                  backgroundColor: '#10b981',
+                  backgroundColor: '#3b82f6',
                   color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
                   cursor: 'pointer',
-                  fontSize: '14px',
                   opacity: (!selectedTenant || !readingForm.previous_reading || !readingForm.current_reading) ? 0.5 : 1
                 }}
               >
@@ -390,7 +452,169 @@ const WaterBillPage = () => {
           </div>
         </div>
       )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedBillForPayment && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '24px',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '400px'
+          }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600' }}>Record Water Bill Payment</h3>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>
+                <div><strong>Tenant:</strong> {selectedBillForPayment.tenant_name}</div>
+                <div><strong>Amount Due:</strong> KSh {selectedBillForPayment.amount_due?.toLocaleString() || 0}</div>
+                <div><strong>Balance:</strong> KSh {selectedBillForPayment.balance?.toLocaleString() || 0}</div>
+              </div>
+            </div>
+
+            <WaterBillPaymentForm
+              bill={selectedBillForPayment}
+              onSubmit={(paymentData) => handleRecordPayment(selectedBillForPayment.id, paymentData)}
+              onCancel={() => {
+                setShowPaymentModal(false);
+                setSelectedBillForPayment(null);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
+  );
+};
+
+const WaterBillPaymentForm = ({ bill, onSubmit, onCancel }) => {
+  const [formData, setFormData] = useState({
+    amount_paid: bill.balance || bill.amount_due,
+    payment_method: 'Cash',
+    payment_reference: '',
+    notes: ''
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div style={{ marginBottom: '16px' }}>
+        <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Amount Paid (KSh)</label>
+        <input
+          type="number"
+          value={formData.amount_paid}
+          onChange={(e) => setFormData({...formData, amount_paid: parseFloat(e.target.value)})}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: '4px',
+            fontSize: '14px'
+          }}
+          required
+        />
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Payment Method</label>
+        <select
+          value={formData.payment_method}
+          onChange={(e) => setFormData({...formData, payment_method: e.target.value})}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: '4px',
+            fontSize: '14px'
+          }}
+        >
+          <option value="Cash">Cash</option>
+          <option value="M-Pesa">M-Pesa</option>
+          <option value="Bank Transfer">Bank Transfer</option>
+          <option value="Cheque">Cheque</option>
+        </select>
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Payment Reference</label>
+        <input
+          type="text"
+          value={formData.payment_reference}
+          onChange={(e) => setFormData({...formData, payment_reference: e.target.value})}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: '4px',
+            fontSize: '14px'
+          }}
+          placeholder="Transaction ID, Receipt No., etc."
+        />
+      </div>
+
+      <div style={{ marginBottom: '16px' }}>
+        <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Notes</label>
+        <textarea
+          value={formData.notes}
+          onChange={(e) => setFormData({...formData, notes: e.target.value})}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: '4px',
+            fontSize: '14px',
+            minHeight: '60px'
+          }}
+          placeholder="Additional notes..."
+        />
+      </div>
+
+      <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+        <button
+          type="button"
+          onClick={onCancel}
+          style={{
+            padding: '10px 16px',
+            backgroundColor: '#f3f4f6',
+            color: '#374151',
+            border: '1px solid #d1d5db',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          style={{
+            padding: '10px 16px',
+            backgroundColor: '#10b981',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Record Payment
+        </button>
+      </div>
+    </form>
   );
 };
 
@@ -867,6 +1091,7 @@ const CaretakerDashboard = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [loading, setLoading] = useState(true);
+  const [financialSummary, setFinancialSummary] = useState(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -1147,6 +1372,17 @@ const CaretakerDashboard = () => {
     }
   };
 
+  const fetchFinancialSummary = async () => {
+    try {
+      const data = await apiCall('/api/caretaker/financial-summary');
+      if (data && data.success) {
+        setFinancialSummary(data.summary);
+      }
+    } catch (err) {
+      console.log('❌ Failed to fetch financial summary');
+    }
+  };
+
   const handleMarkNotificationRead = async (id) => {
     try {
       await apiCall(`/api/auth/notifications/${id}/read`, { method: 'PUT' });
@@ -1335,7 +1571,8 @@ const CaretakerDashboard = () => {
               fetchPendingPayments().catch(() => {}),
               fetchVacateNotices().catch(() => {}),
               fetchNotifications().catch(() => {}),
-              fetchUserProfile().catch(() => {})
+              fetchUserProfile().catch(() => {}),
+              fetchFinancialSummary().catch(() => {})
             ]);
             break;
           case 'maintenance':
@@ -1381,7 +1618,7 @@ const CaretakerDashboard = () => {
   }, [activePage]);
 
   // Dashboard Page Component
-  const DashboardPage = ({ overview, maintenanceRequests, availableRooms, pendingPayments, vacateNotices, loading, onUpdateStatus, onViewDetails, onCreateMaintenance, onViewAllMaintenance, onMarkPayment, onViewVacateNotice }) => {
+  const DashboardPage = ({ overview, maintenanceRequests, availableRooms, pendingPayments, vacateNotices, loading, onUpdateStatus, onViewDetails, onCreateMaintenance, onViewAllMaintenance, onMarkPayment, onViewVacateNotice, financialSummary }) => {
     if (loading) {
       return (
         <div style={styles.loadingContainer}>
@@ -1426,6 +1663,57 @@ const CaretakerDashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Financial Summary Section */}
+        {financialSummary && (
+          <div style={styles.section}>
+            <h3 style={styles.sectionTitle}>Financial Summary</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+              {/* Rent Summary */}
+              <div style={{ ...styles.card, borderLeft: '4px solid #3b82f6' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#3b82f6' }}>Rent Collection</h4>
+                <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+                  <div><strong>Collection Rate:</strong> {financialSummary.rent.collection_rate}%</div>
+                  <div><strong>Paid:</strong> {financialSummary.rent.paid} / {financialSummary.rent.total_records}</div>
+                  <div><strong>Current Month:</strong> KSh {financialSummary.rent.current_month.paid.toLocaleString()}</div>
+                  <div><strong>Outstanding:</strong> KSh {financialSummary.rent.current_month.balance.toLocaleString()}</div>
+                </div>
+              </div>
+
+              {/* Deposit Summary */}
+              <div style={{ ...styles.card, borderLeft: '4px solid #10b981' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#10b981' }}>Deposits</h4>
+                <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+                  <div><strong>Collection Rate:</strong> {financialSummary.deposits.collection_rate}%</div>
+                  <div><strong>Paid:</strong> {financialSummary.deposits.paid} / {financialSummary.deposits.total_records}</div>
+                  <div><strong>Total Amount:</strong> KSh {financialSummary.deposits.total_amount.toLocaleString()}</div>
+                  <div><strong>Outstanding:</strong> KSh {financialSummary.deposits.outstanding.toLocaleString()}</div>
+                </div>
+              </div>
+
+              {/* Water Bills Summary */}
+              <div style={{ ...styles.card, borderLeft: '4px solid #06b6d4' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#06b6d4' }}>Water Bills</h4>
+                <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+                  <div><strong>Collection Rate:</strong> {financialSummary.water_bills.collection_rate}%</div>
+                  <div><strong>Paid:</strong> {financialSummary.water_bills.paid} / {financialSummary.water_bills.total_records}</div>
+                  <div><strong>Total Amount:</strong> KSh {financialSummary.water_bills.total_amount.toLocaleString()}</div>
+                  <div><strong>Outstanding:</strong> KSh {financialSummary.water_bills.outstanding.toLocaleString()}</div>
+                </div>
+              </div>
+
+              {/* Overall Summary */}
+              <div style={{ ...styles.card, borderLeft: '4px solid #8b5cf6' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#8b5cf6' }}>Overall</h4>
+                <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+                  <div><strong>Monthly Revenue:</strong> KSh {financialSummary.overall.monthly_revenue.toLocaleString()}</div>
+                  <div><strong>Total Outstanding:</strong> KSh {financialSummary.overall.total_outstanding.toLocaleString()}</div>
+                  <div><strong>Recent Transactions:</strong> {financialSummary.overall.recent_transactions}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Recent Maintenance Requests */}
         <div style={styles.section}>
@@ -1765,6 +2053,7 @@ const CaretakerDashboard = () => {
             availableRooms={availableRooms}
             pendingPayments={pendingPayments}
             vacateNotices={vacateNotices}
+            financialSummary={financialSummary}
             loading={loading}
             onUpdateStatus={handleUpdateMaintenanceStatus}
             onViewDetails={(request) => {
@@ -1779,7 +2068,7 @@ const CaretakerDashboard = () => {
             }}
             onViewVacateNotice={(notice) => {
               setSelectedVacateNotice(notice);
-              setShowVacateNoticeModal(true);
+              setShowCreateVacateNoticeModal(true);
             }}
           />
         );
@@ -2946,2128 +3235,204 @@ const VacatePage = ({ notices, loading, onViewDetails, onUpdateStatus, onDelete,
 
 
 const NotificationsPage = ({ tenants, onSendNotification }) => {
+  const [messageType, setMessageType] = useState('individual');
+  const [selectedTenant, setSelectedTenant] = useState('');
+  const [messageTitle, setMessageTitle] = useState('');
+  const [messageContent, setMessageContent] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSendMessage = async () => {
+    if (!messageTitle || !messageContent) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    if (messageType === 'individual' && !selectedTenant) {
+      alert('Please select a tenant');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('joyce-suites-token');
+      const recipients = messageType === 'all' 
+        ? tenants.map(t => t.id)
+        : [parseInt(selectedTenant)];
+
+      const response = await fetch(`${config.apiBaseUrl}/api/caretaker/notifications/send-bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          recipient_ids: recipients,
+          title: messageTitle,
+          message: messageContent,
+          type: 'general'
+        })
+      });
+
+      if (response.ok) {
+        alert('Message sent successfully!');
+        setMessageTitle('');
+        setMessageContent('');
+        setSelectedTenant('');
+      } else {
+        alert('Failed to send message');
+      }
+    } catch (err) {
+      alert('Error sending message');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const activeTenantsCount = tenants.filter(t => t.is_active).length;
 
   return (
-    <>
-      <div style={styles.pageHeader}>
-        <h2 style={styles.pageTitle}>Send Notifications</h2>
-        <button style={styles.btnPrimary} onClick={onSendNotification}>
-          <Send size={16} /> Send Notification
-        </button>
+    <div style={styles.section}>
+      <div style={styles.pageHeaderControls}>
+        <h2 style={styles.pageTitle}>Send Messages ({activeTenantsCount} active tenants)</h2>
       </div>
 
-      <div style={styles.section}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
-          <div style={styles.infoCard}>
-            <Users size={32} color="#3b82f6" />
-            <h4>Total Tenants</h4>
-            <p style={{ fontSize: '24px', fontWeight: '600', margin: '8px 0' }}>{tenants.length}</p>
-          </div>
-          <div style={styles.infoCard}>
-            <Bell size={32} color="#10b981" />
-            <h4>Active Recipients</h4>
-            <p style={{ fontSize: '24px', fontWeight: '600', margin: '8px 0' }}>
-              {activeTenantsCount}
-            </p>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-};
-
-
-const TenantDetailsModal = ({ tenant, onClose }) => {
-  const [activeTab, setActiveTab] = useState('personal');
-
-
-  const tenantData = {
-    personal: {
-      'Full Name': tenant ? tenant.name : 'N/A',
-      'Email': tenant ? tenant.email : 'N/A',
-      'Phone Number': tenant ? (tenant.phone_number || tenant.phone) : 'N/A',
-      'National ID': tenant ? tenant.national_id : 'N/A',
-      'Room Number': tenant && tenant.room_number ? "Room " + tenant.room_number : 'N/A',
-      'Status': tenant && tenant.is_active ? 'Active' : 'Inactive',
-      'Date Joined': tenant && tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : 'N/A'
-    },
-    images: {
-      photo: tenant ? tenant.photo_path : null,
-      id_doc: tenant ? tenant.id_document_path : null
-    }
-  };
-
-  return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={{ ...styles.modalContent, maxWidth: '800px' }} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <h3>Tenant Details</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
-        </div>
-
-        <div style={styles.modalTabs}>
-          <button
-            style={{ ...styles.modalTab, ...(activeTab === 'personal' ? styles.modalTabActive : {}) }}
-            onClick={() => setActiveTab('personal')}
-          >
-            Personal Info
-          </button>
-        </div>
-
-        <div style={styles.modalBody}>
-          {activeTab === 'personal' && (
-            <>
-              <div style={styles.detailsGrid}>
-                {Object.entries(tenantData.personal).map(([key, value]) => (
-                  <div key={key} style={styles.detailItem}>
-                    <label style={styles.detailLabel}>{key}</label>
-                    <p style={styles.detailValue}>{value}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ marginTop: '24px', borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
-                <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>Documents & Photos</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                  {tenantData.images.photo && (
-                    <div>
-                      <p style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Profile Photo</p>
-                      <img
-                        src={`${API_BASE_URL}/${tenantData.images.photo}`}
-                        alt="Tenant Profile"
-                        loading="lazy"
-                        style={styles.imagePreview}
-                        onError={(e) => {
-                          e.target.src = 'https://via.placeholder.com/200?text=No+Image';
-                        }}
-                      />
-                    </div>
-                  )}
-                  { }
-                  {tenantData.images.id_doc && (
-                    <div>
-                      <p style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>National ID Document</p>
-                      <div style={{ ...styles.imagePreview, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}>
-                        <FileText size={48} color="#9ca3af" />
-                        <span style={{ fontSize: '14px', color: '#6b7280', marginLeft: '8px' }}>{tenantData.images.id_doc}</span>
-                      </div>
-                    </div>
-                  )}
-                  {(!tenantData.images.photo && !tenantData.images.id_doc) && (
-                    <p style={{ color: '#9ca3af', fontStyle: 'italic' }}>No documents uploaded.</p>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div style={styles.modalFooter}>
-          <button style={styles.btnSecondary} onClick={onClose}>Close</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
-  return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <h3>Maintenance Request Details</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
-        </div>
-
-        <div style={styles.modalBody}>
-          <div style={styles.detailsGrid}>
-            <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Request ID</label>
-              <p style={styles.detailValue}>#{request.id}</p>
-            </div>
-            <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Property</label>
-              <p style={styles.detailValue}>{request.property_name || 'N/A'}</p>
-            </div>
-            <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Priority</label>
-              <span style={{
-                ...styles.statusBadge,
-                backgroundColor: request.priority === 'urgent' ? '#fee2e2' : '#dbeafe',
-                color: request.priority === 'urgent' ? '#991b1b' : '#1e40af'
-              }}>
-                {request.priority}
-              </span>
-            </div>
-            <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Status</label>
-              <span style={{
-                ...styles.statusBadge,
-                backgroundColor: request.status === 'completed' ? '#dcfce7' : '#fef3c7',
-                color: request.status === 'completed' ? '#166534' : '#92400e'
-              }}>
-                {request.status}
-              </span>
-            </div>
-          </div>
-
-          <div style={{ marginTop: '20px' }}>
-            <label style={styles.detailLabel}>Title</label>
-            <p style={{ ...styles.detailValue, fontSize: '16px', fontWeight: '600', margin: '8px 0' }}>
-              {request.title}
-            </p>
-          </div>
-
-          <div style={{ marginTop: '16px' }}>
-            <label style={styles.detailLabel}>Description</label>
-            <p style={{ ...styles.detailValue, lineHeight: '1.6', margin: '8px 0' }}>
-            </p>
-          </div>
-
-          {request.images && request.images.length > 0 && (
-            <div style={{ marginTop: '20px' }}>
-              <label style={styles.detailLabel}>Uploaded Images</label>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '12px',
-                marginTop: '12px'
-              }}>
-                {request.images.map((img, index) => (
-                  <div key={index} style={{
-                    aspectRatio: '1/1',
-                    width: '100%',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    border: '1px solid #e5e7eb',
-                    cursor: 'pointer'
-                  }}
-                    onClick={() => window.open(`${API_BASE_URL}/${img}`, '_blank')}
-                  >
-                    <img
-                      src={`${API_BASE_URL}/${img}`}
-                      alt={`Maintenance ${index + 1}`}
-                      loading="lazy"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block'
-                      }}
-                      onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/200?text=Image+Error';
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div style={styles.modalFooter}>
-          {request.status === 'pending' && (
-            <button
-              style={styles.btnPrimary}
-              onClick={() => {
-                onUpdateStatus(request.id, 'in_progress');
-                onClose();
-              }}
-            >
-              Start Work
-            </button>
-          )}
-          {request.status === 'in_progress' && (
-            <button
-              style={styles.btnPrimary}
-              onClick={() => {
-                onUpdateStatus(request.id, 'completed');
-                onClose();
-              }}
-            >
-              Mark Complete
-            </button>
-          )}
-          <button style={styles.btnSecondary} onClick={onClose}>
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const CreateMaintenanceModal = ({ rooms, onClose, onSubmit, loading }) => {
-  const [formData, setFormData] = useState({
-    property_id: '',
-    title: '',
-    description: '',
-    priority: 'normal'
-  });
-  const [errors, setErrors] = useState({});
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: '' });
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newErrors = {};
-    if (!formData.property_id) newErrors.property_id = 'Please select a room';
-    if (!formData.title.trim()) newErrors.title = 'Title is required';
-    if (!formData.description.trim()) newErrors.description = 'Description is required';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    onSubmit(formData);
-  };
-
-  return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <h3>Create Maintenance Request</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-          <div style={styles.modalBody}>
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Select Room *</label>
-              <select
-                name="property_id"
-                value={formData.property_id}
-                onChange={handleChange}
-                style={{ ...styles.formSelect, ...(errors.property_id ? styles.inputError : {}) }}
-              >
-                <option value="">Choose a room...</option>
-                {rooms.map(room => (
-                  <option key={room.id} value={room.id}>
-                    {room.name}
-                  </option>
-                ))}
-              </select>
-              {errors.property_id && <span style={styles.errorText}>{errors.property_id}</span>}
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Priority *</label>
-              <select
-                name="priority"
-                value={formData.priority}
-                onChange={handleChange}
-                style={styles.formSelect}
-              >
-                <option value="low">Low</option>
-                <option value="normal">Normal</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Title *</label>
+      <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Message Type</label>
+          <div style={{ display: 'flex', gap: '16px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
               <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                placeholder="e.g., Broken window in Room 12"
-                style={{ ...styles.formInput, ...(errors.title ? styles.inputError : {}) }}
+                type="radio"
+                value="individual"
+                checked={messageType === 'individual'}
+                onChange={(e) => setMessageType(e.target.value)}
+                style={{ marginRight: '8px' }}
               />
-              {errors.title && <span style={styles.errorText}>{errors.title}</span>}
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Description *</label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Provide details about the maintenance issue..."
-                rows="5"
-                style={{ ...styles.formInput, ...(errors.description ? styles.inputError : {}), resize: 'vertical' }}
-              />
-              {errors.description && <span style={styles.errorText}>{errors.description}</span>}
-            </div>
-          </div>
-
-          <div style={styles.modalFooter}>
-            <button type="button" style={styles.btnSecondary} onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" style={styles.btnPrimary} disabled={loading}>
-              {loading ? 'Creating...' : 'Create Request'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
-  const [formData, setFormData] = useState({
-    tenant_id: '',
-    title: '',
-    message: '',
-    type: 'general'
-  });
-  const [errors, setErrors] = useState({});
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: '' });
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newErrors = {};
-    if (!formData.tenant_id) newErrors.tenant_id = 'Please select a tenant';
-    if (!formData.title.trim()) newErrors.title = 'Title is required';
-    if (!formData.message.trim()) newErrors.message = 'Message is required';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    onSubmit(formData);
-  };
-
-  return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <h3>Send Notification</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-          <div style={styles.modalBody}>
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Select Tenant *</label>
-              <select
-                name="tenant_id"
-                value={formData.tenant_id}
-                onChange={handleChange}
-                style={{ ...styles.formSelect, ...(errors.tenant_id ? styles.inputError : {}) }}
-              >
-                <option value="">Choose a tenant...</option>
-                {tenants.filter(t => t.is_active).map(tenant => (
-                  <option key={tenant.id} value={tenant.id}>
-                    {tenant.name} - Room {tenant.room_number || 'N/A'}
-                  </option>
-                ))}
-              </select>
-              {errors.tenant_id && <span style={styles.errorText}>{errors.tenant_id}</span>}
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Notification Type *</label>
-              <select
-                name="type"
-                value={formData.type}
-                onChange={handleChange}
-                style={styles.formSelect}
-              >
-                <option value="general">General</option>
-                <option value="urgent">Urgent</option>
-                <option value="maintenance">Maintenance</option>
-              </select>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Title *</label>
+              Send to Individual Tenant
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
               <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                placeholder="Notification title..."
-                style={{ ...styles.formInput, ...(errors.title ? styles.inputError : {}) }}
+                type="radio"
+                value="all"
+                checked={messageType === 'all'}
+                onChange={(e) => setMessageType(e.target.value)}
+                style={{ marginRight: '8px' }}
               />
-              {errors.title && <span style={styles.errorText}>{errors.title}</span>}
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Message *</label>
-              <textarea
-                name="message"
-                value={formData.message}
-                onChange={handleChange}
-                placeholder="Enter your notification message..."
-                rows="5"
-                style={{ ...styles.formInput, ...(errors.message ? styles.inputError : {}), resize: 'vertical' }}
-              />
-              {errors.message && <span style={styles.errorText}>{errors.message}</span>}
-            </div>
+              Send to All Tenants
+            </label>
           </div>
-
-          <div style={styles.modalFooter}>
-            <button type="button" style={styles.btnSecondary} onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" style={styles.btnPrimary} disabled={loading}>
-              {loading ? 'Sending...' : 'Send Notification'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
-  const [formData, setFormData] = useState({
-    tenant_id: tenant.tenant_id || tenant.id || '',
-    amount: tenant.rent_amount || 0,
-    status: 'paid',
-    payment_method: 'cash'
-  });
-  const [errors, setErrors] = useState({});
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    if (name === 'amount') {
-
-      const numValue = value === '' ? '' : parseFloat(value);
-      setFormData({
-        ...formData,
-        [name]: numValue
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
-    }
-
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: '' });
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newErrors = {};
-
-
-    if (!formData.tenant_id) {
-      newErrors.tenant_id = 'Tenant ID is required';
-    }
-    if (!formData.amount || formData.amount <= 0) {
-      newErrors.amount = 'Amount must be greater than 0';
-    }
-    if (!formData.status || !['paid', 'unpaid'].includes(formData.status)) {
-      newErrors.status = 'Status must be "paid" or "unpaid"';
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-
-    const submitData = {
-      tenant_id: parseInt(formData.tenant_id),
-      amount: parseFloat(formData.amount),
-      status: formData.status,
-      payment_method: formData.payment_method || 'manual'
-    };
-
-    onSubmit(submitData);
-  };
-
-  return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <h3>Record Payment</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-          <div style={styles.modalBody}>
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Tenant Information</label>
-              <div style={{
-                backgroundColor: '#f9fafb',
-                padding: '12px',
+        {messageType === 'individual' && (
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Select Tenant</label>
+            <select
+              value={selectedTenant}
+              onChange={(e) => setSelectedTenant(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '1px solid #d1d5db',
                 borderRadius: '6px',
-                margin: '8px 0'
-              }}>
-                <p style={{ margin: '0 0 4px 0', fontWeight: '600' }}>
-                  {tenant.tenant_name || tenant.name || 'N/A'}
-                </p>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '14px',
-                  color: '#6b7280'
-                }}>
-                  <span>Room: {tenant.room_number || 'N/A'}</span>
-                  <span>Rent: KSh {tenant.rent_amount ? tenant.rent_amount.toLocaleString() : '0'}</span>
-                </div>
-              </div>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Tenant ID *</label>
-              <input
-                type="text"
-                name="tenant_id"
-                value={formData.tenant_id}
-                onChange={handleChange}
-                placeholder="Tenant ID"
-                style={{ ...styles.formInput, ...(errors.tenant_id ? styles.inputError : {}) }}
-                disabled={!!tenant.tenant_id || !!tenant.id}
-              />
-              {errors.tenant_id && <span style={styles.errorText}>{errors.tenant_id}</span>}
-              <small style={styles.helpText}>
-                This should be populated automatically
-              </small>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Payment Status *</label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                style={{ ...styles.formSelect, ...(errors.status ? styles.inputError : {}) }}
-              >
-                <option value="paid">Paid</option>
-                <option value="unpaid">Unpaid</option>
-              </select>
-              {errors.status && <span style={styles.errorText}>{errors.status}</span>}
-              <small style={styles.helpText}>
-                • Paid: Mark payment as completed<br />
-                • Unpaid: Mark payment as not received
-              </small>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Amount (KES) *</label>
-              <input
-                type="number"
-                name="amount"
-                value={formData.amount}
-                onChange={handleChange}
-                placeholder="Enter amount"
-                min="1"
-                step="0.01"
-                style={{ ...styles.formInput, ...(errors.amount ? styles.inputError : {}) }}
-              />
-              {errors.amount && <span style={styles.errorText}>{errors.amount}</span>}
-              <small style={styles.helpText}>
-                Amount to be recorded
-              </small>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Payment Method</label>
-              <select
-                name="payment_method"
-                value={formData.payment_method}
-                onChange={handleChange}
-                style={styles.formSelect}
-              >
-                <option value="cash">Cash</option>
-                <option value="manual">Manual</option>
-                <option value="mpesa">M-Pesa</option>
-                <option value="bank">Bank Transfer</option>
-              </select>
-              <small style={styles.helpText}>
-                How was this payment received?
-              </small>
-            </div>
-          </div>
-
-          <div style={styles.modalFooter}>
-            <button type="button" style={styles.btnSecondary} onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" style={styles.btnPrimary} disabled={loading}>
-              {loading ? (
-                <>
-                  <div style={{
-                    width: '16px',
-                    height: '16px',
-                    border: '2px solid white',
-                    borderTopColor: 'transparent',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                    marginRight: '8px'
-                  }}></div>
-                  Processing...
-                </>
-              ) : 'Record Payment'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const VacateNoticeDetailsModal = ({ notice, onClose, onUpdateStatus, onDelete }) => {
-  const [actionNotes, setActionNotes] = useState('');
-
-  return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <h3>Vacate Notice Details</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
-        </div>
-
-        <div style={styles.modalBody}>
-          <div style={styles.detailsGrid}>
-            <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Tenant</label>
-              <p style={styles.detailValue}>{notice.tenant_name}</p>
-            </div>
-            <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Room</label>
-              <p style={styles.detailValue}>{notice.room_number || 'N/A'}</p>
-            </div>
-            <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Property</label>
-              <p style={styles.detailValue}>{notice.property_name}</p>
-            </div>
-            <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Status</label>
-              <span style={{
-                ...styles.statusBadge,
-                backgroundColor:
-                  notice.status === 'approved' ? '#dcfce7' :
-                    notice.status === 'rejected' ? '#fee2e2' :
-                      notice.status === 'completed' ? '#dbeafe' : '#fef3c7',
-                color:
-                  notice.status === 'approved' ? '#166534' :
-                    notice.status === 'rejected' ? '#991b1b' :
-                      notice.status === 'completed' ? '#1e40af' : '#92400e'
-              }}>
-                {notice.status}
-              </span>
-            </div>
-          </div>
-
-          <div style={{ marginTop: '20px' }}>
-            <label style={styles.detailLabel}>Vacate Date</label>
-            <p style={{ ...styles.detailValue, fontSize: '16px', fontWeight: '600', margin: '8px 0' }}>
-              {new Date(notice.vacate_date).toLocaleDateString()}
-            </p>
-          </div>
-
-          <div style={{ marginTop: '16px' }}>
-            <label style={styles.detailLabel}>Reason</label>
-            <p style={{ ...styles.detailValue, lineHeight: '1.6', margin: '8px 0' }}>
-              {notice.reason || 'No reason provided'}
-            </p>
-          </div>
-
-          {notice.admin_notes && (
-            <div style={{ marginTop: '16px' }}>
-              <label style={styles.detailLabel}>Admin Notes</label>
-              <p style={{ ...styles.detailValue, lineHeight: '1.6', margin: '8px 0' }}>
-                {notice.admin_notes}
-              </p>
-            </div>
-          )}
-
-          {notice.status === 'pending' && (
-            <div style={{ marginTop: '24px' }}>
-              <label style={styles.formLabel}>Action Notes (Optional)</label>
-              <textarea
-                value={actionNotes}
-                onChange={(e) => setActionNotes(e.target.value)}
-                placeholder="Add notes for approval/rejection..."
-                rows="3"
-                style={styles.formInput}
-              />
-            </div>
-          )}
-        </div>
-
-        <div style={styles.modalFooter}>
-          {notice.status === 'pending' && (
-            <>
-              <button
-                style={styles.btnSuccess}
-                onClick={() => {
-                  onUpdateStatus(notice.id, 'approve', actionNotes);
-                  onClose();
-                }}
-              >
-                Approve
-              </button>
-              <button
-                style={styles.btnDanger}
-                onClick={() => {
-                  onUpdateStatus(notice.id, 'reject', actionNotes);
-                  onClose();
-                }}
-              >
-                Reject
-              </button>
-              <button
-                style={styles.btnSecondary}
-                onClick={() => {
-                  onDelete(notice.id);
-                  onClose();
-                }}
-              >
-                Delete
-              </button>
-            </>
-          )}
-          {notice.status === 'approved' && (
-            <button
-              style={styles.btnSuccess}
-              onClick={() => {
-                onUpdateStatus(notice.id, 'complete');
-                onClose();
+                fontSize: '14px'
               }}
             >
-              Mark Complete
-            </button>
-          )}
-          <button style={styles.btnSecondary} onClick={onClose}>
-            Close
+              <option value="">Choose a tenant...</option>
+              {tenants.filter(t => t.is_active).map(tenant => (
+                <option key={tenant.id} value={tenant.id}>
+                  {tenant.name} - Room {tenant.room_number}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Message Title</label>
+          <input
+            type="text"
+            value={messageTitle}
+            onChange={(e) => setMessageTitle(e.target.value)}
+            placeholder="Enter message title..."
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Message Content</label>
+          <textarea
+            value={messageContent}
+            onChange={(e) => setMessageContent(e.target.value)}
+            placeholder="Type your message here..."
+            rows={6}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              fontSize: '14px',
+              minHeight: '120px',
+              resize: 'vertical'
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <button
+            onClick={() => {
+              setMessageTitle('');
+              setMessageContent('');
+              setSelectedTenant('');
+            }}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#f3f4f6',
+              color: '#374151',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Clear
+          </button>
+          <button
+            onClick={handleSendMessage}
+            disabled={loading}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: loading ? '#9ca3af' : '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            {loading ? 'Sending...' : `Send Message${messageType === 'all' ? ' to All Tenants' : ''}`}
           </button>
         </div>
+
+        {messageType === 'all' && (
+          <div style={{
+            marginTop: '16px',
+            padding: '12px 16px',
+            backgroundColor: '#fef3c7',
+            border: '1px solid #f59e0b',
+            borderRadius: '6px',
+            fontSize: '14px',
+            color: '#92400e'
+          }}>
+            <strong>Note:</strong> This message will be sent to all {activeTenantsCount} active tenants.
+          </div>
+        )}
       </div>
     </div>
   );
 };
-
-const CreateVacateNoticeModal = ({ leases, initialData, onClose, onSubmit, loading }) => {
-  const [formData, setFormData] = useState({
-    lease_id: initialData?.lease_id || '',
-    vacate_date: '',
-    reason: ''
-  });
-  const [errors, setErrors] = useState({});
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: '' });
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newErrors = {};
-    if (!formData.lease_id) newErrors.lease_id = 'Please select a lease';
-    if (!formData.vacate_date) newErrors.vacate_date = 'Vacate date is required';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    onSubmit(formData);
-  };
-
-
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDate = tomorrow.toISOString().split('T')[0];
-
-  return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <h3>Create Vacate Notice</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-          <div style={styles.modalBody}>
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Select Tenant/Lease *</label>
-              <select
-                name="lease_id"
-                value={formData.lease_id}
-                onChange={handleChange}
-                style={{ ...styles.formSelect, ...(errors.lease_id ? styles.inputError : {}) }}
-              >
-                <option value="">Choose a tenant...</option>
-                {leases.map(lease => (
-                  <option key={lease.lease_id} value={lease.lease_id}>
-                    {lease.tenant_name} - Room {lease.room_number || 'N/A'}
-                  </option>
-                ))}
-              </select>
-              {errors.lease_id && <span style={styles.errorText}>{errors.lease_id}</span>}
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Vacate Date *</label>
-              <input
-                type="date"
-                name="vacate_date"
-                value={formData.vacate_date}
-                onChange={handleChange}
-                min={minDate}
-                style={{ ...styles.formInput, ...(errors.vacate_date ? styles.inputError : {}) }}
-              />
-              {errors.vacate_date && <span style={styles.errorText}>{errors.vacate_date}</span>}
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Reason (Optional)</label>
-              <textarea
-                name="reason"
-                value={formData.reason}
-                onChange={handleChange}
-                placeholder="Enter reason for vacating..."
-                rows="4"
-                style={styles.formInput}
-              />
-            </div>
-          </div>
-
-          <div style={styles.modalFooter}>
-            <button type="button" style={styles.btnSecondary} onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" style={styles.btnPrimary} disabled={loading}>
-              {loading ? 'Creating...' : 'Create Notice'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-
-
-const PropertyDetailsModal = ({ property, onClose }) => {
-  return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <h3>Property Details</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
-        </div>
-
-        <div style={styles.modalBody}>
-          <div style={styles.detailsGrid}>
-            <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Property Name/Number</label>
-              <p style={styles.detailValue}>{property.name}</p>
-            </div>
-            <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Type</label>
-              <p style={styles.detailValue}>{property.property_type === 'bedsitter' ? 'Bedsitter' : 'One Bedroom'}</p>
-            </div>
-            <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Status</label>
-              <span style={{
-                ...styles.statusBadge,
-                backgroundColor: property.status === 'occupied' ? '#dcfce7' : '#dbeafe',
-                color: property.status === 'occupied' ? '#166534' : '#1e40af'
-              }}>
-                {property.status}
-              </span>
-            </div>
-            <div style={styles.detailItem}>
-              <label style={styles.detailLabel}>Rent Amount</label>
-              <p style={styles.detailValue}>
-                KSh {property.rent_amount ? property.rent_amount.toLocaleString() : '0'}
-              </p>
-            </div>
-          </div>
-
-          <div style={{ marginTop: '20px' }}>
-            <label style={styles.detailLabel}>Description</label>
-            <p style={{ ...styles.detailValue, lineHeight: '1.6', margin: '8px 0' }}>
-              {property.description || 'No description provided.'}
-            </p>
-          </div>
-
-          {property.status === 'occupied' && (
-            <div style={{
-              marginTop: '24px',
-              backgroundColor: '#f9fafb',
-              padding: '16px',
-              borderRadius: '8px',
-              border: '1px solid #e5e7eb'
-            }}>
-              <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: '600' }}>Current Tenant</h4>
-              <div style={styles.detailsGrid}>
-                <div style={styles.detailItem}>
-                  <label style={styles.detailLabel}>Name</label>
-                  <p style={styles.detailValue}>{property.tenant_name || 'N/A'}</p>
-                </div>
-                <div style={styles.detailItem}>
-                  <label style={styles.detailLabel}>Phone</label>
-                  <p style={styles.detailValue}>{property.tenant_phone || 'N/A'}</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div style={styles.modalFooter}>
-          <button style={styles.btnSecondary} onClick={onClose}>
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-const OverviewCard = ({ title, value, icon: Icon, color }) => (
-  <div style={styles.overviewCard}>
-    <div style={{ ...styles.cardIcon, backgroundColor: color + '20', color: color }}>
-      <Icon size={24} />
-    </div>
-    <div style={styles.cardContent}>
-      <h3 style={styles.cardTitle}>{title}</h3>
-      <p style={styles.cardValue}>{value}</p>
-    </div>
-  </div>
-);
-
-
-const styles = {
-  container: {
-    display: 'flex',
-    height: '100vh',
-    backgroundColor: '#f9fafb',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-  },
-  sidebar: {
-    width: '260px',
-    backgroundColor: '#1f2937',
-    color: 'white',
-    display: 'flex',
-    flexDirection: 'column',
-    transition: 'transform 0.3s',
-    position: 'fixed',
-    height: '100vh',
-    zIndex: 100,
-    boxShadow: '2px 0 10px rgba(0,0,0,0.1)'
-  },
-  sidebarHidden: {
-    transform: 'translateX(-100%)'
-  },
-  sidebarHeader: {
-    padding: '20px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottom: '1px solid #374151'
-  },
-  sidebarTitle: {
-    margin: 0,
-    fontSize: '20px',
-    fontWeight: '600',
-    color: '#fbbf24'
-  },
-  closeBtn: {
-    background: 'transparent',
-    border: 'none',
-    color: 'white',
-    cursor: 'pointer',
-    padding: '4px',
-    display: 'flex',
-    alignItems: 'center'
-  },
-  nav: {
-    flex: 1,
-    padding: '20px 0',
-    overflowY: 'auto'
-  },
-  navItem: {
-    width: '100%',
-    padding: '12px 20px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    background: 'transparent',
-    border: 'none',
-    color: '#d1d5db',
-    cursor: 'pointer',
-    fontSize: '14px',
-    transition: 'all 0.2s',
-    textAlign: 'left'
-  },
-  navItemActive: {
-    backgroundColor: '#374151',
-    color: 'white',
-    borderLeft: '3px solid #3b82f6'
-  },
-  userInfo: {
-    padding: '16px 20px',
-    borderTop: '1px solid #374151',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px'
-  },
-  userAvatar: {
-    width: '36px',
-    height: '36px',
-    borderRadius: '50%',
-    backgroundColor: '#3b82f6',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  userDetails: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px'
-  },
-  logoutBtnWrapper: {
-    padding: '1rem',
-    borderTop: '1px solid #374151',
-    backgroundColor: '#111827',
-    display: 'none'
-  },
-  logoutBtnWrapperVisible: {
-    display: 'block'
-  },
-  logoutBtn: {
-    width: '100%',
-    padding: '10px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    backgroundColor: '#ef4444',
-    border: 'none',
-    borderRadius: '6px',
-    color: 'white',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    transition: 'all 0.2s',
-    '&:hover': {
-      backgroundColor: '#dc2626'
-    }
-  },
-  main: {
-    flex: 1,
-    marginLeft: '260px',
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'auto'
-  },
-  header: {
-    height: '64px',
-    backgroundColor: 'white',
-    borderBottom: '1px solid #e5e7eb',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 24px',
-    position: 'sticky',
-    top: 0,
-    zIndex: 11
-  },
-  headerLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px'
-  },
-  menuBtn: {
-    display: 'flex',
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '8px',
-    marginRight: '8px'
-  },
-  homeBtn: {
-    background: 'transparent',
-    border: '1px solid #e5e7eb',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    padding: '8px',
-    display: 'flex',
-    alignItems: 'center'
-  },
-  headerTitle: {
-    margin: 0,
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#111827'
-  },
-  headerRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px'
-  },
-  refreshBtn: {
-    background: 'transparent',
-    border: '1px solid #e5e7eb',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    padding: '8px',
-    display: 'flex',
-    alignItems: 'center'
-  },
-  notificationBadge: {
-    position: 'relative',
-    padding: '8px',
-    cursor: 'pointer'
-  },
-  badgeCount: {
-    position: 'absolute',
-    top: '-2px',
-    right: '-2px',
-    backgroundColor: '#ef4444',
-    color: 'white',
-    borderRadius: '50%',
-    width: '18px',
-    height: '18px',
-    fontSize: '10px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  errorBanner: {
-    backgroundColor: '#fee2e2',
-    color: '#991b1b',
-    padding: '12px 24px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    fontSize: '14px'
-  },
-  successBanner: {
-    backgroundColor: '#dcfce7',
-    color: '#166534',
-    padding: '12px 24px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    fontSize: '14px'
-  },
-  closeBannerBtn: {
-    marginLeft: 'auto',
-    background: 'transparent',
-    border: 'none',
-    fontSize: '20px',
-    cursor: 'pointer',
-    padding: '0 8px',
-    color: 'inherit'
-  },
-  content: {
-    flex: 1,
-    padding: '24px',
-    overflowY: 'auto'
-  },
-  pageHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '24px',
-    flexWrap: 'wrap',
-    gap: '16px'
-  },
-  pageTitle: {
-    margin: 0,
-    fontSize: '24px',
-    fontWeight: '600',
-    color: '#111827'
-  },
-  headerActions: {
-    display: 'flex',
-    gap: '12px'
-  },
-  tabs: {
-    display: 'flex',
-    gap: '8px',
-    borderBottom: '1px solid #e5e7eb',
-    marginBottom: '24px'
-  },
-  tabButton: {
-    padding: '10px 20px',
-    background: 'transparent',
-    border: 'none',
-    borderBottom: '2px solid transparent',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    color: '#6b7280'
-  },
-  tabButtonActive: {
-    color: '#3b82f6',
-    borderBottomColor: '#3b82f6'
-  },
-  filterBar: {
-    display: 'flex',
-    gap: '12px',
-    marginBottom: '24px',
-    flexWrap: 'wrap'
-  },
-  searchBox: {
-    flex: 1,
-    maxWidth: '400px',
-    position: 'relative'
-  },
-  searchInput: {
-    width: '100%',
-    padding: '10px 12px 10px 40px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    fontSize: '14px'
-  },
-  filterSelect: {
-    padding: '10px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    fontSize: '14px',
-    backgroundColor: 'white',
-    cursor: 'pointer',
-    minWidth: '150px'
-  },
-  columnsContainer: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-    gap: '24px'
-  },
-  column: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '24px'
-  },
-  gridContainer: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-    gap: '16px',
-    marginBottom: '32px'
-  },
-  overviewCard: {
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    padding: '20px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    border: '1px solid #e5e7eb'
-  },
-  cardIcon: {
-    width: '48px',
-    height: '48px',
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  cardContent: {
-    flex: 1
-  },
-  cardTitle: {
-    margin: '0 0 4px 0',
-    fontSize: '14px',
-    color: '#6b7280',
-    fontWeight: '500'
-  },
-  cardValue: {
-    margin: 0,
-    fontSize: '24px',
-    fontWeight: '600',
-    color: '#111827'
-  },
-  section: {
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    padding: '24px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    border: '1px solid #e5e7eb'
-  },
-  sectionHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px',
-    flexWrap: 'wrap',
-    gap: '16px'
-  },
-  sectionTitle: {
-    margin: 0,
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#111827',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  },
-  sectionFooter: {
-    marginTop: '16px',
-    textAlign: 'right'
-  },
-  tableWrapper: {
-    overflowX: 'auto',
-    borderRadius: '8px',
-    border: '1px solid #e5e7eb'
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    fontSize: '14px'
-  },
-  tableHeader: {
-    backgroundColor: '#f9fafb',
-    borderBottom: '2px solid #e5e7eb'
-  },
-  th: {
-    padding: '12px 16px',
-    textAlign: 'left',
-    fontWeight: '600',
-    color: '#374151',
-    whiteSpace: 'nowrap'
-  },
-  tableRow: {
-    borderBottom: '1px solid #e5e7eb'
-  },
-  td: {
-    padding: '12px 16px',
-    color: '#6b7280',
-    verticalAlign: 'top'
-  },
-  statusBadge: {
-    display: 'inline-block',
-    padding: '4px 12px',
-    borderRadius: '12px',
-    fontSize: '12px',
-    fontWeight: '500'
-  },
-  badgeWarning: {
-    display: 'inline-block',
-    padding: '4px 12px',
-    borderRadius: '12px',
-    fontSize: '12px',
-    fontWeight: '500',
-    backgroundColor: '#fef3c7',
-    color: '#92400e'
-  },
-  btnText: {
-    background: 'transparent',
-    border: 'none',
-    color: '#3b82f6',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px'
-  },
-  btnPrimary: {
-    padding: '10px 16px',
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  },
-  btnSecondary: {
-    padding: '10px 16px',
-    backgroundColor: 'white',
-    color: '#374151',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  },
-  btnSuccess: {
-    padding: '10px 16px',
-    backgroundColor: '#10b981',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500'
-  },
-  btnDanger: {
-    padding: '10px 16px',
-    backgroundColor: '#ef4444',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500'
-  },
-  btnSmallPrimary: {
-    padding: '6px 12px',
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center'
-  },
-  btnSmallSecondary: {
-    padding: '6px 12px',
-    backgroundColor: 'white',
-    color: '#374151',
-    border: '1px solid #d1d5db',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px'
-  },
-  btnSmallSuccess: {
-    padding: '6px 12px',
-    backgroundColor: '#10b981',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center'
-  },
-  btnSmallDanger: {
-    padding: '6px 12px',
-    backgroundColor: '#ef4444',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center'
-  },
-  loadingContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '60px 20px',
-    color: '#6b7280',
-    minHeight: '400px'
-  },
-  spinner: {
-    width: '40px',
-    height: '40px',
-    border: '4px solid #e5e7eb',
-    borderTopColor: '#3b82f6',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-    marginBottom: '16px'
-  },
-  emptyState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: '60px 20px',
-    color: '#9ca3af',
-    textAlign: 'center'
-  },
-  roomsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: '16px'
-  },
-  roomCard: {
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    padding: '16px',
-    backgroundColor: 'white'
-  },
-  roomHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '12px',
-    paddingBottom: '12px',
-    borderBottom: '1px solid #e5e7eb'
-  },
-  roomName: {
-    flex: 1,
-    fontWeight: '600',
-    color: '#111827'
-  },
-  roomStatus: {
-    padding: '4px 8px',
-    borderRadius: '12px',
-    fontSize: '12px',
-    fontWeight: '500'
-  },
-  roomDetails: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-    marginBottom: '16px'
-  },
-  roomDetail: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: '14px'
-  },
-  rentAmount: {
-    fontWeight: '600',
-    color: '#111827'
-  },
-  roomFooter: {
-    display: 'flex',
-    gap: '8px',
-    justifyContent: 'flex-end'
-  },
-  infoCard: {
-    padding: '24px',
-    backgroundColor: '#f9fafb',
-    borderRadius: '8px',
-    border: '1px solid #e5e7eb',
-    textAlign: 'center'
-  },
-  tenantInfo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  },
-  contactInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px'
-  },
-  roomBadge: {
-    display: 'inline-block',
-    padding: '4px 8px',
-    backgroundColor: '#dbeafe',
-    color: '#1e40af',
-    borderRadius: '6px',
-    fontSize: '12px',
-    fontWeight: '500'
-  },
-  paymentDate: {
-    fontSize: '12px',
-    color: '#6b7280',
-    marginTop: '4px'
-  },
-  actionButtons: {
-    display: 'flex',
-    gap: '8px'
-  },
-  roomNumber: {
-    display: 'block',
-    fontSize: '12px',
-    color: '#6b7280',
-    marginTop: '4px'
-  },
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    padding: '20px'
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    maxWidth: '600px',
-    width: '100%',
-    maxHeight: '90vh',
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  modalHeader: {
-    padding: '20px 24px',
-    borderBottom: '1px solid #e5e7eb',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  modalClose: {
-    background: 'transparent',
-    border: 'none',
-    fontSize: '28px',
-    cursor: 'pointer',
-    color: '#6b7280',
-    padding: '0',
-    lineHeight: 1
-  },
-  modalBody: {
-    padding: '24px',
-    overflowY: 'auto',
-    flex: 1
-  },
-  modalFooter: {
-    padding: '16px 24px',
-    borderTop: '1px solid #e5e7eb',
-    display: 'flex',
-    gap: '12px',
-    justifyContent: 'flex-end'
-  },
-  detailsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '16px'
-  },
-  detailItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px'
-  },
-  detailLabel: {
-    color: '#6b7280',
-    fontSize: '14px',
-    fontWeight: '500'
-  },
-  detailValue: {
-    color: '#111827',
-    fontSize: '14px',
-    margin: 0
-  },
-  formGroup: {
-    marginBottom: '16px'
-  },
-  formLabel: {
-    display: 'block',
-    marginBottom: '6px',
-    fontSize: '14px',
-    fontWeight: '500',
-    color: '#374151'
-  },
-  formInput: {
-    width: '100%',
-    padding: '10px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    fontSize: '14px',
-    boxSizing: 'border-box'
-  },
-  formSelect: {
-    width: '100%',
-    padding: '10px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    fontSize: '14px',
-    backgroundColor: 'white',
-    boxSizing: 'border-box',
-    cursor: 'pointer'
-  },
-  inputError: {
-    borderColor: '#ef4444'
-  },
-  errorText: {
-    fontSize: '12px',
-    color: '#ef4444',
-    marginTop: '4px',
-    display: 'block'
-  },
-  helpText: {
-    fontSize: '12px',
-    color: '#6b7280',
-    marginTop: '4px',
-    display: 'block',
-    lineHeight: '1.4'
-  },
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 99
-  },
-
-  mobileTopNav: {
-    display: 'flex',
-    overflowX: 'auto',
-    backgroundColor: '#1f2937',
-    padding: '12px',
-    gap: '12px',
-    position: 'sticky',
-    top: '64px',
-    zIndex: 10,
-    scrollbarWidth: 'none',
-    msOverflowStyle: 'none'
-  },
-  mobileNavItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: '70px',
-    padding: '8px',
-    color: '#9ca3af',
-    background: 'none',
-    border: 'none',
-    fontSize: '11px',
-    gap: '4px',
-    borderRadius: '8px',
-    cursor: 'pointer'
-  },
-  mobileNavActive: {
-    color: 'white',
-    backgroundColor: '#374151'
-  },
-
-  inquiryCard: {
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    padding: '20px',
-    marginBottom: '16px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-    border: '1px solid #e5e7eb',
-    transition: 'transform 0.2s, box-shadow 0.2s'
-  },
-  inquiryHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '12px',
-    gap: '12px'
-  },
-  senderInfo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px'
-  },
-  avatar: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '18px',
-    fontWeight: '600'
-  },
-  msgMeta: {
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  senderName: {
-    fontWeight: '600',
-    color: '#111827',
-    fontSize: '15px'
-  },
-  msgTime: {
-    fontSize: '12px',
-    color: '#6b7280'
-  },
-  subjectBadge: {
-    display: 'inline-block',
-    padding: '2px 8px',
-    borderRadius: '12px',
-    fontSize: '11px',
-    fontWeight: '500',
-    marginTop: '4px',
-    alignSelf: 'flex-start'
-  },
-  msgPreview: {
-    color: '#4b5563',
-    lineHeight: '1.5',
-    fontSize: '14px',
-    backgroundColor: '#f9fafb',
-    padding: '12px',
-    borderRadius: '8px'
-  },
-
-  modalTabs: {
-    display: 'flex',
-    borderBottom: '1px solid #e5e7eb',
-    marginBottom: '20px',
-    padding: '0 20px'
-  },
-  modalTab: {
-    padding: '12px 20px',
-    background: 'none',
-    border: 'none',
-    borderBottom: '2px solid transparent',
-    color: '#6b7280',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    marginBottom: '-1px'
-  },
-  modalTabActive: {
-    color: '#2563eb',
-    borderBottomColor: '#2563eb'
-  },
-  imagePreview: {
-    width: '100%',
-    height: '200px',
-    objectFit: 'cover',
-    borderRadius: '8px',
-    border: '1px solid #e5e7eb'
-  },
-  // Dashboard and Page Styles
-  pageTitle: {
-    fontSize: '2rem',
-    fontWeight: '700',
-    marginBottom: '2rem',
-    color: '#111827'
-  },
-  sectionHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '1.5rem'
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '1.5rem',
-    marginBottom: '2rem'
-  },
-  statCard: {
-    backgroundColor: 'white',
-    padding: '1.5rem',
-    borderRadius: '0.75rem',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem'
-  },
-  statIcon: {
-    color: '#3b82f6',
-    flexShrink: 0
-  },
-  statNumber: {
-    fontSize: '1.5rem',
-    fontWeight: '700',
-    color: '#111827'
-  },
-  statLabel: {
-    fontSize: '0.875rem',
-    color: '#6b7280'
-  },
-  // Table Styles
-  tableContainer: {
-    backgroundColor: 'white',
-    borderRadius: '0.75rem',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    overflow: 'hidden'
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse'
-  },
-  th: {
-    backgroundColor: '#f9fafb',
-    padding: '1rem',
-    textAlign: 'left',
-    fontWeight: '600',
-    color: '#374151',
-    borderBottom: '1px solid #e5e7eb'
-  },
-  td: {
-    padding: '1rem',
-    borderBottom: '1px solid #f3f4f6',
-    color: '#374151'
-  },
-  tr: {
-    transition: 'backgroundColor 0.2s'
-  },
-  userCell: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem'
-  },
-  actionButtons: {
-    display: 'flex',
-    gap: '0.5rem'
-  },
-  // Room Card Styles
-  roomsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-    gap: '1.5rem'
-  },
-  roomCard: {
-    backgroundColor: 'white',
-    borderRadius: '0.75rem',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    overflow: 'hidden',
-    cursor: 'pointer',
-    transition: 'transform 0.2s, box-shadow 0.2s'
-  },
-  roomHeader: {
-    padding: '1rem',
-    backgroundColor: '#f9fafb',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    borderBottom: '1px solid #e5e7eb'
-  },
-  roomName: {
-    fontWeight: '600',
-    color: '#111827',
-    flex: 1
-  },
-  roomTypeBadge: {
-    fontSize: '0.75rem',
-    padding: '0.25rem 0.5rem',
-    borderRadius: '9999px',
-    backgroundColor: '#e0f2fe',
-    color: '#0369a1'
-  },
-  roomDetails: {
-    padding: '1rem'
-  },
-  roomDetail: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: '0.5rem'
-  },
-  detailLabel: {
-    fontSize: '0.875rem',
-    color: '#6b7280'
-  },
-  detailValue: {
-    fontSize: '0.875rem',
-    fontWeight: '600',
-    color: '#111827'
-  },
-  // Card Styles
-  cardsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-    gap: '1.5rem'
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: '0.75rem',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    overflow: 'hidden'
-  },
-  cardHeader: {
-    padding: '1rem',
-    backgroundColor: '#f9fafb',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottom: '1px solid #e5e7eb'
-  },
-  cardTitle: {
-    fontWeight: '600',
-    color: '#111827'
-  },
-  cardDescription: {
-    padding: '1rem',
-    color: '#6b7280',
-    lineHeight: '1.5'
-  },
-  cardDetails: {
-    padding: '0 1rem 1rem'
-  },
-  cardActions: {
-    padding: '1rem',
-    borderTop: '1px solid #f3f4f6',
-    display: 'flex',
-    gap: '0.5rem'
-  },
-  // Button Styles
-  btnPrimary: {
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    padding: '0.5rem 1rem',
-    borderRadius: '0.375rem',
-    border: 'none',
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'backgroundColor 0.2s'
-  },
-  btnSecondary: {
-    backgroundColor: '#f3f4f6',
-    color: '#374151',
-    padding: '0.5rem 1rem',
-    borderRadius: '0.375rem',
-    border: '1px solid #d1d5db',
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'backgroundColor 0.2s'
-  },
-  btnSmallPrimary: {
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    padding: '0.25rem 0.75rem',
-    borderRadius: '0.25rem',
-    border: 'none',
-    fontSize: '0.75rem',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-  btnSmallSecondary: {
-    backgroundColor: '#f3f4f6',
-    color: '#374151',
-    padding: '0.25rem 0.75rem',
-    borderRadius: '0.25rem',
-    border: '1px solid #d1d5db',
-    fontSize: '0.75rem',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-  btnSmallDanger: {
-    backgroundColor: '#fee2e2',
-    color: '#991b1b',
-    padding: '0.25rem 0.75rem',
-    borderRadius: '0.25rem',
-    border: '1px solid #fecaca',
-    fontSize: '0.75rem',
-    fontWeight: '500',
-    cursor: 'pointer'
-  }
-};
-
-
-if (typeof document !== 'undefined') {
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  `;
-  document.head.appendChild(style);
-}
-
-export default CaretakerDashboard;

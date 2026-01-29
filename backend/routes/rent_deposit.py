@@ -398,7 +398,7 @@ def mark_rent_unpaid(rent_id):
         return jsonify({'error': str(e)}), 500
 
 
-@rent_deposit_bp.route('/deposits/tenants', methods=['GET', 'OPTIONS'])
+@rent_deposit_bp.route('/deposit/records', methods=['GET', 'OPTIONS'])
 @token_required
 @role_required(['admin', 'caretaker'])
 def get_deposit_records():
@@ -676,7 +676,13 @@ def get_water_bill_records():
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
         
-        query = WaterBill.query
+        # Eagerly load tenant and property relationships
+        query = WaterBill.query.options(
+            db.joinedload(WaterBill.tenant),
+            db.joinedload(WaterBill.property),
+            db.joinedload(WaterBill.paid_by_caretaker),
+            db.joinedload(WaterBill.recorded_by_caretaker)
+        )
         
         # Apply filters
         if status:
@@ -706,6 +712,9 @@ def get_water_bill_records():
         }), 200
         
     except Exception as e:
+        current_app.logger.error(f"Error fetching water bill records: {str(e)}")
+        import traceback
+        current_app.logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 
