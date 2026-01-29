@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import and_, or_
 from models.base import db
 from models.user import User
@@ -8,6 +8,7 @@ from models.property import Property
 from models.lease import Lease
 from models.rent_deposit import RentRecord, DepositRecord, RentStatus, DepositStatus
 from models.water_bill import WaterBill, WaterBillStatus
+from models.notification import Notification
 from routes.auth_routes import token_required
 from functools import wraps
 
@@ -217,30 +218,68 @@ def generate_monthly_rent():
 
 
 # Deposit Management Routes
-@rent_deposit_bp.route('/tenants-with-leases', methods=['GET'])
+@rent_deposit_bp.route('/test-debug', methods=['GET'])
+def test_debug():
+    """Simple test endpoint to debug 500 errors"""
+    try:
+        return jsonify({
+            'success': True,
+            'message': 'Debug endpoint working',
+            'timestamp': datetime.now().isoformat()
+        }), 200
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+
+@rent_deposit_bp.route('/tenants-with-leases', methods=['GET', 'OPTIONS'])
 @token_required
 @role_required(['caretaker'])
 def get_tenants_with_leases():
     """Get all tenants with active leases for caretaker management"""
+    # Handle CORS preflight
+    if request.method == 'OPTIONS':
+        return '', 200
+        
     try:
-        # Get all tenants with active leases
+        current_app.logger.info("Fetching tenants with active leases...")
+        
+        # Get all tenants with active leases using a more robust query
         active_leases = Lease.query.filter_by(status='active').all()
+        current_app.logger.info(f"Found {len(active_leases)} active leases")
         
         tenants_data = []
         for lease in active_leases:
-            tenant_data = {
-                'tenant_id': lease.tenant_id,
-                'tenant_name': lease.tenant.name if lease.tenant else 'Unknown',
-                'tenant_email': lease.tenant.email if lease.tenant else 'Unknown',
-                'property_id': lease.property_id,
-                'property_name': lease.property.name if lease.property else 'Unknown',
-                'room_number': lease.tenant.room_number if lease.tenant else 'Unknown',
-                'lease_id': lease.id,
-                'rent_amount': lease.rent_amount,
-                'deposit_amount': lease.deposit_amount
-            }
-            tenants_data.append(tenant_data)
+            try:
+                # Safely access related objects
+                tenant_name = lease.tenant.name if lease.tenant and hasattr(lease.tenant, 'name') else 'Unknown'
+                tenant_email = lease.tenant.email if lease.tenant and hasattr(lease.tenant, 'email') else 'Unknown'
+                property_name = lease.property.name if lease.property and hasattr(lease.property, 'name') else 'Unknown'
+                room_number = lease.tenant.room_number if lease.tenant and hasattr(lease.tenant, 'room_number') else 'Unknown'
+                
+                tenant_data = {
+                    'tenant_id': lease.tenant_id,
+                    'tenant_name': tenant_name,
+                    'tenant_email': tenant_email,
+                    'property_id': lease.property_id,
+                    'property_name': property_name,
+                    'room_number': room_number,
+                    'lease_id': lease.id,
+                    'rent_amount': lease.rent_amount or 0,
+                    'deposit_amount': lease.deposit_amount or 0
+                }
+                tenants_data.append(tenant_data)
+                current_app.logger.info(f"Added tenant: {tenant_name}, Room: {room_number}")
+                
+            except Exception as e:
+                current_app.logger.error(f"Error processing lease {lease.id}: {str(e)}")
+                continue
         
+        current_app.logger.info(f"Successfully processed {len(tenants_data)} tenants")
         return jsonify({
             'success': True,
             'tenants': tenants_data
@@ -248,14 +287,126 @@ def get_tenants_with_leases():
         
     except Exception as e:
         current_app.logger.error(f"Error fetching tenants with leases: {str(e)}")
+        import traceback
+        current_app.logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 
-@rent_deposit_bp.route('/deposits/tenants', methods=['GET'])
+@rent_deposit_bp.route('/rent/<int:rent_id>/mark-paid', methods=['PUT'])
+@token_required
+@role_required(['caretaker'])
+def mark_rent_paid(rent_id):
+    """Mark rent as paid by caretaker"""
+    try:
+        current_user = db.session.get(User, request.user_id)
+        
+        rent_record = RentRecord.query.get(rent_id)
+        if not rent_record:
+            return jsonify({'error': 'Rent record not found'}), 404
+            
+        # Mark as paid
+        rent_record.mark_as_paid(rent_record.amount_due, paid_by_caretaker_id=current_user.id)
+        
+        # Create notification for tenant
+        notification = Notification(
+            user_id=rent_record.tenant_id,
+            title='Rent Payment Marked as Paid',
+            message=f'Your rent payment for {rent_record.month} {rent_record.year} has been marked as paid by the caretaker.',
+            notification_type='payment'
+        )
+        db.session.add(notification)
+        
+        # Create notification for admin
+        admin_users = User.query.filter_by(role='admin').all()
+        for admin in admin_users:
+            admin_notification = Notification(
+                user_id=admin.id,
+                title='Rent Payment Marked',
+                message=f'Caretaker {current_user.full_name} marked rent for tenant {rent_record.tenant.full_name} as paid.',
+                notification_type='payment'
+            )
+            db.session.add(admin_notification)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Rent marked as paid successfully',
+            'rent_status': rent_record.status.value
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error marking rent as paid: {str(e)}")
+        import traceback
+        current_app.logger.error(f"Traceback: {traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+
+@rent_deposit_bp.route('/rent/<int:rent_id>/mark-unpaid', methods=['PUT'])
+@token_required
+@role_required(['caretaker'])
+def mark_rent_unpaid(rent_id):
+    """Mark rent as unpaid by caretaker"""
+    try:
+        current_user = db.session.get(User, request.user_id)
+        
+        rent_record = RentRecord.query.get(rent_id)
+        if not rent_record:
+            return jsonify({'error': 'Rent record not found'}), 404
+            
+        # Mark as unpaid
+        rent_record.status = RentStatus.UNPAID
+        rent_record.amount_paid = 0
+        rent_record.balance = rent_record.amount_due
+        rent_record.paid_by_caretaker_id = current_user.id
+        rent_record.last_calculated = datetime.now(timezone.utc)
+        
+        # Create notification for tenant
+        notification = Notification(
+            user_id=rent_record.tenant_id,
+            title='Rent Payment Marked as Unpaid',
+            message=f'Your rent payment for {rent_record.month} {rent_record.year} has been marked as unpaid by the caretaker.',
+            notification_type='payment'
+        )
+        db.session.add(notification)
+        
+        # Create notification for admin
+        admin_users = User.query.filter_by(role='admin').all()
+        for admin in admin_users:
+            admin_notification = Notification(
+                user_id=admin.id,
+                title='Rent Payment Marked Unpaid',
+                message=f'Caretaker {current_user.full_name} marked rent for tenant {rent_record.tenant.full_name} as unpaid.',
+                notification_type='payment'
+            )
+            db.session.add(admin_notification)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Rent marked as unpaid successfully',
+            'rent_status': rent_record.status.value
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error marking rent as unpaid: {str(e)}")
+        import traceback
+        current_app.logger.error(f"Traceback: {traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+
+@rent_deposit_bp.route('/deposits/tenants', methods=['GET', 'OPTIONS'])
 @token_required
 @role_required(['admin', 'caretaker'])
 def get_deposit_records():
     """Get all deposit records with optional filters"""
+    # Handle CORS preflight
+    if request.method == 'OPTIONS':
+        return '', 200
+        
     current_user = db.session.get(User, request.user_id)
     try:
         page = request.args.get('page', 1, type=int)

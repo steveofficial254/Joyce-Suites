@@ -240,6 +240,7 @@ const AdminDashboard = () => {
   }, []);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [userProfile, setUserProfile] = useState(null);
 
 
   const [overview, setOverview] = useState(null);
@@ -313,6 +314,17 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       // Failed to fetch notifications
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const data = await apiCall('/api/auth/profile');
+      if (data && data.success) {
+        setUserProfile(data.user);
+      }
+    } catch (err) {
+      // Failed to fetch user profile
     }
   };
 
@@ -605,13 +617,14 @@ const AdminDashboard = () => {
         switch (activePage) {
           case 'dashboard':
             await Promise.all([
-              fetchOverview(),
-              fetchTenants(),
-              fetchPaymentReport(),
-              fetchOccupancyReport(),
-              fetchVacateNotices(),
-              fetchMaintenanceRequests(),
-              fetchNotifications()
+              fetchOverview().catch(() => {}),
+              fetchMaintenanceRequests().catch(() => {}),
+              fetchAvailableRooms().catch(() => {}),
+              fetchTenants().catch(() => {}),
+              fetchPaymentReport().catch(() => {}),
+              fetchOccupancyReport().catch(() => {}),
+              fetchContracts().catch(() => {}),
+              fetchUserProfile().catch(() => {})
             ]);
             break;
           case 'contracts':
@@ -853,11 +866,24 @@ const AdminDashboard = () => {
 
         <div style={styles.userInfo}>
           <div style={styles.userAvatar}>
-            <User size={20} />
+            {userProfile?.photo_path ? (
+              <img 
+                src={`${API_BASE_URL}/${userProfile.photo_path}`}
+                alt="Profile" 
+                style={{ 
+                  width: '36px', 
+                  height: '36px', 
+                  borderRadius: '50%',
+                  objectFit: 'cover'
+                }}
+              />
+            ) : (
+              <User size={20} />
+            )}
           </div>
           <div style={styles.userDetails}>
-            <strong>Admin</strong>
-            <small>Joyce Suites</small>
+            <strong>{userProfile?.full_name || 'Admin'}</strong>
+            <small>{userProfile?.email || 'Joyce Suites'}</small>
           </div>
         </div>
 

@@ -48,6 +48,7 @@ const TenantDashboard = () => {
 
   const [roomDetails, setRoomDetails] = useState(null);
   const [accountDetails, setAccountDetails] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
 
 
   const [mpesaPhone, setMpesaPhone] = useState('');
@@ -270,7 +271,7 @@ const TenantDashboard = () => {
       accountNumber = '2536316';
     } else if (lawrenceRooms.includes(roomNum)) {
       landlordName = 'Lawrence Mathea';
-      paybill = '222111';
+      paybill = '222222';
       accountNumber = '54544';
     } else {
       landlordName = 'Not Assigned';
@@ -288,6 +289,34 @@ const TenantDashboard = () => {
       accountNumber,
       fullAccountName: `${accountNumber} - ${landlordName}`
     };
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem('joyce-suites-token');
+      const response = await fetch(`${config.apiBaseUrl}/api/auth/profile`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setUserProfile(data.user);
+          setProfileData(data.user); // Also update profileData for existing UI
+          
+          // Update account details with user's actual room information
+          if (data.user?.room_number) {
+            const roomAccountDetails = getAccountDetails(data.user.room_number);
+            setAccountDetails(roomAccountDetails);
+          }
+        }
+      }
+    } catch (err) {
+      // Error fetching user profile
+    }
   };
 
   const fetchRoomDetails = async (unitNumber) => {
@@ -323,33 +352,23 @@ const TenantDashboard = () => {
         return null;
       }
     } catch (err) {
-      console.error('Error fetching lease:', err);
+      console.error('Error fetching lease details:', err);
       return null;
-    }
-  };
-
-  const fetchPaymentDetails = async () => {
-    setLoadingPaymentDetails(true);
-    try {
-      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/payment-details`);
-
-      if (response.ok) {
-        const data = await response.json();
-        setPaymentDetails(data.payment_details);
-        setError('');
-      } else {
-        const errorData = await response.json();
-        if (errorData.error === 'No active lease found') {
-          setError('Please sign your lease agreement before making payments.');
-        } else {
-          setError(errorData.error || 'Failed to load payment details');
-        }
-      }
-    } catch (err) {
-      setError('Failed to load payment details');
     } finally {
       setLoadingPaymentDetails(false);
     }
+  };
+
+  const calculateOutstandingBalance = () => {
+    if (!dashboardData?.rent_amount || !paymentsData.length) {
+      return dashboardData?.rent_amount || 0;
+    }
+
+    const totalPaid = paymentsData
+      .filter(payment => payment.status === 'completed')
+      .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+    
+    return dashboardData.rent_amount - totalPaid;
   };
 
   const fetchRentAndDepositRecords = async () => {
@@ -439,6 +458,9 @@ const TenantDashboard = () => {
         console.error(`Dashboard response error: ${dashRes ? dashRes.status : 'No response'}`);
       }
 
+      // Fetch user profile for account details
+      await fetchUserProfile();
+
 
 
       if (profileRes && profileRes.ok) {
@@ -520,6 +542,26 @@ const TenantDashboard = () => {
     setError('');
     setMpesaPhone('');
     fetchPaymentDetails();
+  };
+
+  const getPaymentSummary = () => {
+    // Get current tenant's payment data from caretaker dashboard logic
+    const currentTenantPayments = allTenantsPaymentStatus.find(t => t.tenant_id === user?.user_id);
+    const currentTenantPending = allPayments.find(t => t.tenant_id === user?.user_id);
+    
+    return {
+      rentStatus: currentTenantPayments?.current_month_paid ? 'paid' : 'unpaid',
+      rentAmount: dashboardData?.rent_amount || 0,
+      depositStatus: currentDeposit?.status || 'pending',
+      depositAmount: currentAccountDetails?.depositAmount || 0,
+      depositBalance: currentDeposit?.balance || currentAccountDetails?.depositAmount || 0,
+      outstandingBalance: currentTenantPending?.outstanding_balance || calculateOutstandingBalance(),
+      waterBillStatus: currentMonthWaterBill?.status || 'pending',
+      waterBillAmount: currentMonthWaterBill?.amount_due || 0,
+      totalPaid: paymentsData.filter(p => p.status === 'completed').reduce((sum, p) => sum + (p.amount || 0), 0),
+      pendingCount: allPayments.filter(t => t.tenant_id === user?.user_id).length,
+      lastPayment: paymentsData.length > 0 ? paymentsData[paymentsData.length - 1] : null
+    };
   };
 
   const handleOpenLeaseModal = async () => {
@@ -1416,51 +1458,102 @@ const TenantDashboard = () => {
           {activeTab === 'payments' && (
             <div className="content">
               <div className="card">
-                <h3>Payment Details</h3>
+                <h3>Payment Summary</h3>
+                {(() => {
+                  const summary = getPaymentSummary();
+                  return (
+                    <div className="payment-summary-grid">
+                      <div className="payment-summary-card">
+                        <h4>Monthly Rent</h4>
+                        <div className="payment-amount">KSh {summary.rentAmount.toLocaleString()}</div>
+                        <div className={`payment-status ${summary.rentStatus}`}>
+                          {summary.rentStatus === 'paid' ? '✅ Paid' : '⏳ Unpaid'}
+                        </div>
+                      </div>
+                      
+                      <div className="payment-summary-card">
+                        <h4>Deposit</h4>
+                        <div className="payment-amount">KSh {summary.depositAmount.toLocaleString()}</div>
+                        <div className={`payment-status ${summary.depositStatus}`}>
+                          {summary.depositStatus === 'paid' ? '✅ Paid' : summary.depositStatus === 'refunded' ? '💰 Refunded' : '⏳ Pending'}
+                        </div>
+                        <div className="payment-balance">Balance: KSh {summary.depositBalance.toLocaleString()}</div>
+                      </div>
+                      
+                      <div className="payment-summary-card">
+                        <h4>Water Bill</h4>
+                        <div className="payment-amount">KSh {summary.waterBillAmount.toLocaleString()}</div>
+                        <div className={`payment-status ${summary.waterBillStatus}`}>
+                          {summary.waterBillStatus === 'paid' ? '✅ Paid' : summary.waterBillStatus === 'overdue' ? '🚨 Overdue' : '⏳ Pending'}
+                        </div>
+                      </div>
+                      
+                      <div className="payment-summary-card">
+                        <h4>Outstanding Balance</h4>
+                        <div className="payment-amount overdue">KSh {summary.outstandingBalance.toLocaleString()}</div>
+                        <div className="payment-status overdue">
+                          {summary.outstandingBalance > 0 ? '💳 Due' : '✅ Clear'}
+                        </div>
+                      </div>
+                      
+                      <div className="payment-summary-card">
+                        <h4>Total Paid This Month</h4>
+                        <div className="payment-amount paid">KSh {summary.totalPaid.toLocaleString()}</div>
+                        <div className="payment-status paid">
+                          📊 {summary.pendingCount} pending payments
+                        </div>
+                      </div>
+                      
+                      {summary.lastPayment && (
+                        <div className="payment-summary-card">
+                          <h4>Last Payment</h4>
+                          <div className="payment-amount">KSh {summary.lastPayment.amount?.toLocaleString() || 0}</div>
+                          <div className="payment-status">
+                            📅 {new Date(summary.lastPayment.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+                
                 <div className="payment-account-info">
-                  <div className="account-details">
-                    <h4>Your Payment Account</h4>
-                    <div className="detail-row">
-                      <span className="detail-label">Room Number:</span>
-                      <span className="detail-value">Room {roomNumber}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Account Number:</span>
-                      <span className="detail-value">{currentAccountDetails?.accountNumber || 'N/A'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Paybill Number:</span>
-                      <span className="detail-value">{currentAccountDetails?.paybill || 'N/A'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Landlord:</span>
-                      <span className="detail-value">{currentAccountDetails?.landlordName || 'N/A'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Monthly Rent:</span>
-                      <span className="detail-value">KSh {currentAccountDetails?.rentAmount.toLocaleString()}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Outstanding Balance:</span>
-                      <span className="detail-value">KSh {outstandingBalance.toLocaleString()}</span>
-                    </div>
+                  <h4>Your Payment Account</h4>
+                  <div className="detail-row">
+                    <span className="detail-label">Room Number:</span>
+                    <span className="detail-value">Room {roomNumber}</span>
                   </div>
-                  <button
-                    onClick={handleOpenPaymentModal}
-                    className="btn btn-primary"
-                    style={{ marginTop: '20px' }}
-                    disabled={!fullLeaseDetails || !fullLeaseDetails.signed_by_tenant}
-                  >
-                    {!fullLeaseDetails
-                      ? 'Sign Lease to Pay'
-                      : !fullLeaseDetails.signed_by_tenant
-                        ? 'Sign Lease First'
-                        : 'Make Payment Now'}
+                  <div className="detail-row">
+                    <span className="detail-label">Account Number:</span>
+                    <span className="detail-value">{currentAccountDetails?.accountNumber || 'N/A'}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Paybill Number:</span>
+                    <span className="detail-value">{currentAccountDetails?.paybill || 'N/A'}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Landlord:</span>
+                    <span className="detail-value">{currentAccountDetails?.landlordName || 'N/A'}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Monthly Rent:</span>
+                    <span className="detail-value">KSh {currentAccountDetails?.rentAmount?.toLocaleString() || 0}</span>
+                  </div>
+                </div>
+                
+                <div className="payment-actions">
+                  <button className="btn btn-primary" onClick={handleOpenPaymentModal}>
+                    Make Payment
+                  </button>
+                  <button className="btn btn-secondary" onClick={handleOpenLeaseModal}>
+                    View Lease Agreement
                   </button>
                 </div>
               </div>
+            </div>
+          )}
 
-              <div className="card" style={{ marginTop: '24px' }}>
+          {/* Other tabs content would go here */}
                 <h3>Payment History</h3>
                 <div className="table-container">
                   <table className="payments-table">

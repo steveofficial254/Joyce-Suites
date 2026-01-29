@@ -18,12 +18,14 @@ const API_BASE_URL = config.apiBaseUrl;
 
 const WaterBillPage = () => {
   const [waterBillRecords, setWaterBillRecords] = useState([]);
-  const [tenants, setTenants] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showReadingModal, setShowReadingModal] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState(null);
+  const [tenants, setTenants] = useState([]);
   const [readingForm, setReadingForm] = useState({
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
@@ -761,6 +763,104 @@ const DepositsPage = () => {
   );
 };
 
+const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) => {
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p>Loading maintenance requests...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.section}>
+      <div style={styles.pageHeaderControls}>
+        <h2 style={styles.pageTitle}>Maintenance Requests ({requests?.length || 0})</h2>
+      </div>
+
+      <div style={styles.tableWrapper}>
+        <table style={styles.table}>
+          <thead style={styles.tableHeader}>
+            <tr>
+              <th style={styles.th}>ID</th>
+              <th style={styles.th}>Tenant</th>
+              <th style={styles.th}>Room</th>
+              <th style={styles.th}>Issue</th>
+              <th style={styles.th}>Priority</th>
+              <th style={styles.th}>Status</th>
+              <th style={styles.th}>Date</th>
+              <th style={styles.th}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {requests?.length > 0 ? (
+              requests.map(request => (
+                <tr key={request.id} style={styles.tableRow}>
+                  <td style={styles.td}>#{request.id}</td>
+                  <td style={styles.td}>{request.tenant_name || 'N/A'}</td>
+                  <td style={styles.td}>{request.room_number || 'N/A'}</td>
+                  <td style={styles.td}>{request.issue_type || 'N/A'}</td>
+                  <td style={styles.td}>
+                    <span style={{
+                      ...styles.statusBadge,
+                      backgroundColor: request.priority === 'high' ? '#fee2e2' : 
+                                       request.priority === 'medium' ? '#fef3c7' : '#dcfce7',
+                      color: request.priority === 'high' ? '#991b1b' : 
+                             request.priority === 'medium' ? '#92400e' : '#166534'
+                    }}>
+                      {request.priority || 'medium'}
+                    </span>
+                  </td>
+                  <td style={styles.td}>
+                    <span style={{
+                      ...styles.statusBadge,
+                      backgroundColor: request.status === 'completed' ? '#dcfce7' : 
+                                       request.status === 'in_progress' ? '#fef3c7' : '#fee2e2',
+                      color: request.status === 'completed' ? '#166534' : 
+                             request.status === 'in_progress' ? '#92400e' : '#991b1b'
+                    }}>
+                      {request.status || 'pending'}
+                    </span>
+                  </td>
+                  <td style={styles.td}>
+                    {request.created_at ? new Date(request.created_at).toLocaleDateString() : 'N/A'}
+                  </td>
+                  <td style={styles.td}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        style={{ ...styles.btn, ...styles.btnSm, ...styles.btnPrimary }}
+                        onClick={() => onViewDetails(request)}
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <select
+                        value={request.status}
+                        onChange={(e) => onUpdateStatus(request.id, e.target.value)}
+                        style={{ ...styles.filterSelect, padding: '4px 8px', fontSize: '12px' }}
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="8" style={{ ...styles.td, textAlign: 'center', padding: '40px' }}>
+                  No maintenance requests found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 const CaretakerDashboard = () => {
   const navigate = useNavigate();
   const [activePage, setActivePage] = useState('dashboard');
@@ -780,6 +880,7 @@ const CaretakerDashboard = () => {
   }, []);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [userProfile, setUserProfile] = useState(null);
 
 
   const [overview, setOverview] = useState(null);
@@ -970,6 +1071,11 @@ const CaretakerDashboard = () => {
     }
   };
 
+  const handleViewMaintenanceDetails = (request) => {
+    // For now, just log the details. In a real implementation, this would open a modal
+    console.log('Maintenance details:', request);
+  };
+
   const handleCreateMaintenance = async (maintenanceData) => {
     try {
       setLoading(true);
@@ -1023,6 +1129,24 @@ const CaretakerDashboard = () => {
     }
   };
 
+  const fetchUserProfile = async () => {
+    try {
+      const data = await apiCall('/api/auth/profile');
+      if (data && data.success) {
+        setUserProfile(data.user);
+        // Debug: Log profile data
+        if (data.user?.photo_path) {
+          console.log('✅ Caretaker photo found:', data.user.photo_path);
+        } else {
+          console.log('ℹ️ No caretaker photo found, will use default icon');
+        }
+      }
+    } catch (err) {
+      // Failed to fetch user profile
+      console.log('❌ Failed to fetch caretaker profile');
+    }
+  };
+
   const handleMarkNotificationRead = async (id) => {
     try {
       await apiCall(`/api/auth/notifications/${id}/read`, { method: 'PUT' });
@@ -1043,16 +1167,49 @@ const CaretakerDashboard = () => {
       });
 
       if (data && data.success) {
-        setSuccessMessage(`Payment marked as ${paymentData.status}`);
-        await fetchAllTenantsPaymentStatus();
+        setSuccessMessage('Payment marked successfully');
         await fetchPendingPayments();
-        setShowMarkPaymentModal(false);
+        await fetchOverview();
         setTimeout(() => setSuccessMessage(''), 3000);
       }
     } catch (err) {
-      setError(err.message);
+      // Failed to mark payment
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMarkRentPaid = async (rentId) => {
+    try {
+      const data = await apiCall(`/api/rent-deposit/rent/${rentId}/mark-paid`, {
+        method: 'PUT'
+      });
+
+      if (data && data.success) {
+        setSuccessMessage('Rent marked as paid');
+        await fetchPendingPayments();
+        await fetchOverview();
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
+    } catch (err) {
+      // Failed to mark rent as paid
+    }
+  };
+
+  const handleMarkRentUnpaid = async (rentId) => {
+    try {
+      const data = await apiCall(`/api/rent-deposit/rent/${rentId}/mark-unpaid`, {
+        method: 'PUT'
+      });
+
+      if (data && data.success) {
+        setSuccessMessage('Rent marked as unpaid');
+        await fetchPendingPayments();
+        await fetchOverview();
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
+    } catch (err) {
+      // Failed to mark rent as unpaid
     }
   };
 
@@ -1177,7 +1334,8 @@ const CaretakerDashboard = () => {
               fetchTenants().catch(() => {}),
               fetchPendingPayments().catch(() => {}),
               fetchVacateNotices().catch(() => {}),
-              fetchNotifications().catch(() => {})
+              fetchNotifications().catch(() => {}),
+              fetchUserProfile().catch(() => {})
             ]);
             break;
           case 'maintenance':
@@ -1875,11 +2033,30 @@ const CaretakerDashboard = () => {
 
         <div style={styles.userInfo}>
           <div style={styles.userAvatar}>
-            <User size={20} />
+            {userProfile?.photo_path ? (
+              <img 
+                src={`${API_BASE_URL}/${userProfile.photo_path}`}
+                alt="Profile" 
+                style={{ 
+                  width: '36px', 
+                  height: '36px', 
+                  borderRadius: '50%',
+                  objectFit: 'cover'
+                }}
+                onError={(e) => {
+                  console.log('❌ Caretaker photo failed to load:', e.target.src);
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            {(!userProfile?.photo_path || userProfile?.photo_path === '') && (
+              <User size={20} />
+            )}
           </div>
           <div style={styles.userDetails}>
-            <strong>Caretaker</strong>
-            <small>Joyce Suites</small>
+            <strong>{userProfile?.full_name || 'Caretaker'}</strong>
+            <small>{userProfile?.email || 'Joyce Suites'}</small>
           </div>
         </div>
 
