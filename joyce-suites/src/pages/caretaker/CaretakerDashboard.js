@@ -2293,7 +2293,7 @@ const CaretakerDashboard = () => {
           )}
         </div>
 
-        <nav style={styles.nav}>
+        <nav className="px-4 py-6">
           {[
             { id: 'dashboard', label: 'Dashboard', icon: Home },
             { id: 'maintenance', label: 'Maintenance', icon: Wrench },
@@ -2308,10 +2308,7 @@ const CaretakerDashboard = () => {
           ].map(item => (
             <button
               key={item.id}
-              style={{
-                ...styles.navItem,
-                ...(activePage === item.id ? styles.navItemActive : {})
-              }}
+              className={`caretaker-nav-item ${activePage === item.id ? 'caretaker-nav-item-active' : ''}`}
               onClick={() => handlePageChange(item.id)}
             >
               <item.icon size={18} />
