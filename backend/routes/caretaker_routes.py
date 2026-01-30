@@ -886,9 +886,9 @@ def get_financial_summary():
         
         # Rent Statistics
         total_rent_records = RentRecord.query.count()
-        paid_rent = RentRecord.query.filter_by(status=RentStatus.PAID).count()
-        unpaid_rent = RentRecord.query.filter_by(status=RentStatus.UNPAID).count()
-        overdue_rent = RentRecord.query.filter_by(status=RentStatus.OVERDUE).count()
+        paid_rent = RentRecord.query.filter_by(status=RentStatus.PAID.value).count()
+        unpaid_rent = RentRecord.query.filter_by(status=RentStatus.UNPAID.value).count()
+        overdue_rent = RentRecord.query.filter_by(status=RentStatus.OVERDUE.value).count()
         
         # Current month rent
         current_month_rent = RentRecord.query.filter(
@@ -896,38 +896,32 @@ def get_financial_summary():
             RentRecord.year == current_year
         ).all()
         
-        current_month_paid = sum(r.amount_paid for r in current_month_rent)
-        current_month_due = sum(r.amount_due for r in current_month_rent)
-        current_month_balance = sum(r.balance for r in current_month_rent)
+        current_month_paid = sum(float(r.amount_paid or 0) for r in current_month_rent)
+        current_month_due = sum(float(r.amount_due or 0) for r in current_month_rent)
+        current_month_balance = sum(float(r.balance or 0) for r in current_month_rent)
         
         # Deposit Statistics
         total_deposits = DepositRecord.query.count()
-        paid_deposits = DepositRecord.query.filter_by(status=DepositStatus.PAID).count()
-        pending_deposits = DepositRecord.query.filter_by(status=DepositStatus.PENDING).count()
-        refunded_deposits = DepositRecord.query.filter_by(status=DepositStatus.REFUNDED).count()
+        paid_deposits = DepositRecord.query.filter_by(status=DepositStatus.PAID.value).count()
+        pending_deposits = DepositRecord.query.filter_by(status=DepositStatus.UNPAID.value).count()
+        refunded_deposits = DepositRecord.query.filter_by(status=DepositStatus.REFUNDED.value).count()
         
-        total_deposit_amount = sum(d.amount_required for d in DepositRecord.query.all())
-        total_deposit_paid = sum(d.amount_paid for d in DepositRecord.query.all())
+        total_deposit_amount = sum(float(d.amount_required or 0) for d in DepositRecord.query.all())
+        total_deposit_paid = sum(float(d.amount_paid or 0) for d in DepositRecord.query.all())
         
         # Water Bill Statistics
         total_water_bills = WaterBill.query.count()
-        paid_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.PAID).count()
-        unpaid_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.UNPAID).count()
-        overdue_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.OVERDUE).count()
+        paid_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.PAID.value).count()
+        unpaid_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.UNPAID.value).count()
+        overdue_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.OVERDUE.value).count()
         
-        total_water_amount = sum(w.amount_due for w in WaterBill.query.all())
-        total_water_paid = sum(w.amount_paid for w in WaterBill.query.all())
+        total_water_amount = sum(float(w.amount_due or 0) for w in WaterBill.query.all())
+        total_water_paid = sum(float(w.amount_paid or 0) for w in WaterBill.query.all())
         
-        # Recent transactions (last 30 days)
-        thirty_days_ago = datetime.now() - timedelta(days=30)
-        recent_payments = Payment.query.filter(
-            Payment.created_at >= thirty_days_ago
-        ).count()
-        
-        # Calculate collection rates
-        rent_collection_rate = (paid_rent / total_rent_records * 100) if total_rent_records > 0 else 0
-        deposit_collection_rate = (paid_deposits / total_deposits * 100) if total_deposits > 0 else 0
-        water_collection_rate = (paid_water_bills / total_water_bills * 100) if total_water_bills > 0 else 0
+        # Overall Financial Summary
+        total_expected_revenue = current_month_due + total_deposit_amount + total_water_amount
+        total_actual_revenue = current_month_paid + total_deposit_paid + total_water_paid
+        total_outstanding = total_expected_revenue - total_actual_revenue
         
         return jsonify({
             "success": True,
@@ -937,11 +931,10 @@ def get_financial_summary():
                     "paid": paid_rent,
                     "unpaid": unpaid_rent,
                     "overdue": overdue_rent,
-                    "collection_rate": round(rent_collection_rate, 2),
                     "current_month": {
-                        "paid": float(current_month_paid),
-                        "due": float(current_month_due),
-                        "balance": float(current_month_balance)
+                        "paid": current_month_paid,
+                        "due": current_month_due,
+                        "balance": current_month_balance
                     }
                 },
                 "deposits": {
@@ -949,34 +942,33 @@ def get_financial_summary():
                     "paid": paid_deposits,
                     "pending": pending_deposits,
                     "refunded": refunded_deposits,
-                    "collection_rate": round(deposit_collection_rate, 2),
-                    "total_amount": float(total_deposit_amount),
-                    "total_paid": float(total_deposit_paid),
-                    "outstanding": float(total_deposit_amount - total_deposit_paid)
+                    "total_amount": total_deposit_amount,
+                    "total_paid": total_deposit_paid
                 },
                 "water_bills": {
                     "total_records": total_water_bills,
                     "paid": paid_water_bills,
                     "unpaid": unpaid_water_bills,
                     "overdue": overdue_water_bills,
-                    "collection_rate": round(water_collection_rate, 2),
-                    "total_amount": float(total_water_amount),
-                    "total_paid": float(total_water_paid),
-                    "outstanding": float(total_water_amount - total_water_paid)
+                    "total_amount": total_water_amount,
+                    "total_paid": total_water_paid
                 },
                 "overall": {
-                    "recent_transactions": recent_payments,
-                    "total_outstanding": float(current_month_balance + (total_deposit_amount - total_deposit_paid) + (total_water_amount - total_water_paid)),
-                    "monthly_revenue": float(current_month_paid)
+                    "total_expected_revenue": total_expected_revenue,
+                    "total_actual_revenue": total_actual_revenue,
+                    "total_outstanding": total_outstanding,
+                    "collection_rate": (total_actual_revenue / total_expected_revenue * 100) if total_expected_revenue > 0 else 0
                 }
             }
         }), 200
-
+        
     except Exception as e:
-        print(f"Error in get_financial_summary: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "error": str(e)}), 500
+        current_app.logger.error(f"❌ Financial summary error: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "Failed to fetch financial summary",
+            "message": str(e)
+        }), 500
 
 
 @caretaker_bp.route("/notifications/send-bulk", methods=["POST"])

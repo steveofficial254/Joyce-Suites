@@ -2279,15 +2279,15 @@ const CaretakerDashboard = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <aside style={{
-        ...styles.sidebar,
-        ...(isMobile ? { display: 'none' } : (sidebarOpen ? {} : styles.sidebarHidden))
-      }}>
-        <div style={styles.sidebarHeader}>
-          <h2 style={styles.sidebarTitle}>Joyce Suites</h2>
+    <div className="caretaker-dashboard">
+      <aside className={`caretaker-sidebar ${sidebarOpen ? '' : 'caretaker-sidebar-closed'}`}>
+        <div className="caretaker-sidebar-header">
+          <h2 className="caretaker-sidebar-title">Joyce Suites</h2>
           {isMobile && (
-            <button style={styles.closeBtn} onClick={() => setSidebarOpen(false)}>
+            <button 
+              className="text-white hover:bg-secondary-800 p-2 rounded-md"
+              onClick={() => setSidebarOpen(false)}
+            >
               <X size={24} />
             </button>
           )}
