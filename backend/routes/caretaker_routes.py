@@ -156,9 +156,11 @@ def get_maintenance_requests():
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 10, type=int)
 
-        # Eagerly load tenant data
+        # Eagerly load related data
         query = MaintenanceRequest.query.options(
-            db.joinedload(MaintenanceRequest.tenant)
+            db.joinedload(MaintenanceRequest.property),
+            db.joinedload(MaintenanceRequest.reported_by),
+            db.joinedload(MaintenanceRequest.assigned_to)
         )
         
         if status:
