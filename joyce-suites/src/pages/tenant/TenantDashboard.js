@@ -226,42 +226,32 @@ const TenantDashboard = () => {
 
 
   const getAccountDetails = (roomNumber) => {
-    console.log('🏠 getAccountDetails called with roomNumber:', roomNumber);
     const roomNum = parseInt(roomNumber);
-    console.log('🏠 Parsed roomNum:', roomNum);
-
 
     const joyceRooms = [1, 2, 3, 4, 5, 6, 8, 9, 10];
-
     const lawrenceRooms = [11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26];
-
 
     let rentAmount = 5000;
     let depositAmount = 5400;
     let roomType = 'bedsitter';
 
     if ([8, 9, 10, 17, 19, 20].includes(roomNum)) {
-
       rentAmount = 7500;
       depositAmount = 7900;
       roomType = 'one_bedroom';
     } else if (roomNum === 18) {
-
       rentAmount = 7000;
       depositAmount = 7400;
       roomType = 'one_bedroom';
     } else if ([12, 22].includes(roomNum)) {
-
       rentAmount = 5500;
       depositAmount = 5900;
       roomType = 'bedsitter';
     } else if ([11, 13, 14, 15, 21, 23, 24, 25, 26].includes(roomNum)) {
-
       rentAmount = 5000;
       depositAmount = 5400;
       roomType = 'bedsitter';
     }
-
 
     let landlordName = '';
     let paybill = '';
@@ -281,7 +271,7 @@ const TenantDashboard = () => {
       accountNumber = 'N/A';
     }
 
-    const result = {
+    return {
       roomNumber: roomNum,
       roomType,
       rentAmount,
@@ -291,9 +281,6 @@ const TenantDashboard = () => {
       accountNumber,
       fullAccountName: `${accountNumber} - ${landlordName}`
     };
-
-    console.log('🏠 getAccountDetails result:', result);
-    return result;
   };
 
   const fetchUserProfile = async () => {
@@ -943,12 +930,7 @@ const TenantDashboard = () => {
 
 
   const roomNumber = dashboardData?.unit_number || profileData?.room_number || 'Not Assigned';
-  console.log('🔍 Debug - roomNumber:', roomNumber);
-  console.log('🔍 Debug - dashboardData:', dashboardData);
-  console.log('🔍 Debug - profileData:', profileData);
-  console.log('🔍 Debug - accountDetails:', accountDetails);
   const currentAccountDetails = accountDetails || getAccountDetails(roomNumber);
-  console.log('🔍 Debug - currentAccountDetails:', currentAccountDetails);
 
 
   const outstandingBalance = dashboardData?.outstanding_balance !== undefined
