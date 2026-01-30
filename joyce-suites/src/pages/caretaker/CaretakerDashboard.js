@@ -16,6 +16,33 @@ import config from '../../config';
 
 const API_BASE_URL = config.apiBaseUrl;
 
+// Basic styles object to prevent ReferenceError
+const styles = {
+  loadingContainer: { display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px' },
+  spinner: { width: '40px', height: '40px', border: '4px solid #f3f4f6', borderTop: '4px solid #3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' },
+  section: { marginBottom: '24px' },
+  pageHeaderControls: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
+  pageTitle: { fontSize: '24px', fontWeight: '600', margin: 0 },
+  tableWrapper: { overflowX: 'auto' },
+  table: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden' },
+  tableHeader: { backgroundColor: '#f8fafc' },
+  th: { padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' },
+  tableRow: { borderBottom: '1px solid #e5e7eb' },
+  td: { padding: '12px 16px', color: '#6b7280' },
+  statusBadge: { padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '500' },
+  btn: { padding: '8px 12px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' },
+  btnSm: { padding: '4px 8px', fontSize: '12px' },
+  btnPrimary: { backgroundColor: '#3b82f6', color: 'white' },
+  filterSelect: { padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' },
+  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' },
+  statCard: { backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: '12px' },
+  statIcon: { color: '#3b82f6' },
+  statNumber: { fontSize: '24px', fontWeight: '600', color: '#111827' },
+  statLabel: { fontSize: '14px', color: '#6b7280' },
+  sectionTitle: { fontSize: '18px', fontWeight: '600', margin: '0 0 16px 0' },
+  card: { backgroundColor: 'white', padding: '16px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+};
+
 const WaterBillPage = () => {
   const [waterBillRecords, setWaterBillRecords] = useState([]);
   const [notifications, setNotifications] = useState([]);
