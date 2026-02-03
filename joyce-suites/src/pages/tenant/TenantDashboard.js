@@ -525,12 +525,11 @@ const TenantDashboard = () => {
   };
 
   const getPaymentSummary = () => {
-    // Get current tenant's payment data from caretaker dashboard logic
-    const currentTenantPayments = allTenantsPaymentStatus.find(t => t.tenant_id === user?.user_id);
-    const currentTenantPending = allPayments.find(t => t.tenant_id === user?.user_id);
+    // Get current tenant's payment data from available state
+    const currentTenantPending = rentRecords.find(t => t.tenant_id === user?.user_id);
     
     return {
-      rentStatus: currentTenantPayments?.current_month_paid ? 'paid' : 'unpaid',
+      rentStatus: currentMonthRent?.status === 'paid' ? 'paid' : 'unpaid',
       rentAmount: dashboardData?.rent_amount || 0,
       depositStatus: currentDeposit?.status || 'pending',
       depositAmount: currentAccountDetails?.depositAmount || 0,
@@ -539,7 +538,7 @@ const TenantDashboard = () => {
       waterBillStatus: currentMonthWaterBill?.status || 'pending',
       waterBillAmount: currentMonthWaterBill?.amount_due || 0,
       totalPaid: paymentsData.filter(p => p.status === 'completed').reduce((sum, p) => sum + (p.amount || 0), 0),
-      pendingCount: allPayments.filter(t => t.tenant_id === user?.user_id).length,
+      pendingCount: rentRecords.filter(t => t.tenant_id === user?.user_id && t.status === 'pending').length,
       lastPayment: paymentsData.length > 0 ? paymentsData[paymentsData.length - 1] : null
     };
   };

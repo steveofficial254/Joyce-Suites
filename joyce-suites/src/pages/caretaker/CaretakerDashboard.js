@@ -24,23 +24,62 @@ const styles = {
   pageHeaderControls: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
   pageTitle: { fontSize: '24px', fontWeight: '600', margin: 0 },
   tableWrapper: { overflowX: 'auto' },
-  table: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden' },
+  table: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
   tableHeader: { backgroundColor: '#f8fafc' },
   th: { padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' },
-  tableRow: { borderBottom: '1px solid #e5e7eb' },
+  tableRow: { borderBottom: '1px solid #e5e7eb', transition: 'background-color 0.2s ease' },
   td: { padding: '12px 16px', color: '#6b7280' },
   statusBadge: { padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '500' },
-  btn: { padding: '8px 12px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' },
+  btn: { padding: '8px 12px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s ease' },
   btnSm: { padding: '4px 8px', fontSize: '12px' },
   btnPrimary: { backgroundColor: '#3b82f6', color: 'white' },
-  filterSelect: { padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' },
+  btnSecondary: { backgroundColor: '#6b7280', color: 'white' },
+  btnSuccess: { backgroundColor: '#10b981', color: 'white' },
+  btnWarning: { backgroundColor: '#f59e0b', color: 'white' },
+  btnDanger: { backgroundColor: '#ef4444', color: 'white' },
+  filterSelect: { padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', backgroundColor: 'white' },
   statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' },
-  statCard: { backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: '12px' },
+  statCard: { backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease' },
   statIcon: { color: '#3b82f6' },
   statNumber: { fontSize: '24px', fontWeight: '600', color: '#111827' },
   statLabel: { fontSize: '14px', color: '#6b7280' },
   sectionTitle: { fontSize: '18px', fontWeight: '600', margin: '0 0 16px 0' },
-  card: { backgroundColor: 'white', padding: '16px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+  card: { backgroundColor: 'white', padding: '16px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
+  
+  // Enhanced admin-like styles
+  container: { display: 'flex', minHeight: '100vh' },
+  sidebar: { width: '260px', backgroundColor: '#1f2937', color: 'white', position: 'fixed', height: '100vh', overflowY: 'auto', transition: 'all 0.3s ease', zIndex: 1000 },
+  sidebarHidden: { width: '60px' },
+  sidebarHeader: { padding: '20px', borderBottom: '1px solid #374151', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  sidebarTitle: { fontSize: '18px', fontWeight: '600', margin: 0 },
+  closeBtn: { background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px' },
+  nav: { padding: '20px 0' },
+  navItem: { display: 'flex', alignItems: 'center', padding: '12px 20px', color: 'white', textDecoration: 'none', cursor: 'pointer', border: 'none', background: 'none', width: '100%', textAlign: 'left', transition: 'background-color 0.2s ease' },
+  navItemActive: { backgroundColor: '#3b82f6' },
+  userInfo: { padding: '20px', borderTop: '1px solid #374151' },
+  userAvatar: { width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' },
+  userDetails: { fontSize: '14px' },
+  logoutBtnWrapper: { padding: '0 20px 20px', opacity: 0, transition: 'opacity 0.3s ease' },
+  logoutBtnWrapperVisible: { opacity: 1 },
+  logoutBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 15px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', width: '100%', justifyContent: 'center' },
+  main: { flex: 1, backgroundColor: '#f8fafc', minHeight: '100vh' },
+  header: { backgroundColor: 'white', padding: '16px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' },
+  headerLeft: { display: 'flex', alignItems: 'center', gap: '12px' },
+  menuBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px' },
+  homeBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#3b82f6' },
+  headerTitle: { fontSize: '20px', fontWeight: '600', margin: 0 },
+  headerRight: { display: 'flex', alignItems: 'center', gap: '12px' },
+  refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px' },
+  notificationBadge: { position: 'relative', cursor: 'pointer' },
+  badgeCount: { position: 'absolute', top: '-8px', right: '-8px', backgroundColor: '#ef4444', color: 'white', fontSize: '10px', padding: '2px 4px', borderRadius: '10px' },
+  mobileTopNav: { display: 'flex', justifyContent: 'space-around', padding: '12px', backgroundColor: 'white', borderBottom: '1px solid #e5e7eb' },
+  mobileNavItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px', color: '#6b7280', textDecoration: 'none', cursor: 'pointer', border: 'none', background: 'none' },
+  mobileNavActive: { color: '#3b82f6' },
+  errorBanner: { backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: '6px', margin: '16px', display: 'flex', alignItems: 'center', gap: '8px' },
+  successBanner: { backgroundColor: '#f0fdf4', color: '#16a34a', padding: '12px 16px', borderRadius: '6px', margin: '16px', display: 'flex', alignItems: 'center', gap: '8px' },
+  closeBannerBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px', marginLeft: 'auto' },
+  content: { padding: '24px' },
+  overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 999 }
 };
 
 const WaterBillPage = () => {
@@ -1702,8 +1741,8 @@ const CaretakerDashboard = () => {
                 <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
                   <div><strong>Collection Rate:</strong> {financialSummary.rent.collection_rate}%</div>
                   <div><strong>Paid:</strong> {financialSummary.rent.paid} / {financialSummary.rent.total_records}</div>
-                  <div><strong>Current Month:</strong> KSh {financialSummary.rent.current_month.paid.toLocaleString()}</div>
-                  <div><strong>Outstanding:</strong> KSh {financialSummary.rent.current_month.balance.toLocaleString()}</div>
+                  <div><strong>Current Month:</strong> KSh {(financialSummary.rent.current_month.paid || 0).toLocaleString()}</div>
+                  <div><strong>Outstanding:</strong> KSh {(financialSummary.rent.current_month.balance || 0).toLocaleString()}</div>
                 </div>
               </div>
 
@@ -1713,8 +1752,8 @@ const CaretakerDashboard = () => {
                 <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
                   <div><strong>Collection Rate:</strong> {financialSummary.deposits.collection_rate}%</div>
                   <div><strong>Paid:</strong> {financialSummary.deposits.paid} / {financialSummary.deposits.total_records}</div>
-                  <div><strong>Total Amount:</strong> KSh {financialSummary.deposits.total_amount.toLocaleString()}</div>
-                  <div><strong>Outstanding:</strong> KSh {financialSummary.deposits.outstanding.toLocaleString()}</div>
+                  <div><strong>Total Amount:</strong> KSh {(financialSummary.deposits.total_amount || 0).toLocaleString()}</div>
+                  <div><strong>Outstanding:</strong> KSh {(financialSummary.deposits.outstanding || 0).toLocaleString()}</div>
                 </div>
               </div>
 
@@ -1724,8 +1763,8 @@ const CaretakerDashboard = () => {
                 <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
                   <div><strong>Collection Rate:</strong> {financialSummary.water_bills.collection_rate}%</div>
                   <div><strong>Paid:</strong> {financialSummary.water_bills.paid} / {financialSummary.water_bills.total_records}</div>
-                  <div><strong>Total Amount:</strong> KSh {financialSummary.water_bills.total_amount.toLocaleString()}</div>
-                  <div><strong>Outstanding:</strong> KSh {financialSummary.water_bills.outstanding.toLocaleString()}</div>
+                  <div><strong>Total Amount:</strong> KSh {(financialSummary.water_bills.total_amount || 0).toLocaleString()}</div>
+                  <div><strong>Outstanding:</strong> KSh {(financialSummary.water_bills.outstanding || 0).toLocaleString()}</div>
                 </div>
               </div>
 
@@ -1733,8 +1772,8 @@ const CaretakerDashboard = () => {
               <div style={{ ...styles.card, borderLeft: '4px solid #8b5cf6' }}>
                 <h4 style={{ margin: '0 0 12px 0', color: '#8b5cf6' }}>Overall</h4>
                 <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-                  <div><strong>Monthly Revenue:</strong> KSh {financialSummary.overall.monthly_revenue.toLocaleString()}</div>
-                  <div><strong>Total Outstanding:</strong> KSh {financialSummary.overall.total_outstanding.toLocaleString()}</div>
+                  <div><strong>Monthly Revenue:</strong> KSh {(financialSummary.overall.monthly_revenue || 0).toLocaleString()}</div>
+                  <div><strong>Total Outstanding:</strong> KSh {(financialSummary.overall.total_outstanding || 0).toLocaleString()}</div>
                   <div><strong>Recent Transactions:</strong> {financialSummary.overall.recent_transactions}</div>
                 </div>
               </div>

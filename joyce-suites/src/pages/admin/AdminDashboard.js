@@ -411,10 +411,11 @@ const AdminDashboard = () => {
     try {
       const data = await apiCall('/api/admin/maintenance?page=1&per_page=100');
       if (data && data.success) {
-        setMaintenanceRequests(data.requests || []);
+        setMaintenanceRequests(data.maintenance_requests || []);
       }
     } catch (err) {
       // Error occurred
+      console.error('Failed to fetch maintenance requests:', err);
     }
   };
 
