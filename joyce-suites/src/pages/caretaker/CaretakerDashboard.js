@@ -16,6 +16,20 @@ import config from '../../config';
 
 const API_BASE_URL = config.apiBaseUrl;
 
+// Helper function for authenticated API calls
+const fetchWithAuth = async (url, options = {}) => {
+  const token = localStorage.getItem('joyce-suites-token');
+  const defaultOptions = {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    }
+  };
+  
+  const response = await fetch(url, { ...defaultOptions, ...options });
+  return response;
+};
+
 // Basic styles object to prevent ReferenceError
 const styles = {
   loadingContainer: { display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px' },
@@ -259,16 +273,16 @@ const WaterBillPage = () => {
         </div>
       )}
 
-      {success && (
+      {successMessage && (
         <div style={{
           padding: '12px 16px',
           backgroundColor: '#dcfce7',
-          border: '1px solid #bbf7d0',
+          border: '1px solid #16a34a',
           borderRadius: '6px',
-          marginBottom: '16px',
+          fontSize: '14px',
           color: '#166534'
         }}>
-          {success}
+          {successMessage}
         </div>
       )}
 
@@ -697,18 +711,6 @@ const DepositsPage = () => {
     payment_reference: '',
     notes: ''
   });
-
-  const fetchWithAuth = async (url, options = {}) => {
-    const token = localStorage.getItem('joyce-suites-token');
-    const defaultOptions = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
-      ...options,
-    };
-    return fetch(url, defaultOptions);
-  };
 
   useEffect(() => {
     fetchDepositRecords();
@@ -1695,34 +1697,32 @@ const CaretakerDashboard = () => {
     }
 
     return (
-      <div style={styles.section}>
-        <h2 style={styles.pageTitle}>Dashboard Overview</h2>
-        
-        {/* Stats Cards */}
+      <div style={styles.content}>
+        {/* Enhanced Stats Cards */}
         <div style={styles.statsGrid}>
-          <div style={styles.statCard}>
-            <Home size={24} style={styles.statIcon} />
+          <div style={{...styles.statCard, borderLeft: '4px solid #3b82f6'}}>
+            <Home size={32} style={{...styles.statIcon, color: '#3b82f6'}} />
             <div>
               <div style={styles.statNumber}>{availableRooms?.length || 0}</div>
               <div style={styles.statLabel}>Available Rooms</div>
             </div>
           </div>
-          <div style={styles.statCard}>
-            <Users size={24} style={styles.statIcon} />
+          <div style={{...styles.statCard, borderLeft: '4px solid #10b981'}}>
+            <Users size={32} style={{...styles.statIcon, color: '#10b981'}} />
             <div>
               <div style={styles.statNumber}>{overview?.total_tenants || 0}</div>
               <div style={styles.statLabel}>Total Tenants</div>
             </div>
           </div>
-          <div style={styles.statCard}>
-            <Wrench size={24} style={styles.statIcon} />
+          <div style={{...styles.statCard, borderLeft: '4px solid #f59e0b'}}>
+            <Wrench size={32} style={{...styles.statIcon, color: '#f59e0b'}} />
             <div>
               <div style={styles.statNumber}>{maintenanceRequests?.filter(m => m.status === 'pending').length || 0}</div>
               <div style={styles.statLabel}>Pending Maintenance</div>
             </div>
           </div>
-          <div style={styles.statCard}>
-            <CreditCard size={24} style={styles.statIcon} />
+          <div style={{...styles.statCard, borderLeft: '4px solid #ef4444'}}>
+            <CreditCard size={32} style={{...styles.statIcon, color: '#ef4444'}} />
             <div>
               <div style={styles.statNumber}>{pendingPayments?.length || 0}</div>
               <div style={styles.statLabel}>Pending Payments</div>
