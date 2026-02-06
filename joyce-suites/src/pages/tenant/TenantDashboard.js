@@ -298,7 +298,7 @@ const TenantDashboard = () => {
         if (data.success) {
           setUserProfile(data.user);
           setProfileData(data.user); // Also update profileData for existing UI
-          
+
           // Update account details with user's actual room information
           if (data.user?.room_number) {
             const roomAccountDetails = getAccountDetails(data.user.room_number);
@@ -355,7 +355,7 @@ const TenantDashboard = () => {
     try {
       // Get user ID from authenticated user context
       const userId = user ? user.user_id : null;
-      
+
       if (!userId) {
         console.error('User not authenticated or user ID not found');
         setError('User not authenticated');
@@ -527,7 +527,7 @@ const TenantDashboard = () => {
   const getPaymentSummary = () => {
     // Get current tenant's payment data from available state
     const currentTenantPending = rentRecords.find(t => t.tenant_id === user?.user_id);
-    
+
     return {
       rentStatus: currentMonthRent?.status === 'paid' ? 'paid' : 'unpaid',
       rentAmount: dashboardData?.rent_amount || 0,
@@ -1446,56 +1446,56 @@ const TenantDashboard = () => {
                         <h4>Monthly Rent</h4>
                         <div className="payment-amount">KSh {summary.rentAmount.toLocaleString()}</div>
                         <div className={`payment-status ${summary.rentStatus}`}>
-                          {summary.rentStatus === 'paid' ? '✅ Paid' : '⏳ Unpaid'}
+                          {summary.rentStatus === 'paid' ? 'Paid' : 'Unpaid'}
                         </div>
                       </div>
-                      
+
                       <div className="payment-summary-card">
                         <h4>Deposit</h4>
                         <div className="payment-amount">KSh {summary.depositAmount.toLocaleString()}</div>
                         <div className={`payment-status ${summary.depositStatus}`}>
-                          {summary.depositStatus === 'paid' ? '✅ Paid' : summary.depositStatus === 'refunded' ? '💰 Refunded' : '⏳ Pending'}
+                          {summary.depositStatus === 'paid' ? 'Paid' : summary.depositStatus === 'refunded' ? 'Refunded' : 'Pending'}
                         </div>
                         <div className="payment-balance">Balance: KSh {summary.depositBalance.toLocaleString()}</div>
                       </div>
-                      
+
                       <div className="payment-summary-card">
                         <h4>Water Bill</h4>
                         <div className="payment-amount">KSh {summary.waterBillAmount.toLocaleString()}</div>
                         <div className={`payment-status ${summary.waterBillStatus}`}>
-                          {summary.waterBillStatus === 'paid' ? '✅ Paid' : summary.waterBillStatus === 'overdue' ? '🚨 Overdue' : '⏳ Pending'}
+                          {summary.waterBillStatus === 'paid' ? 'Paid' : summary.waterBillStatus === 'overdue' ? 'Overdue' : 'Pending'}
                         </div>
                       </div>
-                      
+
                       <div className="payment-summary-card">
                         <h4>Outstanding Balance</h4>
                         <div className="payment-amount overdue">KSh {summary.outstandingBalance.toLocaleString()}</div>
                         <div className="payment-status overdue">
-                          {summary.outstandingBalance > 0 ? '💳 Due' : '✅ Clear'}
+                          {summary.outstandingBalance > 0 ? 'Due' : 'Clear'}
                         </div>
                       </div>
-                      
+
                       <div className="payment-summary-card">
                         <h4>Total Paid This Month</h4>
                         <div className="payment-amount paid">KSh {summary.totalPaid.toLocaleString()}</div>
                         <div className="payment-status paid">
-                          📊 {summary.pendingCount} pending payments
+                          {summary.pendingCount} pending payments
                         </div>
                       </div>
-                      
+
                       {summary.lastPayment && (
                         <div className="payment-summary-card">
                           <h4>Last Payment</h4>
                           <div className="payment-amount">KSh {summary.lastPayment.amount?.toLocaleString() || 0}</div>
                           <div className="payment-status">
-                            📅 {new Date(summary.lastPayment.created_at).toLocaleDateString()}
+                            {new Date(summary.lastPayment.created_at).toLocaleDateString()}
                           </div>
                         </div>
                       )}
                     </div>
                   );
                 })()}
-                
+
                 <div className="payment-account-info">
                   <h4>Your Payment Account</h4>
                   <div className="detail-row">
@@ -1519,7 +1519,7 @@ const TenantDashboard = () => {
                     <span className="detail-value">KSh {currentAccountDetails?.rentAmount?.toLocaleString() || 0}</span>
                   </div>
                 </div>
-                
+
                 <div className="payment-actions">
                   <button className="btn btn-primary" onClick={handleOpenPaymentModal}>
                     Make Payment
@@ -1528,7 +1528,7 @@ const TenantDashboard = () => {
                     View Lease Agreement
                   </button>
                 </div>
-                
+
                 <h3>Payment History</h3>
                 <div className="table-container">
                   <table className="payments-table">
@@ -1861,90 +1861,90 @@ const TenantDashboard = () => {
       </footer>
 
       {showPaymentModal && (
-          <div className="modal-overlay" onClick={() => setShowPaymentModal(false)}>
-            <div className="modal modal-payment" onClick={(e) => e.stopPropagation()}>
-              <button className="modal-close" onClick={() => setShowPaymentModal(false)}>×</button>
-              <h2>Make Payment via M-Pesa</h2>
+        <div className="modal-overlay" onClick={() => setShowPaymentModal(false)}>
+          <div className="modal modal-payment" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowPaymentModal(false)}>×</button>
+            <h2>Make Payment via M-Pesa</h2>
 
-              {loadingPaymentDetails ? (
-                <div className="loading-payment">
-                  <div className="spinner"></div>
-                  <p>Loading payment details...</p>
-                </div>
-              ) : paymentDetails ? (
-                <div className="payment-modal-content">
-                  <div className="payment-summary">
-                    <h3>Payment Summary</h3>
-                    <div className="payment-detail">
-                      <span className="detail-label">Room Number:</span>
-                      <span className="detail-value">Room {roomNumber}</span>
-                    </div>
-                    <div className="payment-detail">
-                      <span className="detail-label">Account Number:</span>
-                      <span className="detail-value">{currentAccountDetails?.accountNumber}</span>
-                    </div>
-                    <div className="payment-detail">
-                      <span className="detail-label">Paybill Number:</span>
-                      <span className="detail-value">{currentAccountDetails?.paybill}</span>
-                    </div>
-                    <div className="payment-detail">
-                      <span className="detail-label">Amount to Pay:</span>
-                      <span className="detail-value amount">KSh {paymentDetails.outstanding_balance?.toLocaleString() || paymentDetails.rent_amount?.toLocaleString() || currentAccountDetails?.rentAmount.toLocaleString()}</span>
-                    </div>
-                    <div className="payment-note">
-                      <p><strong>Note:</strong> Use the Paybill number and account number when making manual payments.</p>
-                    </div>
+            {loadingPaymentDetails ? (
+              <div className="loading-payment">
+                <div className="spinner"></div>
+                <p>Loading payment details...</p>
+              </div>
+            ) : paymentDetails ? (
+              <div className="payment-modal-content">
+                <div className="payment-summary">
+                  <h3>Payment Summary</h3>
+                  <div className="payment-detail">
+                    <span className="detail-label">Room Number:</span>
+                    <span className="detail-value">Room {roomNumber}</span>
                   </div>
-
-                  <div className="mpesa-form">
-                    <h3>Quick M-Pesa Payment</h3>
-                    <div className="form-group">
-                      <label>Your M-Pesa Phone Number *</label>
-                      <input
-                        type="tel"
-                        placeholder="254712345678 or 0712345678"
-                        value={mpesaPhone}
-                        onChange={(e) => setMpesaPhone(e.target.value)}
-                        required
-                      />
-                      <small className="form-help">Enter the phone number registered with M-Pesa</small>
-                    </div>
-
-                    <div className="payment-instructions">
-                      <h4>How to pay manually:</h4>
-                      <ol>
-                        <li>Go to M-Pesa on your phone</li>
-                        <li>Select <strong>Lipa na M-Pesa</strong></li>
-                        <li>Select <strong>Pay Bill</strong></li>
-                        <li>Enter Paybill: <strong>{currentAccountDetails?.paybill}</strong></li>
-                        <li>Enter Account: <strong>{currentAccountDetails?.accountNumber}</strong></li>
-                        <li>Enter Amount: <strong>KSh {paymentDetails.outstanding_balance?.toLocaleString() || paymentDetails.rent_amount?.toLocaleString() || currentAccountDetails?.rentAmount.toLocaleString()}</strong></li>
-                        <li>Enter your M-Pesa PIN</li>
-                        <li>Confirm payment</li>
-                      </ol>
-                    </div>
-
-                    <button
-                      onClick={handleInitiateMpesa}
-                      className="btn btn-primary btn-block"
-                      disabled={loading || !mpesaPhone}
-                    >
-                      {loading ? 'Processing...' : 'Send STK Push to Pay Now'}
-                    </button>
+                  <div className="payment-detail">
+                    <span className="detail-label">Account Number:</span>
+                    <span className="detail-value">{currentAccountDetails?.accountNumber}</span>
+                  </div>
+                  <div className="payment-detail">
+                    <span className="detail-label">Paybill Number:</span>
+                    <span className="detail-value">{currentAccountDetails?.paybill}</span>
+                  </div>
+                  <div className="payment-detail">
+                    <span className="detail-label">Amount to Pay:</span>
+                    <span className="detail-value amount">KSh {paymentDetails.outstanding_balance?.toLocaleString() || paymentDetails.rent_amount?.toLocaleString() || currentAccountDetails?.rentAmount.toLocaleString()}</span>
+                  </div>
+                  <div className="payment-note">
+                    <p><strong>Note:</strong> Use the Paybill number and account number when making manual payments.</p>
                   </div>
                 </div>
-              ) : (
-                <div className="no-lease-payment">
-                  <h3>Payment Unavailable</h3>
-                  <p>You need to sign your lease agreement before making payments.</p>
-                  <button onClick={handleOpenLeaseModal} className="btn btn-primary">
-                    Go to Lease Signing
+
+                <div className="mpesa-form">
+                  <h3>Quick M-Pesa Payment</h3>
+                  <div className="form-group">
+                    <label>Your M-Pesa Phone Number *</label>
+                    <input
+                      type="tel"
+                      placeholder="254712345678 or 0712345678"
+                      value={mpesaPhone}
+                      onChange={(e) => setMpesaPhone(e.target.value)}
+                      required
+                    />
+                    <small className="form-help">Enter the phone number registered with M-Pesa</small>
+                  </div>
+
+                  <div className="payment-instructions">
+                    <h4>How to pay manually:</h4>
+                    <ol>
+                      <li>Go to M-Pesa on your phone</li>
+                      <li>Select <strong>Lipa na M-Pesa</strong></li>
+                      <li>Select <strong>Pay Bill</strong></li>
+                      <li>Enter Paybill: <strong>{currentAccountDetails?.paybill}</strong></li>
+                      <li>Enter Account: <strong>{currentAccountDetails?.accountNumber}</strong></li>
+                      <li>Enter Amount: <strong>KSh {paymentDetails.outstanding_balance?.toLocaleString() || paymentDetails.rent_amount?.toLocaleString() || currentAccountDetails?.rentAmount.toLocaleString()}</strong></li>
+                      <li>Enter your M-Pesa PIN</li>
+                      <li>Confirm payment</li>
+                    </ol>
+                  </div>
+
+                  <button
+                    onClick={handleInitiateMpesa}
+                    className="btn btn-primary btn-block"
+                    disabled={loading || !mpesaPhone}
+                  >
+                    {loading ? 'Processing...' : 'Send STK Push to Pay Now'}
                   </button>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="no-lease-payment">
+                <h3>Payment Unavailable</h3>
+                <p>You need to sign your lease agreement before making payments.</p>
+                <button onClick={handleOpenLeaseModal} className="btn btn-primary">
+                  Go to Lease Signing
+                </button>
+              </div>
+            )}
           </div>
-        )
+        </div>
+      )
       }
 
       { }

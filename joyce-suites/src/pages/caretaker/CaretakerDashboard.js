@@ -25,7 +25,7 @@ const fetchWithAuth = async (url, options = {}) => {
       'Authorization': `Bearer ${token}`
     }
   };
-  
+
   const response = await fetch(url, { ...defaultOptions, ...options });
   return response;
 };
@@ -59,7 +59,7 @@ const styles = {
   statLabel: { fontSize: '14px', color: '#6b7280' },
   sectionTitle: { fontSize: '18px', fontWeight: '600', margin: '0 0 16px 0' },
   card: { backgroundColor: 'white', padding: '16px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
-  
+
   // Enhanced admin-like styles
   container: { display: 'flex', minHeight: '100vh' },
   sidebar: { width: '260px', backgroundColor: '#1f2937', color: 'white', position: 'fixed', height: '100vh', overflowY: 'auto', transition: 'all 0.3s ease', zIndex: 1000 },
@@ -136,7 +136,7 @@ const WaterBillPage = () => {
 
   const fetchTenants = async () => {
     try {
-      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/caretaker/tenants`);
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/tenants-with-leases`);
       if (response.ok) {
         const data = await response.json();
         setTenants(data.tenants || []);
@@ -148,16 +148,22 @@ const WaterBillPage = () => {
 
   const handleCreateWaterBill = async () => {
     try {
+      const tenant = tenants.find(t => t.tenant_id === parseInt(selectedTenant)) || tenants.find(t => t.id === parseInt(selectedTenant));
+      if (!tenant) throw new Error("Selected tenant not found in list");
+
       const units_consumed = parseFloat(readingForm.current_reading) - parseFloat(readingForm.previous_reading);
       const amount = units_consumed * parseFloat(readingForm.unit_rate);
+      const reading_date = new Date().toISOString().split('T')[0];
 
       const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/water-bill/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tenant_id: selectedTenant,
+          property_id: tenant.property_id,
           month: readingForm.month,
           year: readingForm.year,
+          reading_date: reading_date,
           previous_reading: parseFloat(readingForm.previous_reading),
           current_reading: parseFloat(readingForm.current_reading),
           units_consumed: units_consumed,
@@ -217,7 +223,7 @@ const WaterBillPage = () => {
 
   const getMonthName = (month) => {
     const months = ['January', 'February', 'March', 'April', 'May', 'June',
-                   'July', 'August', 'September', 'October', 'November', 'December'];
+      'July', 'August', 'September', 'October', 'November', 'December'];
     return months[month - 1] || 'Unknown';
   };
 
@@ -322,10 +328,10 @@ const WaterBillPage = () => {
                     borderRadius: '4px',
                     fontSize: '12px',
                     fontWeight: '500',
-                    backgroundColor: record.status === 'paid' ? '#dcfce7' : 
-                                     record.status === 'overdue' ? '#fee2e2' : '#fef3c7',
-                    color: record.status === 'paid' ? '#166534' : 
-                           record.status === 'overdue' ? '#991b1b' : '#92400e'
+                    backgroundColor: record.status === 'paid' ? '#dcfce7' :
+                      record.status === 'overdue' ? '#fee2e2' : '#fef3c7',
+                    color: record.status === 'paid' ? '#166534' :
+                      record.status === 'overdue' ? '#991b1b' : '#92400e'
                   }}>
                     {record.status}
                   </span>
@@ -357,7 +363,7 @@ const WaterBillPage = () => {
             ))}
           </tbody>
         </table>
-        
+
         {waterBillRecords.length === 0 && (
           <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
             No water bill records found
@@ -387,7 +393,7 @@ const WaterBillPage = () => {
             maxWidth: '500px'
           }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600' }}>Create Water Bill</h3>
-            
+
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Tenant</label>
               <select
@@ -403,7 +409,7 @@ const WaterBillPage = () => {
               >
                 <option value="">Choose a tenant...</option>
                 {tenants.map(tenant => (
-                  <option key={tenant.id} value={tenant.id}>
+                  <option key={tenant.tenant_id} value={tenant.tenant_id}>
                     {tenant.tenant_name} - {tenant.property_name}
                   </option>
                 ))}
@@ -415,7 +421,7 @@ const WaterBillPage = () => {
                 <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Month</label>
                 <select
                   value={readingForm.month}
-                  onChange={(e) => setReadingForm({...readingForm, month: parseInt(e.target.value)})}
+                  onChange={(e) => setReadingForm({ ...readingForm, month: parseInt(e.target.value) })}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -426,8 +432,8 @@ const WaterBillPage = () => {
                 >
                   {['January', 'February', 'March', 'April', 'May', 'June',
                     'July', 'August', 'September', 'October', 'November', 'December'].map((month, index) => (
-                    <option key={month} value={index + 1}>{month}</option>
-                  ))}
+                      <option key={month} value={index + 1}>{month}</option>
+                    ))}
                 </select>
               </div>
               <div>
@@ -435,7 +441,7 @@ const WaterBillPage = () => {
                 <input
                   type="number"
                   value={readingForm.year}
-                  onChange={(e) => setReadingForm({...readingForm, year: parseInt(e.target.value)})}
+                  onChange={(e) => setReadingForm({ ...readingForm, year: parseInt(e.target.value) })}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -453,7 +459,7 @@ const WaterBillPage = () => {
                 <input
                   type="number"
                   value={readingForm.previous_reading}
-                  onChange={(e) => setReadingForm({...readingForm, previous_reading: e.target.value})}
+                  onChange={(e) => setReadingForm({ ...readingForm, previous_reading: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -468,7 +474,7 @@ const WaterBillPage = () => {
                 <input
                   type="number"
                   value={readingForm.current_reading}
-                  onChange={(e) => setReadingForm({...readingForm, current_reading: e.target.value})}
+                  onChange={(e) => setReadingForm({ ...readingForm, current_reading: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -485,7 +491,7 @@ const WaterBillPage = () => {
               <input
                 type="number"
                 value={readingForm.unit_rate}
-                onChange={(e) => setReadingForm({...readingForm, unit_rate: parseFloat(e.target.value)})}
+                onChange={(e) => setReadingForm({ ...readingForm, unit_rate: parseFloat(e.target.value) })}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -555,7 +561,7 @@ const WaterBillPage = () => {
             maxWidth: '400px'
           }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600' }}>Record Water Bill Payment</h3>
-            
+
             <div style={{ marginBottom: '16px' }}>
               <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>
                 <div><strong>Tenant:</strong> {selectedBillForPayment.tenant_name}</div>
@@ -599,7 +605,7 @@ const WaterBillPaymentForm = ({ bill, onSubmit, onCancel }) => {
         <input
           type="number"
           value={formData.amount_paid}
-          onChange={(e) => setFormData({...formData, amount_paid: parseFloat(e.target.value)})}
+          onChange={(e) => setFormData({ ...formData, amount_paid: parseFloat(e.target.value) })}
           style={{
             width: '100%',
             padding: '8px 12px',
@@ -615,7 +621,7 @@ const WaterBillPaymentForm = ({ bill, onSubmit, onCancel }) => {
         <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Payment Method</label>
         <select
           value={formData.payment_method}
-          onChange={(e) => setFormData({...formData, payment_method: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
           style={{
             width: '100%',
             padding: '8px 12px',
@@ -636,7 +642,7 @@ const WaterBillPaymentForm = ({ bill, onSubmit, onCancel }) => {
         <input
           type="text"
           value={formData.payment_reference}
-          onChange={(e) => setFormData({...formData, payment_reference: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, payment_reference: e.target.value })}
           style={{
             width: '100%',
             padding: '8px 12px',
@@ -652,7 +658,7 @@ const WaterBillPaymentForm = ({ bill, onSubmit, onCancel }) => {
         <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Notes</label>
         <textarea
           value={formData.notes}
-          onChange={(e) => setFormData({...formData, notes: e.target.value})}
+          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           style={{
             width: '100%',
             padding: '8px 12px',
@@ -1096,10 +1102,10 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
                   <td style={styles.td}>
                     <span style={{
                       ...styles.statusBadge,
-                      backgroundColor: request.priority === 'high' ? '#fee2e2' : 
-                                       request.priority === 'medium' ? '#fef3c7' : '#dcfce7',
-                      color: request.priority === 'high' ? '#991b1b' : 
-                             request.priority === 'medium' ? '#92400e' : '#166534'
+                      backgroundColor: request.priority === 'high' ? '#fee2e2' :
+                        request.priority === 'medium' ? '#fef3c7' : '#dcfce7',
+                      color: request.priority === 'high' ? '#991b1b' :
+                        request.priority === 'medium' ? '#92400e' : '#166534'
                     }}>
                       {request.priority || 'medium'}
                     </span>
@@ -1107,10 +1113,10 @@ const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) =
                   <td style={styles.td}>
                     <span style={{
                       ...styles.statusBadge,
-                      backgroundColor: request.status === 'completed' ? '#dcfce7' : 
-                                       request.status === 'in_progress' ? '#fef3c7' : '#fee2e2',
-                      color: request.status === 'completed' ? '#166534' : 
-                             request.status === 'in_progress' ? '#92400e' : '#991b1b'
+                      backgroundColor: request.status === 'completed' ? '#dcfce7' :
+                        request.status === 'in_progress' ? '#fef3c7' : '#fee2e2',
+                      color: request.status === 'completed' ? '#166534' :
+                        request.status === 'in_progress' ? '#92400e' : '#991b1b'
                     }}>
                       {request.status || 'pending'}
                     </span>
@@ -1632,15 +1638,15 @@ const CaretakerDashboard = () => {
         switch (activePage) {
           case 'dashboard':
             await Promise.all([
-              fetchOverview().catch(() => {}),
-              fetchMaintenanceRequests().catch(() => {}),
-              fetchAvailableRooms().catch(() => {}),
-              fetchTenants().catch(() => {}),
-              fetchPendingPayments().catch(() => {}),
-              fetchVacateNotices().catch(() => {}),
-              fetchNotifications().catch(() => {}),
-              fetchUserProfile().catch(() => {}),
-              fetchFinancialSummary().catch(() => {})
+              fetchOverview().catch(() => { }),
+              fetchMaintenanceRequests().catch(() => { }),
+              fetchAvailableRooms().catch(() => { }),
+              fetchTenants().catch(() => { }),
+              fetchPendingPayments().catch(() => { }),
+              fetchVacateNotices().catch(() => { }),
+              fetchNotifications().catch(() => { }),
+              fetchUserProfile().catch(() => { }),
+              fetchFinancialSummary().catch(() => { })
             ]);
             break;
           case 'maintenance':
@@ -1700,29 +1706,29 @@ const CaretakerDashboard = () => {
       <div style={styles.content}>
         {/* Enhanced Stats Cards */}
         <div style={styles.statsGrid}>
-          <div style={{...styles.statCard, borderLeft: '4px solid #3b82f6'}}>
-            <Home size={32} style={{...styles.statIcon, color: '#3b82f6'}} />
+          <div style={{ ...styles.statCard, borderLeft: '4px solid #3b82f6' }}>
+            <Home size={32} style={{ ...styles.statIcon, color: '#3b82f6' }} />
             <div>
               <div style={styles.statNumber}>{availableRooms?.length || 0}</div>
               <div style={styles.statLabel}>Available Rooms</div>
             </div>
           </div>
-          <div style={{...styles.statCard, borderLeft: '4px solid #10b981'}}>
-            <Users size={32} style={{...styles.statIcon, color: '#10b981'}} />
+          <div style={{ ...styles.statCard, borderLeft: '4px solid #10b981' }}>
+            <Users size={32} style={{ ...styles.statIcon, color: '#10b981' }} />
             <div>
               <div style={styles.statNumber}>{overview?.total_tenants || 0}</div>
               <div style={styles.statLabel}>Total Tenants</div>
             </div>
           </div>
-          <div style={{...styles.statCard, borderLeft: '4px solid #f59e0b'}}>
-            <Wrench size={32} style={{...styles.statIcon, color: '#f59e0b'}} />
+          <div style={{ ...styles.statCard, borderLeft: '4px solid #f59e0b' }}>
+            <Wrench size={32} style={{ ...styles.statIcon, color: '#f59e0b' }} />
             <div>
               <div style={styles.statNumber}>{maintenanceRequests?.filter(m => m.status === 'pending').length || 0}</div>
               <div style={styles.statLabel}>Pending Maintenance</div>
             </div>
           </div>
-          <div style={{...styles.statCard, borderLeft: '4px solid #ef4444'}}>
-            <CreditCard size={32} style={{...styles.statIcon, color: '#ef4444'}} />
+          <div style={{ ...styles.statCard, borderLeft: '4px solid #ef4444' }}>
+            <CreditCard size={32} style={{ ...styles.statIcon, color: '#ef4444' }} />
             <div>
               <div style={styles.statNumber}>{pendingPayments?.length || 0}</div>
               <div style={styles.statLabel}>Pending Payments</div>
@@ -1833,7 +1839,7 @@ const CaretakerDashboard = () => {
     return (
       <div style={styles.section}>
         <h2 style={styles.pageTitle}>Tenants Management</h2>
-        
+
         {tenants?.length === 0 ? (
           <div style={styles.emptyState}>
             <Users size={48} />
@@ -1907,7 +1913,7 @@ const CaretakerDashboard = () => {
     return (
       <div style={styles.section}>
         <h2 style={styles.pageTitle}>Payments Management</h2>
-        
+
         <div style={styles.section}>
           <h3 style={styles.sectionTitle}>Pending Payments</h3>
           {pendingPayments?.length === 0 ? (
@@ -1969,7 +1975,7 @@ const CaretakerDashboard = () => {
             Create Notice
           </button>
         </div>
-        
+
         {notices?.length === 0 ? (
           <div style={styles.emptyState}>
             <DoorOpen size={48} />
@@ -2350,7 +2356,7 @@ const CaretakerDashboard = () => {
         <div className="caretaker-sidebar-header">
           <h2 className="caretaker-sidebar-title">Joyce Suites</h2>
           {isMobile && (
-            <button 
+            <button
               className="text-white hover:bg-secondary-800 p-2 rounded-md"
               onClick={() => setSidebarOpen(false)}
             >
@@ -2386,12 +2392,12 @@ const CaretakerDashboard = () => {
         <div style={styles.userInfo}>
           <div style={styles.userAvatar}>
             {userProfile?.photo_path ? (
-              <img 
+              <img
                 src={`${API_BASE_URL}/${userProfile.photo_path}`}
-                alt="Profile" 
-                style={{ 
-                  width: '36px', 
-                  height: '36px', 
+                alt="Profile"
+                style={{
+                  width: '36px',
+                  height: '36px',
                   borderRadius: '50%',
                   objectFit: 'cover'
                 }}
@@ -2430,35 +2436,7 @@ const CaretakerDashboard = () => {
         marginLeft: isMobile ? 0 : (sidebarOpen ? '260px' : 0),
         width: isMobile ? '100%' : (sidebarOpen ? 'calc(100% - 260px)' : '100%')
       }}>
-        <header style={styles.header}>
-          <div style={styles.headerLeft}>
-            {!isMobile && (
-              <button style={styles.menuBtn} onClick={() => setSidebarOpen(true)}>
-                <Menu size={24} />
-              </button>
-            )}
-            <button style={styles.homeBtn} onClick={() => handlePageChange('dashboard')}>
-              <Home size={20} />
-            </button>
-            <h1 style={styles.headerTitle}>Caretaker Dashboard</h1>
-          </div>
-          <div style={styles.headerRight}>
-            <button style={styles.refreshBtn} onClick={() => {
-              if (activePage === 'dashboard') {
-                fetchOverview();
-                fetchMaintenanceRequests();
-              }
-            }}>
-              <RefreshCw size={20} />
-            </button>
-            <div style={styles.notificationBadge}>
-              <Bell size={20} />
-              {overview?.pending_maintenance > 0 && (
-                <span style={styles.badgeCount}>{overview.pending_maintenance}</span>
-              )}
-            </div>
-          </div>
-        </header>
+        {/* Global Header Removed to match Admin Dashboard */}
 
         {isMobile && (
           <div style={styles.mobileTopNav}>
@@ -3318,7 +3296,7 @@ const NotificationsPage = ({ tenants, onSendNotification }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('joyce-suites-token');
-      const recipients = messageType === 'all' 
+      const recipients = messageType === 'all'
         ? tenants.map(t => t.id)
         : [parseInt(selectedTenant)];
 

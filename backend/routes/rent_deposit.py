@@ -18,6 +18,9 @@ def role_required(allowed_roles):
         @wraps(f)
         @token_required
         def decorated(*args, **kwargs):
+            if request.method == 'OPTIONS':
+                return f(*args, **kwargs)
+                
             if request.user_role not in allowed_roles:
                 return jsonify({
                     "success": False,

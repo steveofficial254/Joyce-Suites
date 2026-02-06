@@ -553,6 +553,8 @@ def app():
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
     app.config['SECRET_KEY'] = 'test-secret-key'
     
+    db.init_app(app)
+    
     with app.app_context():
         db.create_all()
         yield app
@@ -568,105 +570,102 @@ def client(app):
 @pytest.fixture
 def tenant_user(app):
     """Create test tenant user"""
-    with app.app_context():
-        user = User(
-            email='tenant@test.com',
-            username='test_tenant',
-            first_name='Test',
-            last_name='Tenant',
-            role='tenant',
-            is_active=True
-        )
-        user.set_password('testpass123')
-        db.session.add(user)
-        db.session.commit()
-        return user
+    user = User(
+        email='tenant@test.com',
+        username='test_tenant',
+        first_name='Test',
+        last_name='Tenant',
+        role='tenant',
+        national_id=12345678,
+        is_active=True
+    )
+    user.password = 'testpass123'
+    db.session.add(user)
+    db.session.commit()
+    return user
 
 
 @pytest.fixture
 def caretaker_user(app):
     """Create test caretaker user"""
-    with app.app_context():
-        user = User(
-            email='caretaker@test.com',
-            username='test_caretaker',
-            first_name='Test',
-            last_name='Caretaker',
-            role='caretaker',
-            is_active=True
-        )
-        user.set_password('testpass123')
-        db.session.add(user)
-        db.session.commit()
-        return user
+    user = User(
+        email='caretaker@test.com',
+        username='test_caretaker',
+        first_name='Test',
+        last_name='Caretaker',
+        role='caretaker',
+        national_id=87654321,
+        is_active=True
+    )
+    user.password = 'testpass123'
+    db.session.add(user)
+    db.session.commit()
+    return user
 
 
 @pytest.fixture
 def admin_user(app):
     """Create test admin user"""
-    with app.app_context():
-        user = User(
-            email='admin@test.com',
-            username='test_admin',
-            first_name='Test',
-            last_name='Admin',
-            role='admin',
-            is_active=True
-        )
-        user.set_password('testpass123')
-        db.session.add(user)
-        db.session.commit()
-        return user
+    user = User(
+        email='admin@test.com',
+        username='test_admin',
+        first_name='Test',
+        last_name='Admin',
+        role='admin',
+        national_id=11223344,
+        is_active=True
+    )
+    user.password = 'testpass123'
+    db.session.add(user)
+    db.session.commit()
+    return user
 
 
 @pytest.fixture
 def property_obj(app):
     """Create test property"""
-    with app.app_context():
-        prop = Property(
-            name='Test Property',
-            property_type='bedsitter',
-            rent_amount=5000.0,
-            deposit_amount=5400.0,
-            status='vacant'
-        )
-        db.session.add(prop)
-        db.session.commit()
-        return prop
+    prop = Property(
+        name='Test Property',
+        property_type='bedsitter',
+        rent_amount=5000.0,
+        deposit_amount=5400.0,
+        status='vacant'
+    )
+    db.session.add(prop)
+    db.session.commit()
+    return prop
 
 
 @pytest.fixture
 def lease_obj(app, tenant_user, property_obj):
     """Create test lease"""
-    with app.app_context():
-        lease = Lease(
-            tenant_id=tenant_user.id,
-            property_id=property_obj.id,
-            start_date=datetime.now(timezone.utc),
-            end_date=datetime.now(timezone.utc) + timedelta(days=365),
-            rent_amount=5000.0,
-            deposit_amount=5400.0,
-            status='active'
-        )
-        return lease
+    lease = Lease(
+        tenant_id=tenant_user.id,
+        property_id=property_obj.id,
+        start_date=datetime.now(timezone.utc),
+        end_date=datetime.now(timezone.utc) + timedelta(days=365),
+        rent_amount=5000.0,
+        deposit_amount=5400.0,
+        status='active'
+    )
+    return lease
 
 
 @pytest.fixture
 def water_bill_obj(app, tenant_user, property_obj, lease_obj, caretaker_user):
     """Create test water bill"""
-    with app.app_context():
-        water_bill = WaterBill.create_monthly_bill(
-            tenant=tenant_user,
-            property=property_obj,
-            lease=lease_obj,
-            current_reading=150.0,
-            previous_reading=100.0,
-            unit_rate=50.0,
-            caretaker_id=caretaker_user.id,
-            month=1,
-            year=2024
-        )
-        return water_bill
+    water_bill = WaterBill.create_monthly_bill(
+        tenant=tenant_user,
+        property=property_obj,
+        lease=lease_obj,
+        current_reading=150.0,
+        previous_reading=100.0,
+        unit_rate=50.0,
+        caretaker_id=caretaker_user.id,
+        month=1,
+        year=2024
+    )
+    return water_bill
 
 
 @pytest.fixture

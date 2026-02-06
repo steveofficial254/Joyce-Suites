@@ -98,6 +98,9 @@ def token_required(f):
     """Decorator to require valid JWT token."""
     @wraps(f)
     def decorated(*args, **kwargs):
+        if request.method == 'OPTIONS':
+            return f(*args, **kwargs)
+            
         token = None
         
         if "Authorization" in request.headers:
@@ -128,6 +131,9 @@ def admin_required(f):
     @wraps(f)
     @token_required
     def decorated(*args, **kwargs):
+        if request.method == 'OPTIONS':
+            return f(*args, **kwargs)
+
         if request.user_role != UserRole.ADMIN.value:
             return jsonify({
                 "success": False,

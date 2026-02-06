@@ -23,6 +23,9 @@ def caretaker_required(f):
     @wraps(f)
     @token_required
     def decorated(*args, **kwargs):
+        if request.method == 'OPTIONS':
+            return f(*args, **kwargs)
+
         if request.user_role not in ["caretaker", "admin"]:
             return jsonify({
                 "success": False,
