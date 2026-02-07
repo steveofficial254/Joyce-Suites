@@ -1,6 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Menu, X } from 'lucide-react';
+import {
+  LogOut, Menu, X, Home, CreditCard, FileText, User as UserIcon,
+  Bell, Wrench, Settings, ChevronRight, PieChart, Info,
+  ExternalLink, Droplet, Calendar, LogOut as DoorOpen
+} from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { useAuth } from '../../context/AuthContext';
 import './TenantDashboard.css';
@@ -53,6 +57,8 @@ const TenantDashboard = () => {
 
   const [mpesaPhone, setMpesaPhone] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [rentRecords, setRentRecords] = useState([]);
   const [depositRecords, setDepositRecords] = useState([]);
   const [waterBillRecords, setWaterBillRecords] = useState([]);
@@ -72,12 +78,47 @@ const TenantDashboard = () => {
 
   const apartmentImages = [apartment1, apartment2, apartment3, apartment4, apartment5, apartment6];
 
-  const currentDate = new Date();
-  const formattedDate = currentDate.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  const styles = {
+    container: { display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc' },
+    sidebar: {
+      width: '260px',
+      backgroundColor: '#1f2937',
+      color: 'white',
+      position: 'fixed',
+      height: '100vh',
+      overflowY: 'auto',
+      transition: 'all 0.3s ease',
+      zIndex: 1000,
+      display: isMobile && !sidebarOpen ? 'none' : 'block'
+    },
+    sidebarHeader: { padding: '24px', borderBottom: '1px solid #374151', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+    sidebarTitle: { fontSize: '20px', fontWeight: '700', margin: 0, color: '#fbbf24' },
+    nav: { padding: '24px 0' },
+    navItem: {
+      display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 24px', color: '#d1d5db',
+      textDecoration: 'none', cursor: 'pointer', border: 'none', background: 'none', width: '100%',
+      textAlign: 'left', transition: 'all 0.2s', fontSize: '14px', fontWeight: '500'
+    },
+    navItemActive: { backgroundColor: '#374151', color: 'white', borderLeft: '4px solid #3b82f6' },
+    main: {
+      flex: 1, marginLeft: !isMobile && sidebarOpen ? '260px' : '0',
+      transition: 'all 0.3s ease', minHeight: '100vh', display: 'flex', flexDirection: 'column'
+    },
+    header: {
+      backgroundColor: 'white', height: '64px', padding: '0 24px', borderBottom: '1px solid #e5e7eb',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10
+    },
+    content: { padding: '32px', flex: 1 },
+    card: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' },
+    statGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px', marginBottom: '32px' },
+    statCard: {
+      padding: '24px', borderRadius: '12px', color: 'white', display: 'flex', flexDirection: 'column', gap: '8px',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+    }
+  };
 
 
   useEffect(() => {
@@ -106,6 +147,14 @@ const TenantDashboard = () => {
       return true;
     };
 
+    const handleResize = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(true);
+    };
+
+    window.addEventListener('resize', handleResize);
+
     if (validateToken()) {
       fetchAllData();
     }
@@ -113,7 +162,10 @@ const TenantDashboard = () => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % apartmentImages.length);
     }, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   const getAuthHeaders = () => {
@@ -235,6 +287,8 @@ const TenantDashboard = () => {
     let depositAmount = 5400;
     let roomType = 'bedsitter';
 
+    if (!roomNum) return { rentAmount: 0, depositAmount: 0, roomType: 'N/A', landlordName: 'N/A', paybill: 'N/A', accountNumber: 'N/A' };
+
     if ([8, 9, 10, 17, 19, 20].includes(roomNum)) {
       rentAmount = 7500;
       depositAmount = 7900;
@@ -247,7 +301,7 @@ const TenantDashboard = () => {
       rentAmount = 5500;
       depositAmount = 5900;
       roomType = 'bedsitter';
-    } else if ([11, 13, 14, 15, 21, 23, 24, 25, 26].includes(roomNum)) {
+    } else {
       rentAmount = 5000;
       depositAmount = 5400;
       roomType = 'bedsitter';
@@ -349,6 +403,23 @@ const TenantDashboard = () => {
     } finally {
       setLoadingPaymentDetails(false);
     }
+  };
+
+  const fetchPaymentDetails = async () => {
+    try {
+      setLoadingPaymentDetails(true);
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/payment-details`);
+      if (response.ok) {
+        const data = await response.json();
+        setPaymentDetails(data.payment_details);
+        return data.payment_details;
+      }
+    } catch (err) {
+      console.error('Error fetching payment details:', err);
+    } finally {
+      setLoadingPaymentDetails(false);
+    }
+    return null;
   };
 
   const fetchRentAndDepositRecords = async () => {
@@ -549,67 +620,46 @@ const TenantDashboard = () => {
     setTermsAccepted(false);
     setSignatureEmpty(true);
 
-
     if (signatureRef.current) {
       signatureRef.current.clear();
     }
 
     setLoading(true);
 
-    const leaseResponse = await fetchLeaseData();
-    const currentAccountDetails = getAccountDetails(dashboardData?.unit_number);
+    try {
+      const leaseResponse = await fetchLeaseData();
+      const lease = leaseResponse || fullLeaseDetails;
+      const currentAccountDetails = getAccountDetails(dashboardData?.unit_number || lease?.room_number);
 
-    if (leaseResponse) {
-      setLeaseData({
-        tenant: {
-          fullName: profileData?.full_name || 'N/A',
-          idNumber: profileData?.id_number || profileData?.national_id || 'N/A',
-          phone: profileData?.phone_number || profileData?.phone || 'N/A',
-          email: profileData?.email || 'N/A',
-          roomNumber: dashboardData?.unit_number || 'N/A'
-        },
-        unit: {
-          rent_amount: currentAccountDetails?.rentAmount || dashboardData?.rent_amount || 0,
-          deposit_amount: currentAccountDetails?.depositAmount || 0,
-          property_name: dashboardData?.property_name || `Room ${dashboardData?.unit_number}`,
-          room_type: currentAccountDetails?.roomType || 'N/A'
-        },
-        landlord: {
-          name: currentAccountDetails?.landlordName || 'N/A',
-          phone: '0722870077',
-          email: 'joycesuites@gmail.com',
-          paybill: currentAccountDetails?.paybill || 'N/A',
-          account: currentAccountDetails?.accountNumber || 'N/A'
-        },
-        lease: leaseResponse
-      });
-    } else {
-      setLeaseData({
-        tenant: {
-          fullName: profileData?.full_name || 'N/A',
-          idNumber: profileData?.id_number || profileData?.national_id || 'N/A',
-          phone: profileData?.phone_number || profileData?.phone || 'N/A',
-          email: profileData?.email || 'N/A',
-          roomNumber: dashboardData?.unit_number || 'N/A'
-        },
-        unit: {
-          rent_amount: currentAccountDetails?.rentAmount || dashboardData?.rent_amount || 0,
-          deposit_amount: currentAccountDetails?.depositAmount || 0,
-          property_name: dashboardData?.property_name || `Room ${dashboardData?.unit_number}`,
-          room_type: currentAccountDetails?.roomType || 'N/A'
-        },
-        landlord: {
-          name: currentAccountDetails?.landlordName || 'N/A',
-          phone: '0722870077',
-          email: 'joycesuites@gmail.com',
-          paybill: currentAccountDetails?.paybill || 'N/A',
-          account: currentAccountDetails?.accountNumber || 'N/A'
-        }
-      });
+      if (lease) {
+        setLeaseData({
+          tenant: {
+            fullName: lease.tenant_name || profileData?.full_name || 'N/A',
+            idNumber: lease.id_number || profileData?.id_number || 'N/A',
+            phone: lease.phone_number || profileData?.phone_number || 'N/A',
+            email: lease.email || profileData?.email || 'N/A',
+            roomNumber: lease.room_number || dashboardData?.unit_number || 'N/A'
+          },
+          unit: {
+            rent_amount: lease.rent_amount || currentAccountDetails?.rentAmount || 0,
+            deposit_amount: lease.deposit_amount || currentAccountDetails?.depositAmount || 0,
+            property_name: lease.property_name || `Room ${lease.room_number}`,
+            room_type: lease.room_type || currentAccountDetails?.roomType || 'N/A'
+          },
+          landlord: {
+            name: lease.landlord_name || currentAccountDetails?.landlordName || 'Joyce Suites',
+            phone: lease.landlord_phone || '0722870077',
+            email: lease.landlord_email || 'joycesuites@gmail.com',
+            address: lease.landlord_address || 'P.O. Box 123, Nairobi'
+          }
+        });
+      }
+      setLoading(false);
+      setShowLeaseModal(true);
+    } catch (err) {
+      setError('Failed to load lease information');
+      setLoading(false);
     }
-
-    setLoading(false);
-    setShowLeaseModal(true);
   };
 
   const handleClearSignature = () => {
@@ -950,1240 +1000,268 @@ const TenantDashboard = () => {
   const profilePhotoUrl = getProfilePhotoUrl();
 
   return (
-    <div className="tenant-dashboard">
-      {/* Mobile Overlay */}
-      <div
-        className={`mobile-overlay ${mobileMenuOpen ? 'active' : ''}`}
-        onClick={() => setMobileMenuOpen(false)}
-      />
+    <div style={styles.container}>
+      {/* Sidebar */}
+      <aside style={{
+        ...styles.sidebar,
+        transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+        display: isMobile && !sidebarOpen ? 'none' : 'block'
+      }}>
+        <div style={styles.sidebarHeader}>
+          <h2 style={styles.sidebarTitle}>Joyce Suites</h2>
+          {isMobile && <button onClick={() => setSidebarOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>}
+        </div>
+        <nav style={styles.nav}>
+          <button style={{ ...styles.navItem, ...(activeTab === 'dashboard' ? styles.navItemActive : {}) }} onClick={() => { setActiveTab('dashboard'); if (isMobile) setSidebarOpen(false); }}><Home size={18} /> Dashboard</button>
+          <button style={{ ...styles.navItem, ...(activeTab === 'payments' ? styles.navItemActive : {}) }} onClick={() => { setActiveTab('payments'); if (isMobile) setSidebarOpen(false); }}><CreditCard size={18} /> Payments</button>
+          <button style={{ ...styles.navItem, ...(activeTab === 'lease' ? styles.navItemActive : {}) }} onClick={() => { setActiveTab('lease'); if (isMobile) setSidebarOpen(false); }}><FileText size={18} /> Lease Agreement</button>
+          <button style={{ ...styles.navItem, ...(activeTab === 'profile' ? styles.navItemActive : {}) }} onClick={() => { setActiveTab('profile'); if (isMobile) setSidebarOpen(false); }}><UserIcon size={18} /> Profile</button>
+          <button style={{ ...styles.navItem, ...(activeTab === 'vacate' ? styles.navItemActive : {}) }} onClick={() => { setActiveTab('vacate'); if (isMobile) setSidebarOpen(false); }}><DoorOpen size={18} /> Vacate Notice</button>
+        </nav>
+        <div style={{ padding: '24px', borderTop: '1px solid #374151', marginTop: 'auto' }}>
+          <button onClick={handleLogout} style={{ ...styles.navItem, color: '#ef4444' }}><LogOut size={18} /> Logout</button>
+        </div>
+      </aside>
 
-      <div className="dashboard-wrapper">
-        <main className="main-content full-width">
-          <header className="topbar">
-            <div className="topbar-left">
-              <h1>Joyce Suites Apartments</h1>
-              <p className="breadcrumb">Welcome, {dashboardData.tenant_name || 'Tenant'}!</p>
+      {/* Main Content */}
+      <main style={styles.main}>
+        <header style={styles.header}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><Menu size={24} /></button>
+            <h1 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ textAlign: 'right', display: isMobile ? 'none' : 'block' }}>
+              <div style={{ fontSize: '14px', fontWeight: '600' }}>{profileData?.full_name || 'Tenant'}</div>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>Room {roomNumber}</div>
             </div>
-
-            <div className="topbar-right">
-              {/* Desktop Navigation */}
-              <nav className="topbar-nav desktop-only">
-                <button
-                  className={`topbar-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('dashboard')}
-                >
-                  Dashboard
-                </button>
-                <button
-                  className={`topbar-nav-item ${activeTab === 'payments' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('payments')}
-                >
-                  Payments
-                </button>
-                <button
-                  className={`topbar-nav-item ${activeTab === 'lease' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('lease')}
-                >
-                  Lease
-                </button>
-                <button
-                  className={`topbar-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('profile')}
-                >
-                  Profile
-                </button>
-                <button
-                  className={`topbar-nav-item ${activeTab === 'vacate' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('vacate')}
-                >
-                  Vacate
-                </button>
-              </nav>
-
-              <div className="user-avatar desktop-only">
-                {profilePhotoUrl ? (
-                  <img
-                    src={profilePhotoUrl}
-                    alt="Profile"
-                    loading="lazy"
-                    className="avatar-image"
-                    onError={(e) => {
-                      console.error('❌ Avatar photo failed to load:', profilePhotoUrl);
-
-                      if (profileData?.photo_path && !profileData.photo_path.startsWith('http')) {
-                        e.target.src = `${config.apiBaseUrl}/${profileData.photo_path}`;
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className="avatar-placeholder">
-                    {(profileData?.full_name?.charAt(0) || 'T').toUpperCase()}
-                  </div>
-                )}
-              </div>
-
-              <button
-                className="icon-btn desktop-only"
-                onClick={handleLogout}
-                title="Logout"
-              >
-                <LogOut size={20} />
-              </button>
-
-              {/* Mobile Menu Toggle */}
-              <button
-                className="icon-btn mobile-menu-toggle"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '600' }}>
+              {(profileData?.full_name?.charAt(0) || 'T').toUpperCase()}
             </div>
-          </header>
+          </div>
+        </header>
 
-          {/* Mobile Menu Dropdown */}
-          {mobileMenuOpen && (
-            <div className="mobile-menu-dropdown">
-              <div className="mobile-user-info">
-                <div className="user-avatar">
-                  {profilePhotoUrl ? (
-                    <img
-                      src={profilePhotoUrl}
-                      alt="Profile"
-                      loading="lazy"
-                      className="avatar-image"
-                      onError={(e) => {
-                        if (profileData?.photo_path && !profileData.photo_path.startsWith('http')) {
-                          e.target.src = `${config.apiBaseUrl}/${profileData.photo_path}`;
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="avatar-placeholder">
-                      {(profileData?.full_name?.charAt(0) || 'T').toUpperCase()}
-                    </div>
-                  )}
-                </div>
-                <span>{dashboardData.tenant_name || 'Tenant'}</span>
-              </div>
-
-              <button
-                className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }}
-              >
-                Dashboard
-              </button>
-              <button
-                className={`mobile-nav-item ${activeTab === 'payments' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('payments'); setMobileMenuOpen(false); }}
-              >
-                Payments
-              </button>
-              <button
-                className={`mobile-nav-item ${activeTab === 'lease' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('lease'); setMobileMenuOpen(false); }}
-              >
-                Lease
-              </button>
-              <button
-                className={`mobile-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('profile'); setMobileMenuOpen(false); }}
-              >
-                Profile
-              </button>
-              <button
-                className={`mobile-nav-item ${activeTab === 'vacate' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('vacate'); setMobileMenuOpen(false); }}
-              >
-                Vacate
-              </button>
-
-              <div className="mobile-menu-divider"></div>
-
-              <button className="mobile-nav-item logout" onClick={handleLogout}>
-                <LogOut size={18} /> Logout
-              </button>
-            </div>
-          )}
-
-          {error && <div className="alert alert-error">{error}</div>}
-          {success && <div className="alert alert-success">{success}</div>}
+        <section style={styles.content}>
+          {error && <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px' }}>{error}</div>}
+          {success && <div style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px' }}>{success}</div>}
 
           {activeTab === 'dashboard' && (
-            <div className="content">
-              <div className="stats-grid">
-                <div className="stat-card primary">
-                  <div className="stat-content">
-                    <h3>Room Details</h3>
-                    <p className="stat-value">Room {roomNumber}</p>
-                    <p className="stat-label">{roomTypeDisplay} | Monthly: KSh {currentAccountDetails?.rentAmount.toLocaleString()}</p>
-                  </div>
+            <div>
+              <div style={styles.statGrid}>
+                <div style={{ ...styles.statCard, backgroundColor: '#3b82f6' }}>
+                  <span style={{ fontSize: '14px', opacity: 0.9 }}>Room Details</span>
+                  <span style={{ fontSize: '24px', fontWeight: '700' }}>Room {roomNumber}</span>
+                  <span style={{ fontSize: '12px', opacity: 0.8 }}>{roomTypeDisplay}</span>
                 </div>
-
-                <div className="stat-card warning">
-                  <div className="stat-content">
-                    <h3>Total Outstanding Balance</h3>
-                    <p className="stat-value">
-                      {(() => {
-                        const rentBalance = currentMonthRent?.balance !== undefined ? parseFloat(currentMonthRent.balance) : 0;
-                        const waterBalance = currentMonthWaterBill?.balance !== undefined ? parseFloat(currentMonthWaterBill.balance) : 0;
-                        const totalBalance = rentBalance + waterBalance;
-
-
-                        const outstanding = dashboardData?.outstanding_balance || 0;
-
-
-                        const finalBalance = Math.max(totalBalance, outstanding);
-
-                        if (finalBalance <= 0) {
-                          return 'PAID';
-                        } else {
-                          return `KSh ${finalBalance.toLocaleString()}`;
-                        }
-                      })()}
-                    </p>
-                    <p className="stat-label">
-                      {(() => {
-                        const rentBalance = currentMonthRent?.balance !== undefined ? parseFloat(currentMonthRent.balance) : 0;
-                        const waterBalance = currentMonthWaterBill?.balance !== undefined ? parseFloat(currentMonthWaterBill.balance) : 0;
-
-                        if (rentBalance <= 0 && waterBalance <= 0) {
-                          return 'All payments cleared';
-                        } else {
-                          return `Rent: ${rentBalance.toLocaleString()} + Water: ${waterBalance.toLocaleString()}`;
-                        }
-                      })()}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="stat-card success">
-                  <div className="stat-content">
-                    <h3>Account Details</h3>
-                    <p className="stat-value">{currentAccountDetails?.accountNumber || 'N/A'}</p>
-                    <p className="stat-label">Paybill: {currentAccountDetails?.paybill || 'N/A'}</p>
-                  </div>
-                </div>
-
-                <div className="stat-card info">
-                  <div className="stat-content">
-                    <h3>Deposit Status</h3>
-                    <p className="stat-value">
-                      {currentDeposit?.status === 'paid'
-                        ? 'PAID'
-                        : `KSh ${currentDeposit?.balance?.toLocaleString() || currentAccountDetails?.depositAmount?.toLocaleString() || 0}`
-                      }
-                    </p>
-                    <p className="stat-label">
-                      {currentDeposit?.status === 'paid'
-                        ? `Paid on ${currentDeposit?.payment_date ? new Date(currentDeposit.payment_date).toLocaleDateString() : 'N/A'}`
-                        : 'Refundable deposit'
-                      }
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="quick-actions">
-                <h3 style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px', marginBottom: '20px' }}>Quick Actions</h3>
-                <div className="action-buttons">
-                  <button
-                    className="action-btn"
-                    onClick={handleOpenPaymentModal}
-                    disabled={!fullLeaseDetails || !fullLeaseDetails.signed_by_tenant}
-                    style={{
-                      backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${logo})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '16px',
-                      margin: '8px',
-                      minWidth: '200px',
-                      minHeight: '120px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'all 0.3s ease',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'scale(1.05)';
-                      e.target.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'scale(1)';
-                      e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-                    }}
-                  >
-                    <span className="action-icon"></span>
-                    <span style={{ fontSize: '14px', fontWeight: '600', textAlign: 'center' }}>
-                      {!fullLeaseDetails
-                        ? 'Sign Lease First'
-                        : !fullLeaseDetails.signed_by_tenant
-                          ? 'Sign Lease to Pay'
-                          : 'Make Payment'}
-                    </span>
-                  </button>
-                  <button
-                    className="action-btn"
-                    onClick={() => setShowMaintenanceModal(true)}
-                    style={{
-                      backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${logo})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '16px',
-                      margin: '8px',
-                      minWidth: '200px',
-                      minHeight: '120px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'all 0.3s ease',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'scale(1.05)';
-                      e.target.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'scale(1)';
-                      e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-                    }}
-                  >
-                    <span className="action-icon"></span>
-                    <span style={{ fontSize: '14px', fontWeight: '600', textAlign: 'center' }}>Request Maintenance</span>
-                  </button>
-                  <button
-                    className="action-btn"
-                    onClick={handleOpenLeaseModal}
-                    style={{
-                      backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${logo})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '16px',
-                      margin: '8px',
-                      minWidth: '200px',
-                      minHeight: '120px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'all 0.3s ease',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'scale(1.05)';
-                      e.target.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'scale(1)';
-                      e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-                    }}
-                  >
-                    <span className="action-icon"></span>
-                    <span style={{ fontSize: '14px', fontWeight: '600', textAlign: 'center' }}>
-                      {!fullLeaseDetails
-                        ? 'Sign Lease'
-                        : fullLeaseDetails.signed_by_tenant
-                          ? 'View Lease'
-                          : 'Complete Signing'}
-                    </span>
-                  </button>
-                  <button
-                    className="action-btn"
-                    onClick={() => setActiveTab('profile')}
-                    style={{
-                      backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${logo})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '16px',
-                      margin: '8px',
-                      minWidth: '200px',
-                      minHeight: '120px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'all 0.3s ease',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'scale(1.05)';
-                      e.target.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'scale(1)';
-                      e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-                    }}
-                  >
-                    <span className="action-icon"></span>
-                    <span style={{ fontSize: '14px', fontWeight: '600', textAlign: 'center' }}>Update Profile</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="gallery-section">
-                <h3>Apartment Gallery</h3>
-                <div className="gallery-container">
-                  <div className="gallery-main">
-                    <img
-                      src={apartmentImages[currentImageIndex]}
-                      alt="Apartment"
-                      loading="lazy"
-                      className="gallery-image"
-                    />
-                    <div className="gallery-controls">
-                      <button
-                        className="gallery-btn prev"
-                        onClick={() => setCurrentImageIndex((prev) =>
-                          prev === 0 ? apartmentImages.length - 1 : prev - 1
-                        )}
-                      >
-                        ← Previous
-                      </button>
-                      <button
-                        className="gallery-btn next"
-                        onClick={() => setCurrentImageIndex((prev) =>
-                          (prev + 1) % apartmentImages.length
-                        )}
-                      >
-                        Next →
-                      </button>
-                    </div>
-                    <div className="gallery-indicators">
-                      {apartmentImages.map((_, index) => (
-                        <span
-                          key={index}
-                          className={`indicator ${index === currentImageIndex ? 'active' : ''}`}
-                          onClick={() => setCurrentImageIndex(index)}
-                        ></span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="gallery-thumbnails">
-                    {apartmentImages.map((img, index) => (
-                      <img
-                        key={index}
-                        src={img}
-                        alt={`Apartment ${index + 1}`}
-                        loading="lazy"
-                        className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
-                        onClick={() => setCurrentImageIndex(index)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              { }
-              <div className="card" style={{ marginTop: '24px' }}>
-                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h3>Recent Notifications</h3>
-                  <span className="badge" style={{ backgroundColor: '#EF4444', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>
-                    {notifications.filter(n => !n.is_read).length} New
+                <div style={{ ...styles.statCard, backgroundColor: '#f59e0b' }}>
+                  <span style={{ fontSize: '14px', opacity: 0.9 }}>Outstanding Balance</span>
+                  <span style={{ fontSize: '24px', fontWeight: '700' }}>
+                    {outstandingBalance <= 0 ? 'CLEARED' : `KSh ${outstandingBalance.toLocaleString()}`}
                   </span>
+                  <span style={{ fontSize: '12px', opacity: 0.8 }}>Rent & Water</span>
                 </div>
+                <div style={{ ...styles.statCard, backgroundColor: '#10b981' }}>
+                  <span style={{ fontSize: '14px', opacity: 0.9 }}>Lease Status</span>
+                  <span style={{ fontSize: '24px', fontWeight: '700' }}>{fullLeaseDetails?.status || 'Active'}</span>
+                  <span style={{ fontSize: '12px', opacity: 0.8 }}>{fullLeaseDetails?.signed_at ? 'Signed' : 'Pending Signature'}</span>
+                </div>
+              </div>
+
+              <div style={styles.card}>
+                <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Common Actions</h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+                  <button onClick={handleOpenPaymentModal} style={{ padding: '12px 24px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <CreditCard size={18} /> Make Payment
+                  </button>
+                  <button onClick={() => setShowMaintenanceModal(true)} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Wrench size={18} /> Request Maintenance
+                  </button>
+                  <button onClick={handleOpenLeaseModal} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FileText size={18} /> Lease Information
+                  </button>
+                </div>
+              </div>
+
+              <div style={styles.card}>
+                <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Recent Notifications</h3>
                 {notifications.length > 0 ? (
-                  <div className="notification-list">
-                    {notifications.slice(0, 5).map((notif) => (
-                      <div key={notif.id} className={`notification-item ${notif.is_read ? 'read' : 'unread'}`} style={{
-                        padding: '12px',
-                        borderBottom: '1px solid #eee',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '4px',
-                        opacity: notif.is_read ? 0.7 : 1,
-                        backgroundColor: notif.is_read ? 'transparent' : '#F9FAFB'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <strong style={{ fontSize: '14px' }}>{notif.subject || 'System Notification'}</strong>
-                          <small style={{ color: '#6B7280' }}>{new Date(notif.created_at).toLocaleDateString()}</small>
-                        </div>
-                        <p style={{ fontSize: '13px', margin: 0, color: '#374151' }}>{notif.message.length > 100 ? notif.message.substring(0, 100) + '...' : notif.message}</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {notifications.slice(0, 3).map(n => (
+                      <div key={n.id} style={{ padding: '12px', borderRadius: '8px', backgroundColor: n.is_read ? 'transparent' : '#f0f9ff', border: '1px solid #e5e7eb' }}>
+                        <div style={{ fontWeight: '600', fontSize: '14px' }}>{n.title || 'Notification'}</div>
+                        <div style={{ fontSize: '13px', color: '#4b5563', marginTop: '4px' }}>{n.message}</div>
+                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '8px' }}>{new Date(n.created_at).toLocaleDateString()}</div>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p style={{ textAlign: 'center', padding: '20px', color: '#6B7280' }}>No new notifications</p>
-                )}
+                ) : <p style={{ color: '#64748b' }}>No recent notifications</p>}
               </div>
             </div>
           )}
 
           {activeTab === 'payments' && (
-            <div className="content">
-              <div className="card">
-                <h3>Payment Summary</h3>
-                {(() => {
-                  const summary = getPaymentSummary();
-                  return (
-                    <div className="payment-summary-grid">
-                      <div className="payment-summary-card">
-                        <h4>Monthly Rent</h4>
-                        <div className="payment-amount">KSh {summary.rentAmount.toLocaleString()}</div>
-                        <div className={`payment-status ${summary.rentStatus}`}>
-                          {summary.rentStatus === 'paid' ? 'Paid' : 'Unpaid'}
-                        </div>
-                      </div>
-
-                      <div className="payment-summary-card">
-                        <h4>Deposit</h4>
-                        <div className="payment-amount">KSh {summary.depositAmount.toLocaleString()}</div>
-                        <div className={`payment-status ${summary.depositStatus}`}>
-                          {summary.depositStatus === 'paid' ? 'Paid' : summary.depositStatus === 'refunded' ? 'Refunded' : 'Pending'}
-                        </div>
-                        <div className="payment-balance">Balance: KSh {summary.depositBalance.toLocaleString()}</div>
-                      </div>
-
-                      <div className="payment-summary-card">
-                        <h4>Water Bill</h4>
-                        <div className="payment-amount">KSh {summary.waterBillAmount.toLocaleString()}</div>
-                        <div className={`payment-status ${summary.waterBillStatus}`}>
-                          {summary.waterBillStatus === 'paid' ? 'Paid' : summary.waterBillStatus === 'overdue' ? 'Overdue' : 'Pending'}
-                        </div>
-                      </div>
-
-                      <div className="payment-summary-card">
-                        <h4>Outstanding Balance</h4>
-                        <div className="payment-amount overdue">KSh {summary.outstandingBalance.toLocaleString()}</div>
-                        <div className="payment-status overdue">
-                          {summary.outstandingBalance > 0 ? 'Due' : 'Clear'}
-                        </div>
-                      </div>
-
-                      <div className="payment-summary-card">
-                        <h4>Total Paid This Month</h4>
-                        <div className="payment-amount paid">KSh {summary.totalPaid.toLocaleString()}</div>
-                        <div className="payment-status paid">
-                          {summary.pendingCount} pending payments
-                        </div>
-                      </div>
-
-                      {summary.lastPayment && (
-                        <div className="payment-summary-card">
-                          <h4>Last Payment</h4>
-                          <div className="payment-amount">KSh {summary.lastPayment.amount?.toLocaleString() || 0}</div>
-                          <div className="payment-status">
-                            {new Date(summary.lastPayment.created_at).toLocaleDateString()}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                <div className="payment-account-info">
-                  <h4>Your Payment Account</h4>
-                  <div className="detail-row">
-                    <span className="detail-label">Room Number:</span>
-                    <span className="detail-value">Room {roomNumber}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Account Number:</span>
-                    <span className="detail-value">{currentAccountDetails?.accountNumber || 'N/A'}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Paybill Number:</span>
-                    <span className="detail-value">{currentAccountDetails?.paybill || 'N/A'}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Landlord:</span>
-                    <span className="detail-value">{currentAccountDetails?.landlordName || 'N/A'}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Monthly Rent:</span>
-                    <span className="detail-value">KSh {currentAccountDetails?.rentAmount?.toLocaleString() || 0}</span>
-                  </div>
-                </div>
-
-                <div className="payment-actions">
-                  <button className="btn btn-primary" onClick={handleOpenPaymentModal}>
-                    Make Payment
-                  </button>
-                  <button className="btn btn-secondary" onClick={handleOpenLeaseModal}>
-                    View Lease Agreement
-                  </button>
-                </div>
-
-                <h3>Payment History</h3>
-                <div className="table-container">
-                  <table className="payments-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                        <th>Transaction ID</th>
-                        <th>Action</th>
+            <div style={styles.card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <h3 style={{ margin: 0 }}>Payment History</h3>
+                <button onClick={handleOpenPaymentModal} style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>New Payment</button>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #e5e7eb', textAlign: 'left' }}>
+                      <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Date</th>
+                      <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Reference</th>
+                      <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Amount</th>
+                      <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Type</th>
+                      <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paymentsData.length > 0 ? paymentsData.map(p => (
+                      <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '12px', fontSize: '14px' }}>{new Date(p.created_at).toLocaleDateString()}</td>
+                        <td style={{ padding: '12px', fontSize: '14px' }}>{p.transaction_id || p.merchant_request_id}</td>
+                        <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600' }}>KSh {p.amount.toLocaleString()}</td>
+                        <td style={{ padding: '12px', fontSize: '14px' }}>{p.payment_type}</td>
+                        <td style={{ padding: '12px' }}>
+                          <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '12px', backgroundColor: p.status === 'completed' ? '#dcfce7' : '#fee2e2', color: p.status === 'completed' ? '#166534' : '#991b1b' }}>{p.status}</span>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {paymentsData.length > 0 ? (
-                        paymentsData.map((payment) => (
-                          <tr key={payment.id}>
-                            <td>{payment.created_at ? new Date(payment.created_at).toLocaleDateString() : 'N/A'}</td>
-                            <td>KSh {payment.amount ? payment.amount.toLocaleString() : '0'}</td>
-                            <td>
-                              <span className={`status-badge status-${payment.status?.toLowerCase() || 'pending'}`}>
-                                {payment.status || 'Pending'}
-                              </span>
-                            </td>
-                            <td>{payment.transaction_id || 'N/A'}</td>
-                            <td>
-                              {payment.status === 'pending' && payment.checkout_request_id && (
-                                <button
-                                  className="btn btn-secondary btn-sm"
-                                  onClick={() => handleCheckPaymentStatus(payment.checkout_request_id)}
-                                  disabled={loading}
-                                >
-                                  Check Status
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
-                            No payment history found
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'profile' && profileData && (
-            <div className="content">
-              <div className="card" style={{ marginBottom: '20px', backgroundColor: '#f8f9fa', border: '1px solid #dee2e6' }}>
-                <h4>Profile Information</h4>
-                <div className="debug-info" style={{ fontSize: '12px', fontFamily: 'monospace' }}>
-                  <p><strong>Photo Path:</strong> {profileData.photo_path || 'Not set'}</p>
-                  <p><strong>ID Document Path:</strong> {profileData.id_document_path || 'Not set'}</p>
-                  <p><strong>Full Name:</strong> {profileData.full_name || 'N/A'}</p>
-                  <p><strong>Email:</strong> {profileData.email || 'N/A'}</p>
-                </div>
-              </div>
-
-              <div className="card">
-                <h3>My Profile</h3>
-                <div className="profile-section">
-                  <div className="profile-header">
-                    <div className="profile-photo-container">
-                      {profileData?.photo_path ? (
-                        <div className="photo-display">
-                          <img
-                            src={`${config.apiBaseUrl}/${profileData.photo_path}`}
-                            alt="Profile"
-                            loading="lazy"
-                            className="profile-photo"
-                            onError={(e) => {
-                              console.error('❌ Failed to load profile photo from:', e.target.src);
-                              if (profileData.photo_path && !profileData.photo_path.startsWith('http')) {
-                                e.target.src = `${config.apiBaseUrl}/${profileData.photo_path}`;
-                              }
-                            }}
-                            onLoad={() => { }}
-                          />
-                          <div className="photo-label">Profile Photo</div>
-                        </div>
-                      ) : profileData?.id_document_path ? (
-                        <div className="photo-display">
-                          <img
-                            src={`${config.apiBaseUrl}/${profileData.id_document_path}`}
-                            alt="ID Document"
-                            loading="lazy"
-                            className="profile-photo"
-                            onError={(e) => {
-                              console.error('❌ Failed to load ID document from:', e.target.src);
-                              if (profileData.id_document_path && !profileData.id_document_path.startsWith('http')) {
-                                e.target.src = `${config.apiBaseUrl}/${profileData.id_document_path}`;
-                              }
-                            }}
-                            onLoad={() => { }}
-                          />
-                          <div className="photo-label">ID Document (Fallback)</div>
-                        </div>
-                      ) : (
-                        <div className="profile-photo-placeholder">
-                          {(profileData.full_name?.charAt(0) || 'T').toUpperCase()}
-                          <div className="photo-label">No Photo Uploaded</div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="profile-name">
-                      <h4>{profileData.full_name || 'N/A'}</h4>
-                      <p>Tenant | Room {roomNumber}</p>
-                      <div className="profile-actions">
-                        <button className="btn btn-secondary btn-sm" style={{ marginTop: '10px' }}>
-                          Upload New Photo
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="profile-info-grid">
-                    <div className="profile-detail">
-                      <label>Email Address:</label>
-                      <p>{profileData.email || 'N/A'}</p>
-                    </div>
-                    <div className="profile-detail">
-                      <label>Phone Number:</label>
-                      <p>{profileData.phone_number || profileData.phone || 'N/A'}</p>
-                    </div>
-                    <div className="profile-detail">
-                      <label>National ID:</label>
-                      <p>{profileData.id_number || profileData.national_id || 'N/A'}</p>
-                    </div>
-                    <div className="profile-detail">
-                      <label>Account Number:</label>
-                      <p>{currentAccountDetails?.accountNumber || 'N/A'}</p>
-                    </div>
-                    <div className="profile-detail">
-                      <label>Paybill Number:</label>
-                      <p>{currentAccountDetails?.paybill || 'N/A'}</p>
-                    </div>
-                    <div className="profile-detail">
-                      <label>Landlord:</label>
-                      <p>{currentAccountDetails?.landlordName || 'N/A'}</p>
-                    </div>
-                  </div>
-
-                  {profileData.id_document_path && (
-                    <div className="id-document-section">
-                      <h4>ID Document</h4>
-                      <a
-                        href={`${config.apiBaseUrl}/${profileData.id_document_path}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary"
-                      >
-                        View ID Document
-                      </a>
-                    </div>
-                  )}
-                </div>
+                    )) : <tr><td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>No payment records found</td></tr>}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
 
           {activeTab === 'lease' && (
-            <div className="content">
-              <div className="card">
-                <h3>Lease Information</h3>
-                <div className="lease-info">
-                  <div className="lease-detail-row">
-                    <span className="lease-label">Room Number:</span>
-                    <span className="lease-value">Room {roomNumber}</span>
-                  </div>
-                  <div className="lease-detail-row">
-                    <span className="lease-label">Room Type:</span>
-                    <span className="lease-value">{roomTypeDisplay}</span>
-                  </div>
-                  <div className="lease-detail-row">
-                    <span className="lease-label">Status:</span>
-                    <span className="lease-value">{fullLeaseDetails?.status || 'Not Signed'}</span>
-                  </div>
-                  <div className="lease-detail-row">
-                    <span className="lease-label">Monthly Rent:</span>
-                    <span className="lease-value">KSh {currentAccountDetails?.rentAmount.toLocaleString()}</span>
-                  </div>
-                  <div className="lease-detail-row">
-                    <span className="lease-label">Deposit Amount:</span>
-                    <span className="lease-value">KSh {currentAccountDetails?.depositAmount.toLocaleString()}</span>
-                  </div>
-                  <div className="lease-detail-row">
-                    <span className="lease-label">Landlord:</span>
-                    <span className="lease-value">{currentAccountDetails?.landlordName || 'N/A'}</span>
-                  </div>
-                  <div className="lease-detail-row">
-                    <span className="lease-label">Paybill:</span>
-                    <span className="lease-value">{currentAccountDetails?.paybill || 'N/A'}</span>
-                  </div>
-                  <div className="lease-detail-row">
-                    <span className="lease-label">Account Number:</span>
-                    <span className="lease-value">{currentAccountDetails?.accountNumber || 'N/A'}</span>
-                  </div>
+            <div style={styles.card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <h3 style={{ margin: 0 }}>Lease Agreement</h3>
+                {fullLeaseDetails?.signed_by_tenant ? (
+                  <span style={{ color: '#10b981', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>Signed <FileText size={18} /></span>
+                ) : (
+                  <button onClick={handleOpenLeaseModal} style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Sign Lease Now</button>
+                )}
+              </div>
+              <div style={{ lineHeight: '1.6', color: '#374151' }}>
+                <p><strong>Property:</strong> {fullLeaseDetails?.property_name || 'Joyce Suites'}</p>
+                <p><strong>Room:</strong> {roomNumber}</p>
+                <p><strong>Start Date:</strong> {fullLeaseDetails?.start_date || 'N/A'}</p>
+                <p><strong>End Date:</strong> {fullLeaseDetails?.end_date || 'N/A'}</p>
+                <p><strong>Monthly Rent:</strong> KSh {fullLeaseDetails?.rent_amount?.toLocaleString() || 'N/A'}</p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'profile' && (
+            <div style={styles.card}>
+              <h3>Profile Settings</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '400px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#64748b' }}>Full Name</label>
+                  <div style={{ padding: '10px', backgroundColor: '#f1f5f9', borderRadius: '6px' }}>{profileData?.full_name}</div>
                 </div>
-                <button
-                  onClick={handleOpenLeaseModal}
-                  className="btn btn-primary"
-                  style={{ marginTop: '16px' }}
-                  type="button"
-                >
-                  {!fullLeaseDetails
-                    ? 'Sign Lease Agreement'
-                    : fullLeaseDetails.signed_by_tenant
-                      ? 'View Lease Agreement'
-                      : 'Complete Lease Signing'}
-                </button>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#64748b' }}>Email Address</label>
+                  <div style={{ padding: '10px', backgroundColor: '#f1f5f9', borderRadius: '6px' }}>{profileData?.email}</div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#64748b' }}>Phone Number</label>
+                  <div style={{ padding: '10px', backgroundColor: '#f1f5f9', borderRadius: '6px' }}>{profileData?.phone_number}</div>
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === 'vacate' && (
-            <div className="content">
-              <div className="card">
-                <h3>Vacate Notices</h3>
-                <button
-                  onClick={() => setShowVacateModal(true)}
-                  className="btn btn-primary"
-                  style={{ marginBottom: '16px' }}
-                >
-                  Submit New Vacate Notice
-                </button>
-
-                {vacateNotices.length > 0 ? (
-                  <div className="table-container">
-                    <table className="vacate-table">
-                      <thead>
-                        <tr>
-                          <th>Notice Date</th>
-                          <th>Intended Move Date</th>
-                          <th>Reason</th>
-                          <th>Status</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {vacateNotices.map((notice) => (
-                          <tr key={notice.id}>
-                            <td>{notice.created_at ? new Date(notice.created_at).toLocaleDateString() : 'N/A'}</td>
-                            <td>{notice.intended_move_date ? new Date(notice.intended_move_date).toLocaleDateString() : 'N/A'}</td>
-                            <td>{notice.reason || 'No reason provided'}</td>
-                            <td>
-                              <span className={`status-badge status-${notice.status?.toLowerCase() || 'pending'}`}>
-                                {notice.status || 'Pending'}
-                              </span>
-                            </td>
-                            <td>
-                              {notice.status === 'pending' && (
-                                <button
-                                  onClick={() => handleCancelVacateNotice(notice.id)}
-                                  className="btn btn-danger btn-sm"
-                                >
-                                  Cancel
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p style={{ textAlign: 'center', padding: '20px' }}>
-                    No vacate notices submitted
-                  </p>
-                )}
+            <div style={styles.card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <h3 style={{ margin: 0 }}>Vacate Notices</h3>
+                <button onClick={() => setShowVacateModal(true)} style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Submit New Notice</button>
               </div>
+              {vacateNotices.length > 0 ? (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #e5e7eb', textAlign: 'left' }}>
+                        <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Submission Date</th>
+                        <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Vacate Date</th>
+                        <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {vacateNotices.map(v => (
+                        <tr key={v.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '12px' }}>{new Date(v.created_at).toLocaleDateString()}</td>
+                          <td style={{ padding: '12px' }}>{new Date(v.vacate_date).toLocaleDateString()}</td>
+                          <td style={{ padding: '12px' }}>
+                            <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '12px', backgroundColor: v.status === 'pending' ? '#fef3c7' : '#dcfce7', color: v.status === 'pending' ? '#92400e' : '#166534' }}>{v.status}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : <p style={{ color: '#64748b' }}>No vacate notices found</p>}
             </div>
           )}
-        </main>
-      </div>
+        </section>
+      </main>
 
-      <footer className="dashboard-footer">
-        <div className="footer-content">
-          <div className="footer-section">
-            <h4>Joyce Suites Apartments</h4>
-            <p>Quality accommodation in a secure environment</p>
-            <p><strong>Office Hours:</strong> Mon-Fri 8:00 AM - 5:00 PM</p>
-            <p><strong>Emergency Contact:</strong> 0722870077</p>
-          </div>
-
-          <div className="footer-section">
-            <h4>Your Payment Information</h4>
-            <div className="payment-info">
-              <p><strong>Paybill:</strong> {currentAccountDetails?.paybill || 'N/A'}</p>
-              <p><strong>Account:</strong> {currentAccountDetails?.accountNumber || 'N/A'}</p>
-              <p><strong>Landlord:</strong> {currentAccountDetails?.landlordName || 'N/A'}</p>
-              <p><strong>Monthly Rent:</strong> KSh {currentAccountDetails?.rentAmount.toLocaleString()}</p>
+      {/* Modals go here... (Simplified for now, focusing on layout) */}
+      {showLeaseModal && leaseData && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 }}>
+          <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', width: '90%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+              <h2 style={{ margin: 0 }}>Lease Agreement</h2>
+              <button onClick={() => setShowLeaseModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={24} /></button>
             </div>
-          </div>
-
-          <div className="footer-section">
-            <h4>Quick Links</h4>
-            <ul className="footer-links">
-              <li><button onClick={() => setActiveTab('dashboard')}>Dashboard</button></li>
-              <li><button onClick={handleOpenPaymentModal} disabled={!fullLeaseDetails || !fullLeaseDetails.signed_by_tenant}>Make Payment</button></li>
-              <li><button onClick={() => setShowMaintenanceModal(true)}>Maintenance Request</button></li>
-              <li><button onClick={handleOpenLeaseModal}>Lease Agreement</button></li>
-            </ul>
-          </div>
-
-          <div className="footer-section">
-            <h4>Contact Information</h4>
-            <p><strong>Email:</strong> joycesuites@gmail.com</p>
-            <p><strong>Phone:</strong> 0722870077</p>
-            <p><strong>Address:</strong> Joyce Suites Apartments, Nyandarua, Olkalou</p>
-          </div>
-        </div>
-
-        <div className="footer-bottom">
-          <div className="footer-bottom-content">
-            <p>&copy; {new Date().getFullYear()} Joyce Suites Apartments. All rights reserved.</p>
-            <div className="footer-legal">
-              <span>Terms of Service</span>
-              <span className="separator">|</span>
-              <span>Privacy Policy</span>
-              <span className="separator">|</span>
-              <span>Version 1.0.0</span>
+            {/* Lease content follows existing pattern but cleaner */}
+            <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+              <p>This agreement is between <strong>Joyce Suites</strong> and <strong>{leaseData.tenant.fullName}</strong>.</p>
+              <p>Room: {leaseData.tenant.roomNumber} | Rent: KSh {leaseData.unit.rent_amount.toLocaleString()}</p>
+              <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '8px', marginTop: '24px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} />
+                  I accept the terms and conditions of this lease.
+                </label>
+                <div style={{ marginTop: '24px' }}>
+                  <label>Signature:</label>
+                  <div style={{ border: '1px solid #d1d5db', borderRadius: '8px', marginTop: '8px', backgroundColor: 'white' }}>
+                    <SignatureCanvas ref={signatureRef} canvasProps={{ width: 500, height: 200, className: 'sigCanvas' }} onEnd={handleSignatureEnd} />
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginTop: '32px' }}>
+                <button onClick={() => setShowLeaseModal(false)} style={{ padding: '10px 20px', backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '8px' }}>Cancel</button>
+                <button onClick={handleSubmitLease} style={{ padding: '10px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px' }}>Submit Signed Lease</button>
+              </div>
             </div>
           </div>
         </div>
-      </footer>
+      )}
 
-      {showPaymentModal && (
-        <div className="modal-overlay" onClick={() => setShowPaymentModal(false)}>
-          <div className="modal modal-payment" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowPaymentModal(false)}>×</button>
-            <h2>Make Payment via M-Pesa</h2>
-
-            {loadingPaymentDetails ? (
-              <div className="loading-payment">
-                <div className="spinner"></div>
-                <p>Loading payment details...</p>
-              </div>
-            ) : paymentDetails ? (
-              <div className="payment-modal-content">
-                <div className="payment-summary">
-                  <h3>Payment Summary</h3>
-                  <div className="payment-detail">
-                    <span className="detail-label">Room Number:</span>
-                    <span className="detail-value">Room {roomNumber}</span>
-                  </div>
-                  <div className="payment-detail">
-                    <span className="detail-label">Account Number:</span>
-                    <span className="detail-value">{currentAccountDetails?.accountNumber}</span>
-                  </div>
-                  <div className="payment-detail">
-                    <span className="detail-label">Paybill Number:</span>
-                    <span className="detail-value">{currentAccountDetails?.paybill}</span>
-                  </div>
-                  <div className="payment-detail">
-                    <span className="detail-label">Amount to Pay:</span>
-                    <span className="detail-value amount">KSh {paymentDetails.outstanding_balance?.toLocaleString() || paymentDetails.rent_amount?.toLocaleString() || currentAccountDetails?.rentAmount.toLocaleString()}</span>
-                  </div>
-                  <div className="payment-note">
-                    <p><strong>Note:</strong> Use the Paybill number and account number when making manual payments.</p>
-                  </div>
-                </div>
-
-                <div className="mpesa-form">
-                  <h3>Quick M-Pesa Payment</h3>
-                  <div className="form-group">
-                    <label>Your M-Pesa Phone Number *</label>
-                    <input
-                      type="tel"
-                      placeholder="254712345678 or 0712345678"
-                      value={mpesaPhone}
-                      onChange={(e) => setMpesaPhone(e.target.value)}
-                      required
-                    />
-                    <small className="form-help">Enter the phone number registered with M-Pesa</small>
-                  </div>
-
-                  <div className="payment-instructions">
-                    <h4>How to pay manually:</h4>
-                    <ol>
-                      <li>Go to M-Pesa on your phone</li>
-                      <li>Select <strong>Lipa na M-Pesa</strong></li>
-                      <li>Select <strong>Pay Bill</strong></li>
-                      <li>Enter Paybill: <strong>{currentAccountDetails?.paybill}</strong></li>
-                      <li>Enter Account: <strong>{currentAccountDetails?.accountNumber}</strong></li>
-                      <li>Enter Amount: <strong>KSh {paymentDetails.outstanding_balance?.toLocaleString() || paymentDetails.rent_amount?.toLocaleString() || currentAccountDetails?.rentAmount.toLocaleString()}</strong></li>
-                      <li>Enter your M-Pesa PIN</li>
-                      <li>Confirm payment</li>
-                    </ol>
-                  </div>
-
-                  <button
-                    onClick={handleInitiateMpesa}
-                    className="btn btn-primary btn-block"
-                    disabled={loading || !mpesaPhone}
-                  >
-                    {loading ? 'Processing...' : 'Send STK Push to Pay Now'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="no-lease-payment">
-                <h3>Payment Unavailable</h3>
-                <p>You need to sign your lease agreement before making payments.</p>
-                <button onClick={handleOpenLeaseModal} className="btn btn-primary">
-                  Go to Lease Signing
-                </button>
-              </div>
-            )}
+      {showPaymentModal && paymentDetails && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 }}>
+          <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', width: '90%', maxWidth: '400px' }}>
+            <h3 style={{ marginTop: 0 }}>Make a Payment</h3>
+            <div style={{ backgroundColor: '#f0f9ff', padding: '16px', borderRadius: '8px', marginBottom: '24px' }}>
+              <div style={{ fontSize: '12px', color: '#0369a1' }}>Paybill: <strong>{paymentDetails.paybill}</strong></div>
+              <div style={{ fontSize: '12px', color: '#0369a1' }}>Account: <strong>{paymentDetails.account}</strong></div>
+            </div>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px' }}>M-Pesa Phone Number</label>
+              <input type="text" value={mpesaPhone} onChange={e => setMpesaPhone(e.target.value)} placeholder="0712345678" style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px' }} />
+            </div>
+            <button onClick={handleInitiatePayment} disabled={loading} style={{ width: '100%', padding: '12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600' }}>
+              {loading ? 'Processing...' : 'Pay with M-Pesa'}
+            </button>
+            <button onClick={() => setShowPaymentModal(false)} style={{ width: '100%', padding: '12px', background: 'none', border: 'none', color: '#64748b', marginTop: '8px' }}>Cancel</button>
           </div>
         </div>
-      )
-      }
-
-      { }
-      {
-        showMaintenanceModal && (
-          <div className="modal-overlay" onClick={() => setShowMaintenanceModal(false)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <button className="modal-close" onClick={() => setShowMaintenanceModal(false)}>×</button>
-              <h2>Request Maintenance</h2>
-              <form onSubmit={handleSubmitMaintenance}>
-                <div className="form-group">
-                  <label>Title *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., Leaking faucet in bathroom"
-                    value={maintenanceForm.title}
-                    onChange={(e) => setMaintenanceForm({ ...maintenanceForm, title: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Description *</label>
-                  <textarea
-                    placeholder="Describe the issue in detail..."
-                    value={maintenanceForm.description}
-                    onChange={(e) => setMaintenanceForm({ ...maintenanceForm, description: e.target.value })}
-                    rows="4"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Priority</label>
-                  <select
-                    value={maintenanceForm.priority}
-                    onChange={(e) => setMaintenanceForm({ ...maintenanceForm, priority: e.target.value })}
-                  >
-                    <option value="low">Low</option>
-                    <option value="normal">Normal</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Attach Photo (Optional, max 5MB)</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setMaintenanceForm({ ...maintenanceForm, file: e.target.files[0] })}
-                  />
-                </div>
-                <div className="form-actions">
-                  <button type="submit" className="btn btn-primary" disabled={loading}>
-                    {loading ? 'Submitting...' : 'Submit Request'}
-                  </button>
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowMaintenanceModal(false)}>
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )
-      }
-
-      {
-        showVacateModal && (
-          <div className="modal-overlay" onClick={() => setShowVacateModal(false)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <button className="modal-close" onClick={() => setShowVacateModal(false)}>×</button>
-              <h2>Submit Vacate Notice</h2>
-              <form onSubmit={handleSubmitVacateNotice}>
-                <div className="form-group">
-                  <label>Intended Vacate Date *</label>
-                  <input
-                    type="date"
-                    value={vacateForm.vacate_date}
-                    onChange={(e) => setVacateForm({ ...vacateForm, vacate_date: e.target.value })}
-                    min={minVacateDateString}
-                    required
-                  />
-                  <small style={{ color: '#6B7280', marginTop: '4px', display: 'block' }}>
-                    Must be at least 30 days from today
-                  </small>
-                </div>
-                <div className="form-group">
-                  <label>Reason (Optional)</label>
-                  <textarea
-                    placeholder="Why are you vacating?"
-                    value={vacateForm.reason}
-                    onChange={(e) => setVacateForm({ ...vacateForm, reason: e.target.value })}
-                    rows="3"
-                  />
-                </div>
-                <div className="form-actions">
-                  <button type="submit" className="btn btn-primary" disabled={loading}>
-                    {loading ? 'Submitting...' : 'Submit Vacate Notice'}
-                  </button>
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowVacateModal(false)}>
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )
-      }
-
-      { }
-      {
-        showLeaseModal && leaseData && (
-          <div className="modal-overlay" onClick={() => setShowLeaseModal(false)}>
-            <div className="modal modal-lease" onClick={(e) => e.stopPropagation()}>
-              <button className="modal-close" onClick={() => setShowLeaseModal(false)}>×</button>
-              <div className="lease-modal-content">
-                <div className="lease-document">
-                  <div className="lease-header">
-                    <h1>Joyce Suites Apartments</h1>
-                    <h2>House Lease Agreement</h2>
-                  </div>
-
-                  <div className="lease-section">
-                    <p>This Lease Agreement is made and entered into on this <strong>{formattedDate}</strong></p>
-                  </div>
-
-                  <div className="lease-section">
-                    <h3>LANDLORD:</h3>
-                    <div className="lease-party-details">
-                      <p><strong>{leaseData.landlord.name}</strong></p>
-                      <p>Phone: {leaseData.landlord.phone}</p>
-                      <p>Email: {leaseData.landlord.email}</p>
-                      <p>Paybill: {leaseData.landlord.paybill}</p>
-                      <p>Account: {leaseData.landlord.account}</p>
-                    </div>
-                  </div>
-
-                  <div className="lease-section">
-                    <h3>TENANT:</h3>
-                    <div className="lease-party-details">
-                      <p><strong>Name:</strong> {leaseData.tenant.fullName}</p>
-                      <p><strong>ID No.:</strong> {leaseData.tenant.idNumber}</p>
-                      <p><strong>Phone:</strong> {leaseData.tenant.phone}</p>
-                      <p><strong>Email:</strong> {leaseData.tenant.email}</p>
-                      <p><strong>Room Number:</strong> {leaseData.tenant.roomNumber}</p>
-                    </div>
-                  </div>
-
-                  <div className="lease-section">
-                    <h3>KEY TERMS:</h3>
-                    <div className="lease-terms">
-                      <p><strong>Monthly Rent:</strong> KSh {(leaseData.unit.rent_amount || 0).toLocaleString()}/=</p>
-                      <p><strong>Deposit:</strong> KSh {(leaseData.unit.deposit_amount || 0).toLocaleString()}/= (Refundable)</p>
-                      <p><strong>Room Type:</strong> {leaseData.unit.room_type?.replace('_', ' ').toUpperCase() || 'N/A'}</p>
-                      <p><strong>Payment Due:</strong> 5th day of each month</p>
-                      <p><strong>Lease Term:</strong> Month-to-month (30-day notice to terminate)</p>
-                      <p><strong>Property:</strong> {leaseData.unit.property_name}</p>
-                    </div>
-                  </div>
-
-                  <div className="lease-section">
-                    <h3>PAYMENT INFORMATION:</h3>
-                    <div className="payment-instructions">
-                      <p><strong>Paybill Number:</strong> {leaseData.landlord.paybill}</p>
-                      <p><strong>Account Number:</strong> {leaseData.landlord.account}</p>
-                      <p><strong>Manual Payment:</strong> Use the Paybill and Account number above to pay via M-Pesa</p>
-                    </div>
-                  </div>
-
-                  <div className="lease-section">
-                    <h3>TERMS & CONDITIONS:</h3>
-                    <ul className="terms-list">
-                      <li>Tenant shall maintain premises in clean and habitable condition</li>
-                      <li>Any damage beyond normal wear and tear is Tenant's responsibility</li>
-                      <li>Noise restrictions: 10 PM - 8 AM (quiet hours)</li>
-                      <li>Tenant must provide 30 days' notice to vacate</li>
-                      <li>Unpaid rent and damages will be deducted from security deposit</li>
-                      <li>Rent is due by the 5th of each month</li>
-                      <li>Governed by the laws of Kenya</li>
-                    </ul>
-                  </div>
-                </div>
-
-                { }
-                {(!fullLeaseDetails || (fullLeaseDetails && !fullLeaseDetails.signed_by_tenant)) ? (
-                  <div className="lease-signing-section">
-                    {error && <div className="alert alert-error">{error}</div>}
-                    {success && <div className="alert alert-success">{success}</div>}
-
-                    <div className="terms-acceptance">
-                      <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={termsAccepted}
-                          onChange={(e) => setTermsAccepted(e.target.checked)}
-                        />
-                        <span>I have read, understood, and agree to all the terms and conditions stated above.</span>
-                      </label>
-                    </div>
-
-                    <div className="signature-section">
-                      <label>Tenant's Digital Signature *</label>
-                      <div className="signature-canvas-container">
-                        <SignatureCanvas
-                          ref={signatureRef}
-                          onEnd={handleSignatureEnd}
-                          canvasProps={{
-                            width: 500,
-                            height: 150,
-                            className: 'signature-canvas'
-                          }}
-                        />
-                      </div>
-                      <button type="button" onClick={handleClearSignature} className="btn btn-secondary">
-                        Clear Signature
-                      </button>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleSubmitLease}
-                      className="btn btn-primary btn-sign-lease"
-                      disabled={loading || !termsAccepted || signatureEmpty}
-                    >
-                      {loading ? 'Submitting...' : 'Sign & Submit Lease Agreement'}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="lease-already-signed">
-                    <div className="alert alert-success">
-                      <h3>✓ Lease Agreement Signed</h3>
-                      <p>You have already signed the lease agreement on {fullLeaseDetails.signed_at ? new Date(fullLeaseDetails.signed_at).toLocaleDateString() : 'N/A'}.</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )
-      }
-    </div >
+      )}
+    </div>
   );
 };
 

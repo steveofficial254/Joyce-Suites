@@ -12,6 +12,8 @@ import {
   BedDouble, Bath, Square, Layers, MapPin, Droplet
 } from 'lucide-react';
 
+import './CaretakerDashboard.css';
+
 import config from '../../config';
 
 const API_BASE_URL = config.apiBaseUrl;
@@ -86,15 +88,15 @@ const styles = {
   refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px' },
   notificationBadge: { position: 'relative', cursor: 'pointer' },
   badgeCount: { position: 'absolute', top: '-8px', right: '-8px', backgroundColor: '#ef4444', color: 'white', fontSize: '10px', padding: '2px 4px', borderRadius: '10px' },
-  mobileTopNav: { display: 'flex', justifyContent: 'space-around', padding: '12px', backgroundColor: 'white', borderBottom: '1px solid #e5e7eb' },
-  mobileNavItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px', color: '#6b7280', textDecoration: 'none', cursor: 'pointer', border: 'none', background: 'none' },
-  mobileNavActive: { color: '#3b82f6' },
+
   errorBanner: { backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: '6px', margin: '16px', display: 'flex', alignItems: 'center', gap: '8px' },
   successBanner: { backgroundColor: '#f0fdf4', color: '#16a34a', padding: '12px 16px', borderRadius: '6px', margin: '16px', display: 'flex', alignItems: 'center', gap: '8px' },
   closeBannerBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px', marginLeft: 'auto' },
   content: { padding: '24px' },
   overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 999 }
 };
+
+
 
 const WaterBillPage = () => {
   const [waterBillRecords, setWaterBillRecords] = useState([]);
@@ -159,10 +161,10 @@ const WaterBillPage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tenant_id: selectedTenant,
-          property_id: tenant.property_id,
-          month: readingForm.month,
-          year: readingForm.year,
+          tenant_id: parseInt(selectedTenant),
+          property_id: parseInt(tenant.property_id),
+          month: parseInt(readingForm.month),
+          year: parseInt(readingForm.year),
           reading_date: reading_date,
           previous_reading: parseFloat(readingForm.previous_reading),
           current_reading: parseFloat(readingForm.current_reading),
@@ -173,7 +175,7 @@ const WaterBillPage = () => {
       });
 
       if (response.ok) {
-        setSuccess('Water bill created successfully');
+        setSuccessMessage('Water bill created successfully');
         setShowReadingModal(false);
         setReadingForm({
           month: new Date().getMonth() + 1,
@@ -204,7 +206,7 @@ const WaterBillPage = () => {
       });
 
       if (response.ok) {
-        setSuccess('Payment recorded successfully');
+        setSuccessMessage('Payment recorded successfully');
         setShowPaymentModal(false);
         setSelectedBillForPayment(null);
         fetchWaterBillRecords();
@@ -739,7 +741,7 @@ const DepositsPage = () => {
     }
   };
 
-  const handleMarkPayment = async () => {
+  const handleMarkDepositPayment = async () => {
     try {
       const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/deposit/mark-payment`, {
         method: 'POST',
@@ -1040,7 +1042,7 @@ const DepositsPage = () => {
                 Cancel
               </button>
               <button
-                onClick={handleMarkPayment}
+                onClick={handleMarkDepositPayment}
                 style={{
                   padding: '10px 16px',
                   border: '1px solid #10b981',
@@ -1171,8 +1173,10 @@ const CaretakerDashboard = () => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
+      // For unified layout, we might want the sidebar open by default on desktop
+      // and closed on mobile to save space, but accessible via a clean toggle.
       if (!mobile) setSidebarOpen(true);
-      else setSidebarOpen(false);
+      // else setSidebarOpen(false); // User wants only 1 layout, sidebar used universally
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -1471,19 +1475,19 @@ const CaretakerDashboard = () => {
   const handleMarkPayment = async (paymentData) => {
     try {
       setLoading(true);
-      const data = await apiCall('/api/caretaker/payments/mark', {
+      const data = await apiCall('/api/rent-deposit/rent/mark-payment', {
         method: 'POST',
         body: JSON.stringify(paymentData)
       });
 
-      if (data && data.success) {
+      if (data && data.success || (data && data.message)) {
         setSuccessMessage('Payment marked successfully');
-        await fetchPendingPayments();
+        await fetchAllTenantsPaymentStatus();
         await fetchOverview();
         setTimeout(() => setSuccessMessage(''), 3000);
       }
     } catch (err) {
-      // Failed to mark payment
+      setError(err.message || 'Failed to mark payment');
     } finally {
       setLoading(false);
     }
@@ -1637,17 +1641,15 @@ const CaretakerDashboard = () => {
       try {
         switch (activePage) {
           case 'dashboard':
-            await Promise.all([
-              fetchOverview().catch(() => { }),
-              fetchMaintenanceRequests().catch(() => { }),
-              fetchAvailableRooms().catch(() => { }),
+            fetchAvailableRooms().catch(() => { }),
+              fetchOccupiedRooms().catch(() => { }),
+              fetchAllRooms().catch(() => { }),
               fetchTenants().catch(() => { }),
               fetchPendingPayments().catch(() => { }),
               fetchVacateNotices().catch(() => { }),
               fetchNotifications().catch(() => { }),
               fetchUserProfile().catch(() => { }),
               fetchFinancialSummary().catch(() => { })
-            ]);
             break;
           case 'maintenance':
             await fetchMaintenanceRequests();
@@ -1691,429 +1693,7 @@ const CaretakerDashboard = () => {
     fetchPageData();
   }, [activePage]);
 
-  // Dashboard Page Component
-  const DashboardPage = ({ overview, maintenanceRequests, availableRooms, pendingPayments, vacateNotices, loading, onUpdateStatus, onViewDetails, onCreateMaintenance, onViewAllMaintenance, onMarkPayment, onViewVacateNotice, financialSummary }) => {
-    if (loading) {
-      return (
-        <div style={styles.loadingContainer}>
-          <div style={styles.spinner}></div>
-          <p>Loading dashboard...</p>
-        </div>
-      );
-    }
 
-    return (
-      <div style={styles.content}>
-        {/* Enhanced Stats Cards */}
-        <div style={styles.statsGrid}>
-          <div style={{ ...styles.statCard, borderLeft: '4px solid #3b82f6' }}>
-            <Home size={32} style={{ ...styles.statIcon, color: '#3b82f6' }} />
-            <div>
-              <div style={styles.statNumber}>{availableRooms?.length || 0}</div>
-              <div style={styles.statLabel}>Available Rooms</div>
-            </div>
-          </div>
-          <div style={{ ...styles.statCard, borderLeft: '4px solid #10b981' }}>
-            <Users size={32} style={{ ...styles.statIcon, color: '#10b981' }} />
-            <div>
-              <div style={styles.statNumber}>{overview?.total_tenants || 0}</div>
-              <div style={styles.statLabel}>Total Tenants</div>
-            </div>
-          </div>
-          <div style={{ ...styles.statCard, borderLeft: '4px solid #f59e0b' }}>
-            <Wrench size={32} style={{ ...styles.statIcon, color: '#f59e0b' }} />
-            <div>
-              <div style={styles.statNumber}>{maintenanceRequests?.filter(m => m.status === 'pending').length || 0}</div>
-              <div style={styles.statLabel}>Pending Maintenance</div>
-            </div>
-          </div>
-          <div style={{ ...styles.statCard, borderLeft: '4px solid #ef4444' }}>
-            <CreditCard size={32} style={{ ...styles.statIcon, color: '#ef4444' }} />
-            <div>
-              <div style={styles.statNumber}>{pendingPayments?.length || 0}</div>
-              <div style={styles.statLabel}>Pending Payments</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Financial Summary Section */}
-        {financialSummary && (
-          <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Financial Summary</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
-              {/* Rent Summary */}
-              <div style={{ ...styles.card, borderLeft: '4px solid #3b82f6' }}>
-                <h4 style={{ margin: '0 0 12px 0', color: '#3b82f6' }}>Rent Collection</h4>
-                <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-                  <div><strong>Collection Rate:</strong> {financialSummary.rent.collection_rate}%</div>
-                  <div><strong>Paid:</strong> {financialSummary.rent.paid} / {financialSummary.rent.total_records}</div>
-                  <div><strong>Current Month:</strong> KSh {(financialSummary.rent.current_month.paid || 0).toLocaleString()}</div>
-                  <div><strong>Outstanding:</strong> KSh {(financialSummary.rent.current_month.balance || 0).toLocaleString()}</div>
-                </div>
-              </div>
-
-              {/* Deposit Summary */}
-              <div style={{ ...styles.card, borderLeft: '4px solid #10b981' }}>
-                <h4 style={{ margin: '0 0 12px 0', color: '#10b981' }}>Deposits</h4>
-                <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-                  <div><strong>Collection Rate:</strong> {financialSummary.deposits.collection_rate}%</div>
-                  <div><strong>Paid:</strong> {financialSummary.deposits.paid} / {financialSummary.deposits.total_records}</div>
-                  <div><strong>Total Amount:</strong> KSh {(financialSummary.deposits.total_amount || 0).toLocaleString()}</div>
-                  <div><strong>Outstanding:</strong> KSh {(financialSummary.deposits.outstanding || 0).toLocaleString()}</div>
-                </div>
-              </div>
-
-              {/* Water Bills Summary */}
-              <div style={{ ...styles.card, borderLeft: '4px solid #06b6d4' }}>
-                <h4 style={{ margin: '0 0 12px 0', color: '#06b6d4' }}>Water Bills</h4>
-                <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-                  <div><strong>Collection Rate:</strong> {financialSummary.water_bills.collection_rate}%</div>
-                  <div><strong>Paid:</strong> {financialSummary.water_bills.paid} / {financialSummary.water_bills.total_records}</div>
-                  <div><strong>Total Amount:</strong> KSh {(financialSummary.water_bills.total_amount || 0).toLocaleString()}</div>
-                  <div><strong>Outstanding:</strong> KSh {(financialSummary.water_bills.outstanding || 0).toLocaleString()}</div>
-                </div>
-              </div>
-
-              {/* Overall Summary */}
-              <div style={{ ...styles.card, borderLeft: '4px solid #8b5cf6' }}>
-                <h4 style={{ margin: '0 0 12px 0', color: '#8b5cf6' }}>Overall</h4>
-                <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-                  <div><strong>Monthly Revenue:</strong> KSh {(financialSummary.overall.monthly_revenue || 0).toLocaleString()}</div>
-                  <div><strong>Total Outstanding:</strong> KSh {(financialSummary.overall.total_outstanding || 0).toLocaleString()}</div>
-                  <div><strong>Recent Transactions:</strong> {financialSummary.overall.recent_transactions}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Recent Maintenance Requests */}
-        <div style={styles.section}>
-          <div style={styles.sectionHeader}>
-            <h3 style={styles.sectionTitle}>Recent Maintenance Requests</h3>
-            <button style={styles.btnSecondary} onClick={onViewAllMaintenance}>
-              View All
-            </button>
-          </div>
-          {maintenanceRequests?.slice(0, 5).map(request => (
-            <div key={request.id} style={styles.card}>
-              <div style={styles.cardHeader}>
-                <span style={styles.cardTitle}>{request.title}</span>
-                <span style={{
-                  ...styles.statusBadge,
-                  backgroundColor: request.status === 'pending' ? '#fef3c7' : '#dcfce7',
-                  color: request.status === 'pending' ? '#92400e' : '#166534'
-                }}>
-                  {request.status}
-                </span>
-              </div>
-              <p style={styles.cardDescription}>{request.description}</p>
-              <div style={styles.cardActions}>
-                <button style={styles.btnSmallPrimary} onClick={() => onViewDetails(request)}>
-                  View Details
-                </button>
-                {request.status === 'pending' && (
-                  <button style={styles.btnSmallSecondary} onClick={() => onUpdateStatus(request.id, 'in_progress')}>
-                    Start Work
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  // Tenants Page Component
-  const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNotification, onViewDetails, onCreateVacateNotice }) => {
-    if (loading) {
-      return (
-        <div style={styles.loadingContainer}>
-          <div style={styles.spinner}></div>
-          <p>Loading tenants...</p>
-        </div>
-      );
-    }
-
-    return (
-      <div style={styles.section}>
-        <h2 style={styles.pageTitle}>Tenants Management</h2>
-
-        {tenants?.length === 0 ? (
-          <div style={styles.emptyState}>
-            <Users size={48} />
-            <p>No tenants found</p>
-          </div>
-        ) : (
-          <div style={styles.tableContainer}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Name</th>
-                  <th style={styles.th}>Room</th>
-                  <th style={styles.th}>Rent</th>
-                  <th style={styles.th}>Payment Status</th>
-                  <th style={styles.th}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tenants?.map(tenant => (
-                  <tr key={tenant.id} style={styles.tr}>
-                    <td style={styles.td}>
-                      <div style={styles.userCell}>
-                        <User size={16} />
-                        <span>{tenant.name}</span>
-                      </div>
-                    </td>
-                    <td style={styles.td}>{tenant.room_number}</td>
-                    <td style={styles.td}>KSh {tenant.rent_amount?.toLocaleString() || '0'}</td>
-                    <td style={styles.td}>
-                      <span style={{
-                        ...styles.statusBadge,
-                        backgroundColor: paymentStatus?.[tenant.id]?.status === 'paid' ? '#dcfce7' : '#fef3c7',
-                        color: paymentStatus?.[tenant.id]?.status === 'paid' ? '#166534' : '#92400e'
-                      }}>
-                        {paymentStatus?.[tenant.id]?.status || 'Unknown'}
-                      </span>
-                    </td>
-                    <td style={styles.td}>
-                      <div style={styles.actionButtons}>
-                        <button style={styles.btnSmallPrimary} onClick={() => onViewDetails(tenant)}>
-                          View
-                        </button>
-                        {paymentStatus?.[tenant.id]?.status !== 'paid' && (
-                          <button style={styles.btnSmallSecondary} onClick={() => onMarkPayment(tenant)}>
-                            Mark Paid
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Payments Page Component
-  const PaymentsPage = ({ pendingPayments, allPayments, loading, onMarkPayment }) => {
-    if (loading) {
-      return (
-        <div style={styles.loadingContainer}>
-          <div style={styles.spinner}></div>
-          <p>Loading payments...</p>
-        </div>
-      );
-    }
-
-    return (
-      <div style={styles.section}>
-        <h2 style={styles.pageTitle}>Payments Management</h2>
-
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>Pending Payments</h3>
-          {pendingPayments?.length === 0 ? (
-            <div style={styles.emptyState}>
-              <CreditCard size={48} />
-              <p>No pending payments</p>
-            </div>
-          ) : (
-            <div style={styles.tableContainer}>
-              <table style={styles.table}>
-                <thead>
-                  <tr>
-                    <th style={styles.th}>Tenant</th>
-                    <th style={styles.th}>Room</th>
-                    <th style={styles.th}>Amount</th>
-                    <th style={styles.th}>Due Date</th>
-                    <th style={styles.th}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pendingPayments?.map(payment => (
-                    <tr key={payment.id} style={styles.tr}>
-                      <td style={styles.td}>{payment.tenant_name}</td>
-                      <td style={styles.td}>{payment.room_number}</td>
-                      <td style={styles.td}>KSh {payment.amount?.toLocaleString() || '0'}</td>
-                      <td style={styles.td}>{payment.due_date}</td>
-                      <td style={styles.td}>
-                        <button style={styles.btnSmallPrimary} onClick={() => onMarkPayment(payment)}>
-                          Mark as Paid
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // Vacate Page Component
-  const VacatePage = ({ notices, loading, onViewDetails, onUpdateStatus, onDelete, onCreateNotice }) => {
-    if (loading) {
-      return (
-        <div style={styles.loadingContainer}>
-          <div style={styles.spinner}></div>
-          <p>Loading vacate notices...</p>
-        </div>
-      );
-    }
-
-    return (
-      <div style={styles.section}>
-        <div style={styles.sectionHeader}>
-          <h2 style={styles.pageTitle}>Vacate Notices</h2>
-          <button style={styles.btnPrimary} onClick={onCreateNotice}>
-            Create Notice
-          </button>
-        </div>
-
-        {notices?.length === 0 ? (
-          <div style={styles.emptyState}>
-            <DoorOpen size={48} />
-            <p>No vacate notices found</p>
-          </div>
-        ) : (
-          <div style={styles.cardsGrid}>
-            {notices?.map(notice => (
-              <div key={notice.id} style={styles.card}>
-                <div style={styles.cardHeader}>
-                  <span style={styles.cardTitle}>{notice.tenant_name}</span>
-                  <span style={{
-                    ...styles.statusBadge,
-                    backgroundColor: notice.status === 'pending' ? '#fef3c7' : '#dcfce7',
-                    color: notice.status === 'pending' ? '#92400e' : '#166534'
-                  }}>
-                    {notice.status}
-                  </span>
-                </div>
-                <div style={styles.cardDetails}>
-                  <p><strong>Room:</strong> {notice.room_number}</p>
-                  <p><strong>Notice Date:</strong> {notice.notice_date}</p>
-                  <p><strong>Vacate Date:</strong> {notice.vacate_date}</p>
-                </div>
-                <div style={styles.cardActions}>
-                  <button style={styles.btnSmallPrimary} onClick={() => onViewDetails(notice)}>
-                    View Details
-                  </button>
-                  {notice.status === 'pending' && (
-                    <button style={styles.btnSmallSecondary} onClick={() => onUpdateStatus(notice.id, 'approved')}>
-                      Approve
-                    </button>
-                  )}
-                  <button style={styles.btnSmallDanger} onClick={() => onDelete(notice.id)}>
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Properties Page Component
-  const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading, onViewDetails }) => {
-    if (loading) {
-      return (
-        <div style={styles.loadingContainer}>
-          <div style={styles.spinner}></div>
-          <p>Loading properties...</p>
-        </div>
-      );
-    }
-
-    return (
-      <div style={styles.section}>
-        <h2 style={styles.pageTitle}>Properties Management</h2>
-
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>Available Rooms ({availableRooms?.length || 0})</h3>
-          {availableRooms?.length === 0 ? (
-            <div style={styles.emptyState}>
-              <Building size={48} />
-              <p>No available rooms found</p>
-            </div>
-          ) : (
-            <div style={styles.roomsGrid}>
-              {availableRooms?.map(room => (
-                <div key={room.id} style={styles.roomCard} onClick={() => onViewDetails(room)}>
-                  <div style={styles.roomHeader}>
-                    <Building size={20} />
-                    <span style={styles.roomName}>{room.name}</span>
-                    <span style={styles.roomTypeBadge}>{room.property_type}</span>
-                  </div>
-                  <div style={styles.roomDetails}>
-                    <div style={styles.roomDetail}>
-                      <span style={styles.detailLabel}>Monthly Rent:</span>
-                      <span style={styles.detailValue}>KSh {room.rent_amount?.toLocaleString() || '0'}</span>
-                    </div>
-                    <div style={styles.roomDetail}>
-                      <span style={styles.detailLabel}>Deposit:</span>
-                      <span style={styles.detailValue}>KSh {room.deposit_amount?.toLocaleString() || '0'}</span>
-                    </div>
-                    <div style={styles.roomDetail}>
-                      <span style={styles.detailLabel}>Status:</span>
-                      <span style={{ ...styles.statusBadge, backgroundColor: '#dcfce7', color: '#166534' }}>
-                        Vacant
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>Occupied Rooms ({occupiedRooms?.length || 0})</h3>
-          {occupiedRooms?.length === 0 ? (
-            <div style={styles.emptyState}>
-              <Home size={48} />
-              <p>No occupied rooms found</p>
-            </div>
-          ) : (
-            <div style={styles.roomsGrid}>
-              {occupiedRooms?.map(room => (
-                <div key={room.id} style={styles.roomCard} onClick={() => onViewDetails(room)}>
-                  <div style={styles.roomHeader}>
-                    <Home size={20} />
-                    <span style={styles.roomName}>{room.name}</span>
-                    <span style={styles.roomTypeBadge}>{room.property_type}</span>
-                  </div>
-                  <div style={styles.roomDetails}>
-                    <div style={styles.roomDetail}>
-                      <span style={styles.detailLabel}>Monthly Rent:</span>
-                      <span style={styles.detailValue}>KSh {room.rent_amount?.toLocaleString() || '0'}</span>
-                    </div>
-                    <div style={styles.roomDetail}>
-                      <span style={styles.detailLabel}>Tenant:</span>
-                      <span style={styles.detailValue}>{room.current_tenant || 'N/A'}</span>
-                    </div>
-                    <div style={styles.roomDetail}>
-                      <span style={styles.detailLabel}>Status:</span>
-                      <span style={{ ...styles.statusBadge, backgroundColor: '#fef3c7', color: '#92400e' }}>
-                        Occupied
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   const renderContent = () => {
     switch (activePage) {
@@ -2221,62 +1801,7 @@ const CaretakerDashboard = () => {
           />
         );
       case 'notifications':
-        return (
-          <div className="p-6">
-            <h2 className="text-2xl font-bold mb-6">Inquiries & Notifications</h2>
-            {loading && !notifications.length ? (
-              <div style={{ textAlign: 'center', padding: '2rem' }}>Loading notifications...</div>
-            ) : notifications.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280', backgroundColor: 'white', borderRadius: '0.5rem' }}>
-                <MessageSquare size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-                <p>No new notifications.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gap: '1rem' }}>
-                {notifications.map(note => (
-                  <div
-                    key={note.id}
-                    style={{
-                      backgroundColor: note.is_read ? 'white' : '#f0f9ff',
-                      borderLeft: `4px solid ${note.is_read ? '#e5e7eb' : '#3b82f6'}`,
-                      padding: '1.5rem',
-                      borderRadius: '0.5rem',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <div>
-                        <h3 style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{note.title}</h3>
-                        <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                          {new Date(note.created_at).toLocaleString()}
-                        </span>
-                      </div>
-                      {!note.is_read && (
-                        <button
-                          onClick={() => handleMarkNotificationRead(note.id)}
-                          style={{
-                            fontSize: '0.75rem',
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '9999px',
-                            backgroundColor: '#dbeafe',
-                            color: '#1e40af',
-                            border: 'none',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Mark as Read
-                        </button>
-                      )}
-                    </div>
-                    <div style={{ whiteSpace: 'pre-wrap', color: '#374151' }}>
-                      {note.message}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
+        return <NotificationsPage tenants={tenants} />;
       case 'inquiries':
         return (
           <div className="p-6">
@@ -2352,126 +1877,106 @@ const CaretakerDashboard = () => {
 
   return (
     <div className="caretaker-dashboard">
-      <aside className={`caretaker-sidebar ${sidebarOpen ? '' : 'caretaker-sidebar-closed'}`}>
-        <div className="caretaker-sidebar-header">
-          <h2 className="caretaker-sidebar-title">Joyce Suites</h2>
+      <aside style={{
+        ...styles.sidebar,
+        transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+        display: isMobile && !sidebarOpen ? 'none' : 'block'
+      }}>
+        <div style={styles.sidebarHeader}>
+          <h2 style={styles.sidebarTitle}>Joyce Suites</h2>
           {isMobile && (
-            <button
-              className="text-white hover:bg-secondary-800 p-2 rounded-md"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <X size={24} />
+            <button style={styles.closeBtn} onClick={() => setSidebarOpen(false)}>
+              <X size={20} />
             </button>
           )}
         </div>
-
-        <nav className="px-4 py-6">
-          {[
-            { id: 'dashboard', label: 'Dashboard', icon: Home },
-            { id: 'maintenance', label: 'Maintenance', icon: Wrench },
-            { id: 'properties', label: 'Properties', icon: Building },
-            { id: 'tenants', label: 'Tenants', icon: Users },
-            { id: 'payments', label: 'Payments', icon: PaymentIcon },
-            { id: 'deposits', label: 'Deposits', icon: DollarSign },
-            { id: 'water-bill', label: 'Water Bills', icon: Droplet },
-            { id: 'vacate', label: 'Vacate Notices', icon: DoorOpen },
-            { id: 'inquiries', label: 'Inquiries', icon: MessageSquare },
-            { id: 'notifications', label: 'Notifications', icon: Bell }
-          ].map(item => (
-            <button
-              key={item.id}
-              className={`caretaker-nav-item ${activePage === item.id ? 'caretaker-nav-item-active' : ''}`}
-              onClick={() => handlePageChange(item.id)}
-            >
-              <item.icon size={18} />
-              <span>{item.label}</span>
-            </button>
-          ))}
+        <nav style={styles.nav}>
+          <button
+            style={{ ...styles.navItem, ...(activePage === 'dashboard' ? styles.navItemActive : {}) }}
+            onClick={() => { setActivePage('dashboard'); if (isMobile) setSidebarOpen(false); }}
+          >
+            <PieChart size={18} /> Dashboard
+          </button>
+          <button
+            style={{ ...styles.navItem, ...(activePage === 'properties' ? styles.navItemActive : {}) }}
+            onClick={() => { setActivePage('properties'); if (isMobile) setSidebarOpen(false); }}
+          >
+            <Home size={18} /> Room Management
+          </button>
+          <button
+            style={{ ...styles.navItem, ...(activePage === 'tenants' ? styles.navItemActive : {}) }}
+            onClick={() => { setActivePage('tenants'); if (isMobile) setSidebarOpen(false); }}
+          >
+            <Users size={18} /> Tenants
+          </button>
+          <button
+            style={{ ...styles.navItem, ...(activePage === 'payments' ? styles.navItemActive : {}) }}
+            onClick={() => { setActivePage('payments'); if (isMobile) setSidebarOpen(false); }}
+          >
+            <CreditCard size={18} /> Rent Payments
+          </button>
+          <button
+            style={{ ...styles.navItem, ...(activePage === 'water-bill' ? styles.navItemActive : {}) }}
+            onClick={() => { setActivePage('water-bill'); if (isMobile) setSidebarOpen(false); }}
+          >
+            <Droplet size={18} /> Water Bills
+          </button>
+          <button
+            style={{ ...styles.navItem, ...(activePage === 'maintenance' ? styles.navItemActive : {}) }}
+            onClick={() => { setActivePage('maintenance'); if (isMobile) setSidebarOpen(false); }}
+          >
+            <Wrench size={18} /> Maintenance
+          </button>
+          <button
+            style={{ ...styles.navItem, ...(activePage === 'vacate' ? styles.navItemActive : {}) }}
+            onClick={() => { setActivePage('vacate'); if (isMobile) setSidebarOpen(false); }}
+          >
+            <LogOut size={18} /> Vacate Notices
+          </button>
+          <button
+            style={{ ...styles.navItem, ...(activePage === 'notifications' ? styles.navItemActive : {}) }}
+            onClick={() => { setActivePage('notifications'); if (isMobile) setSidebarOpen(false); }}
+          >
+            <Bell size={18} /> Notifications
+          </button>
         </nav>
 
         <div style={styles.userInfo}>
           <div style={styles.userAvatar}>
-            {userProfile?.photo_path ? (
-              <img
-                src={`${API_BASE_URL}/${userProfile.photo_path}`}
-                alt="Profile"
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  objectFit: 'cover'
-                }}
-                onError={(e) => {
-                  console.log('❌ Caretaker photo failed to load:', e.target.src);
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'flex';
-                }}
-              />
-            ) : null}
-            {(!userProfile?.photo_path || userProfile?.photo_path === '') && (
-              <User size={20} />
-            )}
+            <User size={20} color="white" />
           </div>
           <div style={styles.userDetails}>
-            <strong>{userProfile?.full_name || 'Caretaker'}</strong>
-            <small>{userProfile?.email || 'Joyce Suites'}</small>
+            <p style={{ margin: 0, fontWeight: '600' }}>{userProfile?.name || 'Caretaker'}</p>
+            <p style={{ margin: 0, fontSize: '12px', color: '#9ca3af' }}>{userProfile?.email}</p>
           </div>
         </div>
-
-        <div style={{ ...styles.logoutBtnWrapper, ...(sidebarOpen && styles.logoutBtnWrapperVisible), flexDirection: 'column', gap: '8px' }}>
-          <button
-            style={{ ...styles.logoutBtn, backgroundColor: 'transparent', color: '#64748b', border: '1px solid #e2e8f0' }}
-            onClick={() => window.location.href = '/'}
-          >
-            <Home size={18} /> <span style={{ display: sidebarOpen ? 'inline' : 'none' }}>Main Menu</span>
-          </button>
-          <button style={styles.logoutBtn} onClick={handleLogout}>
-            <LogOut size={18} /> <span style={{ display: sidebarOpen ? 'inline' : 'none' }}>Logout</span>
+        <div style={{ ...styles.logoutBtnWrapper, ...(sidebarOpen ? styles.logoutBtnWrapperVisible : {}) }}>
+          <button style={styles.logoutBtn} onClick={() => { localStorage.clear(); window.location.href = '/caretaker-login'; }}>
+            <LogOut size={18} /> Logout
           </button>
         </div>
       </aside>
 
       <main style={{
         ...styles.main,
-        marginLeft: isMobile ? 0 : (sidebarOpen ? '260px' : 0),
-        width: isMobile ? '100%' : (sidebarOpen ? 'calc(100% - 260px)' : '100%')
+        marginLeft: !isMobile && sidebarOpen ? '260px' : '0',
+        width: !isMobile && sidebarOpen ? 'calc(100% - 260px)' : '100%'
       }}>
-        {/* Global Header Removed to match Admin Dashboard */}
-
-        {isMobile && (
-          <div style={styles.mobileTopNav}>
-            {[
-              { id: 'dashboard', label: 'Dashboard', icon: Home },
-              { id: 'maintenance', label: 'Requests', icon: Wrench },
-              { id: 'properties', label: 'Rooms', icon: Building },
-              { id: 'tenants', label: 'Tenants', icon: Users },
-              { id: 'payments', label: 'Payments', icon: PaymentIcon },
-              { id: 'deposits', label: 'Deposits', icon: DollarSign },
-              { id: 'water-bill', label: 'Water', icon: Droplet },
-              { id: 'vacate', label: 'Vacate', icon: DoorOpen },
-              { id: 'inquiries', label: 'Messages', icon: MessageSquare },
-            ].map(item => (
-              <button
-                key={item.id}
-                style={{
-                  ...styles.mobileNavItem,
-                  ...(activePage === item.id ? styles.mobileNavActive : {})
-                }}
-                onClick={() => handlePageChange(item.id)}
-              >
-                <item.icon size={16} />
-                <span>{item.label}</span>
-              </button>
-            ))}
-            <button
-              style={{ ...styles.mobileNavItem, backgroundColor: '#ef4444', color: 'white' }}
-              onClick={handleLogout}
-            >
-              <LogOut size={16} />
-              <span>Logout</span>
+        <header style={styles.header}>
+          <div style={styles.headerLeft}>
+            <button style={styles.menuBtn} onClick={() => setSidebarOpen(!sidebarOpen)}>
+              <Menu size={24} />
+            </button>
+            <h1 style={styles.headerTitle}>
+              {activePage.charAt(0).toUpperCase() + activePage.slice(1)}
+            </h1>
+          </div>
+          <div style={styles.headerRight}>
+            <button style={styles.refreshBtn} onClick={() => window.location.reload()}>
+              <RefreshCw size={20} />
             </button>
           </div>
-        )}
+        </header>
 
         {error && (
           <div style={styles.errorBanner}>
@@ -3424,108 +2929,314 @@ const NotificationsPage = ({ tenants, onSendNotification }) => {
           />
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-          <button
-            onClick={() => {
-              setMessageTitle('');
-              setMessageContent('');
-              setSelectedTenant('');
-            }}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#f3f4f6',
-              color: '#374151',
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            Clear
-          </button>
-          <button
-            onClick={handleSendMessage}
-            disabled={loading}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: loading ? '#9ca3af' : '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            {loading ? 'Sending...' : `Send Message${messageType === 'all' ? ' to All Tenants' : ''}`}
-          </button>
+      </div>
+    </div>
+  );
+};
+
+
+const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
+  const [formData, setFormData] = useState({
+    rent_id: tenant.current_rent_id || tenant.id,
+    amount_paid: tenant.rent_amount || '',
+    payment_method: 'M-Pesa',
+    payment_reference: '',
+    notes: ''
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h3>Mark Rent Payment: {tenant.tenant_name || tenant.name}</h3>
+          <button style={styles.modalClose} onClick={onClose}>×</button>
         </div>
-
-        {messageType === 'all' && (
-          <div style={{
-            marginTop: '16px',
-            padding: '12px 16px',
-            backgroundColor: '#fef3c7',
-            border: '1px solid #f59e0b',
-            borderRadius: '6px',
-            fontSize: '14px',
-            color: '#92400e'
-          }}>
-            <strong>Note:</strong> This message will be sent to all {activeTenantsCount} active tenants.
+        <form onSubmit={handleSubmit}>
+          <div style={styles.modalBody}>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Amount (KSh)</label>
+              <input
+                type="number"
+                value={formData.amount_paid}
+                onChange={(e) => setFormData({ ...formData, amount_paid: e.target.value })}
+                required
+                style={styles.formInput}
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Method</label>
+              <select
+                value={formData.payment_method}
+                onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+                style={styles.formSelect}
+              >
+                <option value="M-Pesa">M-Pesa</option>
+                <option value="Cash">Cash</option>
+                <option value="Bank">Bank</option>
+              </select>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Reference</label>
+              <input
+                type="text"
+                value={formData.payment_reference}
+                onChange={(e) => setFormData({ ...formData, payment_reference: e.target.value })}
+                placeholder="Transaction ID"
+                style={styles.formInput}
+              />
+            </div>
           </div>
-        )}
+          <div style={styles.modalFooter}>
+            <button type="button" style={styles.btnSecondary} onClick={onClose}>Cancel</button>
+            <button type="submit" style={styles.btnPrimary} disabled={loading}>
+              {loading ? 'Submitting...' : 'Mark Paid'}
+            </button>
+          </div>
+        </form>
       </div>
+    </div>
+  );
+};
 
-      <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-        <button
-          onClick={() => {
-            setMessageTitle('');
-            setMessageContent('');
-            setSelectedTenant('');
-          }}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: '#f3f4f6',
-            color: '#374151',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px'
-          }}
-        >
-          Clear
-        </button>
-        <button
-          onClick={handleSendMessage}
-          disabled={loading}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: loading ? '#9ca3af' : '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: '14px'
-          }}
-        >
-          {loading ? 'Sending...' : `Send Message${messageType === 'all' ? ' to All Tenants' : ''}`}
-        </button>
+
+const SendNotificationModal = ({ tenants = [], onClose, onSubmit, loading }) => {
+  const [formData, setFormData] = useState({
+    tenant_id: '',
+    title: '',
+    message: '',
+    type: 'general'
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h3>Send Notification</h3>
+          <button style={styles.modalClose} onClick={onClose}>×</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div style={styles.modalBody}>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Select Tenant</label>
+              <select
+                value={formData.tenant_id}
+                onChange={(e) => setFormData({ ...formData, tenant_id: e.target.value })}
+                required
+                style={styles.formSelect}
+              >
+                <option value="">Choose...</option>
+                {tenants.map(t => (
+                  <option key={t.tenant_id || t.id} value={t.tenant_id || t.id}>
+                    {t.tenant_name || t.name} - {t.room_number || 'No Room'}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Title</label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                required
+                style={styles.formInput}
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Message</label>
+              <textarea
+                value={formData.message}
+                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                rows="4"
+                required
+                style={styles.formInput}
+              />
+            </div>
+          </div>
+          <div style={styles.modalFooter}>
+            <button type="button" style={styles.btnSecondary} onClick={onClose}>Cancel</button>
+            <button type="submit" style={styles.btnPrimary} disabled={loading}>
+              {loading ? 'Sending...' : 'Send'}
+            </button>
+          </div>
+        </form>
       </div>
+    </div>
+  );
+};
 
-      {messageType === 'all' && (
-        <div style={{
-          marginTop: '16px',
-          padding: '12px 16px',
-          backgroundColor: '#fef3c7',
-          border: '1px solid #f59e0b',
-          borderRadius: '6px',
-          fontSize: '14px',
-          color: '#92400e'
-        }}>
-          <strong>Note:</strong> This message will be sent to all {activeTenantsCount} active tenants.
+const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNotification, onViewDetails, onCreateVacateNotice }) => {
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p>Loading tenants...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.section}>
+      <h2 style={styles.pageTitle}>Tenants Management</h2>
+
+      {tenants?.length === 0 ? (
+        <div style={styles.emptyState}>
+          <Users size={48} />
+          <p>No tenants found</p>
+        </div>
+      ) : (
+        <div style={styles.tableContainer}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Name</th>
+                <th style={styles.th}>Room</th>
+                <th style={styles.th}>Rent</th>
+                <th style={styles.th}>Payment Status</th>
+                <th style={styles.th}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tenants?.map(tenant => (
+                <tr key={tenant.id} style={styles.tr}>
+                  <td style={styles.td}>
+                    <div style={styles.userCell}>
+                      <User size={16} />
+                      <span>{tenant.name}</span>
+                    </div>
+                  </td>
+                  <td style={styles.td}>{tenant.room_number}</td>
+                  <td style={styles.td}>KSh {tenant.rent_amount?.toLocaleString() || '0'}</td>
+                  <td style={styles.td}>
+                    <span style={{
+                      ...styles.statusBadge,
+                      backgroundColor: paymentStatus?.[tenant.id]?.status === 'paid' ? '#dcfce7' : '#fef3c7',
+                      color: paymentStatus?.[tenant.id]?.status === 'paid' ? '#166534' : '#92400e'
+                    }}>
+                      {paymentStatus?.[tenant.id]?.status || 'Unknown'}
+                    </span>
+                  </td>
+                  <td style={styles.td}>
+                    <div style={styles.actionButtons}>
+                      <button style={styles.btnSmallPrimary} onClick={() => onViewDetails(tenant)}>
+                        View
+                      </button>
+                      {paymentStatus?.[tenant.id]?.status !== 'paid' && (
+                        <button style={styles.btnSmallSecondary} onClick={() => onMarkPayment(tenant)}>
+                          Mark Paid
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
   );
 };
 
-export default CaretakerDashboard;
+const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading, onViewDetails }) => {
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p>Loading properties...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.section}>
+      <h2 style={styles.pageTitle}>Properties Management</h2>
+
+      <div style={styles.section}>
+        <h3 style={styles.sectionTitle}>Available Rooms ({availableRooms?.length || 0})</h3>
+        {availableRooms?.length === 0 ? (
+          <div style={styles.emptyState}>
+            <Building size={48} />
+            <p>No available rooms found</p>
+          </div>
+        ) : (
+          <div style={styles.roomsGrid}>
+            {availableRooms?.map(room => (
+              <div key={room.id} style={styles.roomCard} onClick={() => onViewDetails(room)}>
+                <div style={styles.roomHeader}>
+                  <Building size={20} />
+                  <span style={styles.roomName}>{room.name}</span>
+                  <span style={styles.roomTypeBadge}>{room.property_type}</span>
+                </div>
+                <div style={styles.roomDetails}>
+                  <div style={styles.roomDetail}>
+                    <span style={styles.detailLabel}>Monthly Rent:</span>
+                    <span style={styles.detailValue}>KSh {room.rent_amount?.toLocaleString() || '0'}</span>
+                  </div>
+                  <div style={styles.roomDetail}>
+                    <span style={styles.detailLabel}>Deposit:</span>
+                    <span style={styles.detailValue}>KSh {room.deposit_amount?.toLocaleString() || '0'}</span>
+                  </div>
+                  <div style={styles.roomDetail}>
+                    <span style={styles.detailLabel}>Status:</span>
+                    <span style={{ ...styles.statusBadge, backgroundColor: '#dcfce7', color: '#166534' }}>
+                      Vacant
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={styles.section}>
+        <h3 style={styles.sectionTitle}>Occupied Rooms ({occupiedRooms?.length || 0})</h3>
+        {occupiedRooms?.length === 0 ? (
+          <div style={styles.emptyState}>
+            <Home size={48} />
+            <p>No occupied rooms found</p>
+          </div>
+        ) : (
+          <div style={styles.roomsGrid}>
+            {occupiedRooms?.map(room => (
+              <div key={room.id} style={styles.roomCard} onClick={() => onViewDetails(room)}>
+                <div style={styles.roomHeader}>
+                  <Home size={20} />
+                  <span style={styles.roomName}>{room.name}</span>
+                  <span style={styles.roomTypeBadge}>{room.property_type}</span>
+                </div>
+                <div style={styles.roomDetails}>
+                  <div style={styles.roomDetail}>
+                    <span style={styles.detailLabel}>Monthly Rent:</span>
+                    <span style={styles.detailValue}>KSh {room.rent_amount?.toLocaleString() || '0'}</span>
+                  </div>
+                  <div style={styles.roomDetail}>
+                    <span style={styles.detailLabel}>Tenant:</span>
+                    <span style={styles.detailValue}>{room.current_tenant || 'N/A'}</span>
+                  </div>
+                  <div style={styles.roomDetail}>
+                    <span style={styles.detailLabel}>Status:</span>
+                    <span style={{ ...styles.statusBadge, backgroundColor: '#fef3c7', color: '#92400e' }}>
+                      Occupied
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

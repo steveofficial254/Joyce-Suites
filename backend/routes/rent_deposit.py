@@ -770,8 +770,10 @@ def create_water_bill():
         current_reading = data.get('current_reading')
         unit_rate = data.get('unit_rate', 50.0)  # Default rate
         
-        if not all([tenant_id, property_id, month, year, reading_date, previous_reading, current_reading]):
-            return jsonify({'error': 'All fields are required'}), 400
+        required_fields = ['tenant_id', 'property_id', 'month', 'year', 'reading_date', 'previous_reading', 'current_reading']
+        missing_fields = [field for field in required_fields if data.get(field) is None]
+        if missing_fields:
+            return jsonify({'error': f'Missing fields: {", ".join(missing_fields)}'}), 400
         
         # Get tenant's active lease automatically
         active_lease = Lease.query.filter_by(

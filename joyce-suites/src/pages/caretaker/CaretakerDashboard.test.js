@@ -172,7 +172,7 @@ describe('CaretakerDashboard Component - Production Ready Tests', () => {
   });
 
   test('handles API errors gracefully', async () => {
-    global.fetch.mockImplementationOnce(() => 
+    global.fetch.mockImplementationOnce(() =>
       Promise.resolve({
         ok: false,
         status: 500,
@@ -201,8 +201,8 @@ describe('CaretakerDashboard Component - Production Ready Tests', () => {
 
   test('navigation between different sections works', async () => {
     // Just verify the Maintenance button exists
-    const maintenanceButton = screen.getByText(/Maintenance/i);
-    expect(maintenanceButton).toBeInTheDocument();
+    const maintenanceButtons = screen.getAllByText(/Maintenance/i);
+    expect(maintenanceButtons.length).toBeGreaterThan(0);
     // Don't click it to avoid the component rendering issues
   });
 
