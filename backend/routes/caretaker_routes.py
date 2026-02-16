@@ -697,79 +697,73 @@ def get_all_tenants_payment_status():
         
         print(f"Payment period: {current_month_start} to {next_month_start}")
         
-        active_leases = Lease.query.filter_by(status="active").all()
-        print(f"Found {len(active_leases)} active leases")
+        all_tenants = User.query.filter_by(role="tenant", is_active=True).all()
+        print(f"Found {len(all_tenants)} registered tenants")
         
         tenants_data = []
 
-        for lease in active_leases:
+        for tenant in all_tenants:
             try:
-                if not lease.tenant:
-                    print(f"Lease {lease.id} has no tenant, skipping")
-                    continue
+                print(f"Processing tenant {tenant.full_name}")
                 
-                print(f"Processing lease {lease.id} for tenant {lease.tenant.full_name}")
-                    
-                current_month_payment = Payment.query.filter(
-                    Payment.lease_id == lease.id,
-                    Payment.created_at >= current_month_start,
-                    Payment.created_at < next_month_start
+                lease = Lease.query.filter_by(
+                    tenant_id=tenant.id,
+                    status="active"
                 ).first()
+                    
+                is_paid = False
+                last_payment_date = None
+                lease_id = None
+                rent_amount = 0.0
                 
-                if not current_month_payment:
+                if lease:
+                    lease_id = lease.id
+                    try:
+                        rent_amount = float(lease.rent_amount) if lease.rent_amount else 0.0
+                    except (TypeError, ValueError):
+                        rent_amount = 0.0
+                        
                     current_month_payment = Payment.query.filter(
                         Payment.lease_id == lease.id,
-                        Payment.payment_date >= current_month_start,
-                        Payment.payment_date < next_month_start
+                        Payment.created_at >= current_month_start,
+                        Payment.created_at < next_month_start
                     ).first()
-                
-                last_payment = Payment.query.filter_by(
-                    lease_id=lease.id,
-                    status="paid"
-                ).order_by(Payment.payment_date.desc()).first()
-                
-                is_paid = False
-                if current_month_payment:
-                    is_paid = current_month_payment.status == "paid"
-                    print(f"Current month payment found: {current_month_payment.id}, status: {is_paid}")
-                else:
-                    print(f"No payment found for current month")
-                
-                try:
-                    rent_amount = float(lease.rent_amount) if lease.rent_amount else 0.0
-                except (TypeError, ValueError) as e:
-                    print(f"Error converting rent_amount: {e}")
-                    rent_amount = 0.0
-                
-                last_payment_date = None
-                if last_payment and last_payment.payment_date:
-                    try:
+                    
+                    if not current_month_payment:
+                        current_month_payment = Payment.query.filter(
+                            Payment.lease_id == lease.id,
+                            Payment.payment_date >= current_month_start,
+                            Payment.payment_date < next_month_start
+                        ).first()
+                    
+                    if current_month_payment:
+                        is_paid = current_month_payment.status == "paid"
+                        
+                    last_payment = Payment.query.filter_by(
+                        lease_id=lease.id,
+                        status="paid"
+                    ).order_by(Payment.payment_date.desc()).first()
+                    
+                    if last_payment and last_payment.payment_date:
                         last_payment_date = last_payment.payment_date.isoformat()
-                    except Exception as e:
-                        print(f"Error converting payment date: {e}")
-                        last_payment_date = None
                 
                 tenant_data = {
-                    "tenant_id": lease.tenant_id,
-                    "tenant_name": lease.tenant.full_name or "Unknown",
-                    "room_number": lease.tenant.room_number or "N/A",
+                    "tenant_id": tenant.id,
+                    "tenant_name": tenant.full_name or "Unknown",
+                    "room_number": tenant.room_number or "N/A",
                     "rent_amount": rent_amount,
                     "current_month_paid": is_paid,
                     "last_payment_date": last_payment_date,
-                    "lease_id": lease.id
+                    "lease_id": lease_id,
+                    "has_active_lease": lease is not None
                 }
                 
                 tenants_data.append(tenant_data)
-                print(f"Successfully processed tenant {lease.tenant.full_name}")
                 
-            except Exception as lease_error:
-                print(f"Error processing lease {lease.id}: {str(lease_error)}")
-                import traceback
-                traceback.print_exc()
+            except Exception as tenant_error:
+                print(f"Error processing tenant {tenant.id}: {str(tenant_error)}")
                 continue
 
-        print(f"Returning {len(tenants_data)} tenant records")
-        
         return jsonify({
             "success": True,
             "tenants": tenants_data,

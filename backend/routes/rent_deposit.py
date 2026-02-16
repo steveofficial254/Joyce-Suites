@@ -113,7 +113,7 @@ def get_tenant_rent_records(tenant_id):
 
 @rent_deposit_bp.route('/rent/mark-payment', methods=['POST'])
 @token_required
-@role_required(['caretaker'])
+@role_required(['caretaker', 'admin'])
 def mark_rent_payment():
     """Mark rent payment by caretaker"""
     current_user = db.session.get(User, request.user_id)
@@ -241,7 +241,7 @@ def test_debug():
 
 @rent_deposit_bp.route('/tenants-with-leases', methods=['GET', 'OPTIONS'])
 @token_required
-@role_required(['caretaker'])
+@role_required(['caretaker', 'admin'])
 def get_tenants_with_leases():
     """Get all tenants with active leases for caretaker management"""
     # Handle CORS preflight
@@ -297,7 +297,7 @@ def get_tenants_with_leases():
 
 @rent_deposit_bp.route('/rent/<int:rent_id>/mark-paid', methods=['PUT'])
 @token_required
-@role_required(['caretaker'])
+@role_required(['caretaker', 'admin'])
 def mark_rent_paid(rent_id):
     """Mark rent as paid by caretaker"""
     try:
@@ -348,7 +348,7 @@ def mark_rent_paid(rent_id):
 
 @rent_deposit_bp.route('/rent/<int:rent_id>/mark-unpaid', methods=['PUT'])
 @token_required
-@role_required(['caretaker'])
+@role_required(['caretaker', 'admin'])
 def mark_rent_unpaid(rent_id):
     """Mark rent as unpaid by caretaker"""
     try:
@@ -754,7 +754,7 @@ def get_tenant_water_bills(tenant_id):
 
 @rent_deposit_bp.route('/water-bill/create', methods=['POST'])
 @token_required
-@role_required(['caretaker'])
+@role_required(['caretaker', 'admin'])
 def create_water_bill():
     """Create water bill for tenant (caretaker simplified version)"""
     current_user = db.session.get(User, request.user_id)

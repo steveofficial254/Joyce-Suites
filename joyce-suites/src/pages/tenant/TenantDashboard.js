@@ -78,8 +78,7 @@ const TenantDashboard = () => {
 
   const apartmentImages = [apartment1, apartment2, apartment3, apartment4, apartment5, apartment6];
 
-  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  // Duplicate state declarations removed
 
   const styles = {
     container: { display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc' },
@@ -414,8 +413,15 @@ const TenantDashboard = () => {
         setPaymentDetails(data.payment_details);
         return data.payment_details;
       }
+      if (response.status === 400 || response.status === 404) {
+        const data = await response.json();
+        setError(data.error || 'Please sign your lease agreement first.');
+        setShowPaymentModal(false);
+        return null;
+      }
     } catch (err) {
       console.error('Error fetching payment details:', err);
+      setError('Communication error with server. Please try again.');
     } finally {
       setLoadingPaymentDetails(false);
     }
@@ -1254,7 +1260,7 @@ const TenantDashboard = () => {
               <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px' }}>M-Pesa Phone Number</label>
               <input type="text" value={mpesaPhone} onChange={e => setMpesaPhone(e.target.value)} placeholder="0712345678" style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px' }} />
             </div>
-            <button onClick={handleInitiatePayment} disabled={loading} style={{ width: '100%', padding: '12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600' }}>
+            <button onClick={handleInitiateMpesa} disabled={loading} style={{ width: '100%', padding: '12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600' }}>
               {loading ? 'Processing...' : 'Pay with M-Pesa'}
             </button>
             <button onClick={() => setShowPaymentModal(false)} style={{ width: '100%', padding: '12px', background: 'none', border: 'none', color: '#64748b', marginTop: '8px' }}>Cancel</button>

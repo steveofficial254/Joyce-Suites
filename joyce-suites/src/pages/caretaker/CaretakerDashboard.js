@@ -98,1068 +98,9 @@ const styles = {
 
 
 
-const WaterBillPage = () => {
-  const [waterBillRecords, setWaterBillRecords] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-  const [userProfile, setUserProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [financialSummary, setFinancialSummary] = useState(null);
-  const [showReadingModal, setShowReadingModal] = useState(false);
-  const [selectedTenant, setSelectedTenant] = useState(null);
-  const [tenants, setTenants] = useState([]);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedBillForPayment, setSelectedBillForPayment] = useState(null);
-  const [readingForm, setReadingForm] = useState({
-    month: new Date().getMonth() + 1,
-    year: new Date().getFullYear(),
-    previous_reading: '',
-    current_reading: '',
-    unit_rate: 50.0
-  });
 
-  const fetchWaterBillRecords = async () => {
-    try {
-      setLoading(true);
-      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/water-bill/records`);
-      if (response.ok) {
-        const data = await response.json();
-        setWaterBillRecords(data.records || []);
-      } else {
-        setError('Failed to fetch water bill records');
-      }
-    } catch (err) {
-      setError('Error fetching water bill records');
-    } finally {
-      setLoading(false);
-    }
-  };
+// End of styles
 
-  const fetchTenants = async () => {
-    try {
-      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/tenants-with-leases`);
-      if (response.ok) {
-        const data = await response.json();
-        setTenants(data.tenants || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch tenants:', err);
-    }
-  };
-
-  const handleCreateWaterBill = async () => {
-    try {
-      const tenant = tenants.find(t => t.tenant_id === parseInt(selectedTenant)) || tenants.find(t => t.id === parseInt(selectedTenant));
-      if (!tenant) throw new Error("Selected tenant not found in list");
-
-      const units_consumed = parseFloat(readingForm.current_reading) - parseFloat(readingForm.previous_reading);
-      const amount = units_consumed * parseFloat(readingForm.unit_rate);
-      const reading_date = new Date().toISOString().split('T')[0];
-
-      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/water-bill/create`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenant_id: parseInt(selectedTenant),
-          property_id: parseInt(tenant.property_id),
-          month: parseInt(readingForm.month),
-          year: parseInt(readingForm.year),
-          reading_date: reading_date,
-          previous_reading: parseFloat(readingForm.previous_reading),
-          current_reading: parseFloat(readingForm.current_reading),
-          units_consumed: units_consumed,
-          unit_rate: parseFloat(readingForm.unit_rate),
-          amount_due: amount
-        })
-      });
-
-      if (response.ok) {
-        setSuccessMessage('Water bill created successfully');
-        setShowReadingModal(false);
-        setReadingForm({
-          month: new Date().getMonth() + 1,
-          year: new Date().getFullYear(),
-          previous_reading: '',
-          current_reading: '',
-          unit_rate: 50.0
-        });
-        setSelectedTenant(null);
-        fetchWaterBillRecords();
-      } else {
-        setError('Failed to create water bill');
-      }
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  const handleRecordPayment = async (billId, paymentData) => {
-    try {
-      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/water-bill/mark-payment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bill_id: billId,
-          ...paymentData
-        })
-      });
-
-      if (response.ok) {
-        setSuccessMessage('Payment recorded successfully');
-        setShowPaymentModal(false);
-        setSelectedBillForPayment(null);
-        fetchWaterBillRecords();
-      } else {
-        setError('Failed to record payment');
-      }
-    } catch (err) {
-      setError('Failed to record payment');
-    }
-  };
-
-  useEffect(() => {
-    fetchWaterBillRecords();
-    fetchTenants();
-  }, []);
-
-  const getMonthName = (month) => {
-    const months = ['January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'];
-    return months[month - 1] || 'Unknown';
-  };
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          border: '4px solid #f3f4f6',
-          borderTop: '4px solid #3b82f6',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }}></div>
-        <p style={{ color: '#6b7280', fontSize: '16px' }}>Loading water bill records...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111827', margin: 0 }}>
-          Water Bill Management
-        </h2>
-        <button
-          onClick={() => setShowReadingModal(true)}
-          style={{
-            padding: '10px 16px',
-            backgroundColor: '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}
-        >
-          Create Water Bill
-        </button>
-      </div>
-
-      {error && (
-        <div style={{
-          padding: '12px 16px',
-          backgroundColor: '#fee2e2',
-          border: '1px solid #fecaca',
-          borderRadius: '6px',
-          marginBottom: '16px',
-          color: '#991b1b'
-        }}>
-          {error}
-        </div>
-      )}
-
-      {successMessage && (
-        <div style={{
-          padding: '12px 16px',
-          backgroundColor: '#dcfce7',
-          border: '1px solid #16a34a',
-          borderRadius: '6px',
-          fontSize: '14px',
-          color: '#166534'
-        }}>
-          {successMessage}
-        </div>
-      )}
-
-      <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead style={{ backgroundColor: '#f9fafb' }}>
-            <tr>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Tenant</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Period</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Units</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Amount</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Status</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {waterBillRecords.map(record => (
-              <tr key={record.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
-                  <div>
-                    <div style={{ fontWeight: '500', color: '#111827' }}>{record.tenant_name || 'Unknown'}</div>
-                    <div style={{ fontSize: '12px', color: '#9ca3af' }}>{record.property_name || 'N/A'}</div>
-                  </div>
-                </td>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
-                  {getMonthName(record.month)} {record.year}
-                </td>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
-                  {record.units_consumed} units
-                </td>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
-                  KSh {record.amount_due?.toLocaleString() || 0}
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <span style={{
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    backgroundColor: record.status === 'paid' ? '#dcfce7' :
-                      record.status === 'overdue' ? '#fee2e2' : '#fef3c7',
-                    color: record.status === 'paid' ? '#166534' :
-                      record.status === 'overdue' ? '#991b1b' : '#92400e'
-                  }}>
-                    {record.status}
-                  </span>
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {record.status !== 'paid' && (
-                      <button
-                        onClick={() => {
-                          setSelectedBillForPayment(record);
-                          setShowPaymentModal(true);
-                        }}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#10b981',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px'
-                        }}
-                      >
-                        Record Payment
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {waterBillRecords.length === 0 && (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-            No water bill records found
-          </div>
-        )}
-      </div>
-
-      {/* Create Water Bill Modal */}
-      {showReadingModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '8px',
-            width: '90%',
-            maxWidth: '500px'
-          }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600' }}>Create Water Bill</h3>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Tenant</label>
-              <select
-                value={selectedTenant || ''}
-                onChange={(e) => setSelectedTenant(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="">Choose a tenant...</option>
-                {tenants.map(tenant => (
-                  <option key={tenant.tenant_id} value={tenant.tenant_id}>
-                    {tenant.tenant_name} - {tenant.property_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Month</label>
-                <select
-                  value={readingForm.month}
-                  onChange={(e) => setReadingForm({ ...readingForm, month: parseInt(e.target.value) })}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                >
-                  {['January', 'February', 'March', 'April', 'May', 'June',
-                    'July', 'August', 'September', 'October', 'November', 'December'].map((month, index) => (
-                      <option key={month} value={index + 1}>{month}</option>
-                    ))}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Year</label>
-                <input
-                  type="number"
-                  value={readingForm.year}
-                  onChange={(e) => setReadingForm({ ...readingForm, year: parseInt(e.target.value) })}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Previous Reading</label>
-                <input
-                  type="number"
-                  value={readingForm.previous_reading}
-                  onChange={(e) => setReadingForm({ ...readingForm, previous_reading: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Current Reading</label>
-                <input
-                  type="number"
-                  value={readingForm.current_reading}
-                  onChange={(e) => setReadingForm({ ...readingForm, current_reading: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Unit Rate (KSh)</label>
-              <input
-                type="number"
-                value={readingForm.unit_rate}
-                onChange={(e) => setReadingForm({ ...readingForm, unit_rate: parseFloat(e.target.value) })}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => {
-                  setShowReadingModal(false);
-                  setSelectedTenant(null);
-                }}
-                style={{
-                  padding: '10px 16px',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateWaterBill}
-                disabled={!selectedTenant || !readingForm.previous_reading || !readingForm.current_reading}
-                style={{
-                  padding: '10px 16px',
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  opacity: (!selectedTenant || !readingForm.previous_reading || !readingForm.current_reading) ? 0.5 : 1
-                }}
-              >
-                Create Bill
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Payment Modal */}
-      {showPaymentModal && selectedBillForPayment && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '8px',
-            width: '90%',
-            maxWidth: '400px'
-          }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600' }}>Record Water Bill Payment</h3>
-
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>
-                <div><strong>Tenant:</strong> {selectedBillForPayment.tenant_name}</div>
-                <div><strong>Amount Due:</strong> KSh {selectedBillForPayment.amount_due?.toLocaleString() || 0}</div>
-                <div><strong>Balance:</strong> KSh {selectedBillForPayment.balance?.toLocaleString() || 0}</div>
-              </div>
-            </div>
-
-            <WaterBillPaymentForm
-              bill={selectedBillForPayment}
-              onSubmit={(paymentData) => handleRecordPayment(selectedBillForPayment.id, paymentData)}
-              onCancel={() => {
-                setShowPaymentModal(false);
-                setSelectedBillForPayment(null);
-              }}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const WaterBillPaymentForm = ({ bill, onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState({
-    amount_paid: bill.balance || bill.amount_due,
-    payment_method: 'Cash',
-    payment_reference: '',
-    notes: ''
-  });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Amount Paid (KSh)</label>
-        <input
-          type="number"
-          value={formData.amount_paid}
-          onChange={(e) => setFormData({ ...formData, amount_paid: parseFloat(e.target.value) })}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: '4px',
-            fontSize: '14px'
-          }}
-          required
-        />
-      </div>
-
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Payment Method</label>
-        <select
-          value={formData.payment_method}
-          onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: '4px',
-            fontSize: '14px'
-          }}
-        >
-          <option value="Cash">Cash</option>
-          <option value="M-Pesa">M-Pesa</option>
-          <option value="Bank Transfer">Bank Transfer</option>
-          <option value="Cheque">Cheque</option>
-        </select>
-      </div>
-
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Payment Reference</label>
-        <input
-          type="text"
-          value={formData.payment_reference}
-          onChange={(e) => setFormData({ ...formData, payment_reference: e.target.value })}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: '4px',
-            fontSize: '14px'
-          }}
-          placeholder="Transaction ID, Receipt No., etc."
-        />
-      </div>
-
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>Notes</label>
-        <textarea
-          value={formData.notes}
-          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: '4px',
-            fontSize: '14px',
-            minHeight: '60px'
-          }}
-          placeholder="Additional notes..."
-        />
-      </div>
-
-      <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-        <button
-          type="button"
-          onClick={onCancel}
-          style={{
-            padding: '10px 16px',
-            backgroundColor: '#f3f4f6',
-            color: '#374151',
-            border: '1px solid #d1d5db',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          style={{
-            padding: '10px 16px',
-            backgroundColor: '#10b981',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Record Payment
-        </button>
-      </div>
-    </form>
-  );
-};
-
-const DepositsPage = () => {
-  const [depositRecords, setDepositRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState(null);
-  const [paymentForm, setPaymentForm] = useState({
-    amount_paid: '',
-    payment_method: 'Cash',
-    payment_reference: '',
-    notes: ''
-  });
-
-  useEffect(() => {
-    fetchDepositRecords();
-  }, []);
-
-  const fetchDepositRecords = async () => {
-    try {
-      setLoading(true);
-      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/deposit/records`);
-      if (response.ok) {
-        const data = await response.json();
-        setDepositRecords(data.records || []);
-      } else {
-        setError('Failed to fetch deposit records');
-      }
-    } catch (err) {
-      setError('Error fetching deposit records');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleMarkDepositPayment = async () => {
-    try {
-      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/deposit/mark-payment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          deposit_id: selectedRecord.id,
-          ...paymentForm
-        })
-      });
-
-      if (response.ok) {
-        setSuccess('Payment marked successfully');
-        setShowPaymentModal(false);
-        setPaymentForm({ amount_paid: '', payment_method: 'Cash', payment_reference: '', notes: '' });
-        setSelectedRecord(null);
-        fetchDepositRecords();
-      } else {
-        setError('Failed to mark payment');
-      }
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      'paid': '#10b981',
-      'unpaid': '#ef4444',
-      'partial': '#f59e0b'
-    };
-    return colors[status] || '#6b7280';
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(amount);
-  };
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          border: '4px solid #f3f4f6',
-          borderTop: '4px solid #3b82f6',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }}></div>
-        <p style={{ color: '#6b7280', fontSize: '16px' }}>Loading deposit records...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111827', margin: 0 }}>
-          Deposit Management
-        </h2>
-      </div>
-
-      {error && (
-        <div style={{
-          backgroundColor: '#fee2e2',
-          color: '#991b1b',
-          padding: '12px 16px',
-          borderRadius: '6px',
-          marginBottom: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <AlertCircle size={16} />
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div style={{
-          backgroundColor: '#dcfce7',
-          color: '#166534',
-          padding: '12px 16px',
-          borderRadius: '6px',
-          marginBottom: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <CheckCircle size={16} />
-          {success}
-        </div>
-      )}
-
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-        padding: '20px'
-      }}>
-        <table style={{
-          width: '100%',
-          borderCollapse: 'collapse',
-          fontSize: '14px'
-        }}>
-          <thead style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-            <tr>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Tenant</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Property</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Required</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Paid</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Balance</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Status</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {depositRecords.map(record => (
-              <tr key={record.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>{record.tenant_name}</td>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>{record.property_name}</td>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
-                  {formatCurrency(record.amount_required)}
-                </td>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
-                  {formatCurrency(record.amount_paid || 0)}
-                </td>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
-                  {formatCurrency(record.balance || 0)}
-                </td>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
-                  <span style={{
-                    display: 'inline-block',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    backgroundColor: getStatusColor(record.status) + '20',
-                    color: getStatusColor(record.status)
-                  }}>
-                    {record.status}
-                  </span>
-                </td>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => {
-                        setSelectedRecord(record);
-                        setShowPaymentModal(true);
-                      }}
-                      style={{
-                        padding: '6px 8px',
-                        border: '1px solid #10b981',
-                        borderRadius: '4px',
-                        backgroundColor: '#10b981',
-                        color: 'white',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <DollarSign size={14} />
-                      Mark Payment
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Payment Modal */}
-      {showPaymentModal && selectedRecord && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            width: '90%',
-            maxWidth: '500px',
-            padding: '20px'
-          }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
-              Mark Deposit Payment
-            </h3>
-            <div style={{
-              backgroundColor: '#f9fafb',
-              padding: '16px',
-              borderRadius: '6px',
-              marginBottom: '16px'
-            }}>
-              <div style={{ fontSize: '13px', color: '#0c4a6e', lineHeight: '1.5' }}>
-                <div><strong>Tenant:</strong> {selectedRecord.tenant_name}</div>
-                <div><strong>Property:</strong> {selectedRecord.property_name}</div>
-                <div><strong>Required Amount:</strong> {formatCurrency(selectedRecord.amount_required)}</div>
-                <div><strong>Current Balance:</strong> {formatCurrency(selectedRecord.balance)}</div>
-              </div>
-            </div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
-                Amount Paid
-              </label>
-              <input
-                type="number"
-                value={paymentForm.amount_paid}
-                onChange={(e) => setPaymentForm({ ...paymentForm, amount_paid: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              />
-            </div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
-                Payment Method
-              </label>
-              <select
-                value={paymentForm.payment_method}
-                onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="Cash">Cash</option>
-                <option value="M-Pesa">M-Pesa</option>
-                <option value="Bank Transfer">Bank Transfer</option>
-              </select>
-            </div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
-                Payment Reference
-              </label>
-              <input
-                type="text"
-                value={paymentForm.payment_reference}
-                onChange={(e) => setPaymentForm({ ...paymentForm, payment_reference: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-                placeholder="Transaction ID, Reference number, etc."
-              />
-            </div>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
-                Notes
-              </label>
-              <textarea
-                value={paymentForm.notes}
-                onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  minHeight: '80px',
-                  resize: 'vertical'
-                }}
-                placeholder="Additional notes about this payment..."
-              />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                style={{
-                  padding: '10px 16px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  backgroundColor: 'white',
-                  color: '#6b7280',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleMarkDepositPayment}
-                style={{
-                  padding: '10px 16px',
-                  border: '1px solid #10b981',
-                  borderRadius: '6px',
-                  backgroundColor: '#10b981',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-              >
-                Mark Payment
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) => {
-  if (loading) {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p>Loading maintenance requests...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div style={styles.section}>
-      <div style={styles.pageHeaderControls}>
-        <h2 style={styles.pageTitle}>Maintenance Requests ({requests?.length || 0})</h2>
-      </div>
-
-      <div style={styles.tableWrapper}>
-        <table style={styles.table}>
-          <thead style={styles.tableHeader}>
-            <tr>
-              <th style={styles.th}>ID</th>
-              <th style={styles.th}>Tenant</th>
-              <th style={styles.th}>Room</th>
-              <th style={styles.th}>Issue</th>
-              <th style={styles.th}>Priority</th>
-              <th style={styles.th}>Status</th>
-              <th style={styles.th}>Date</th>
-              <th style={styles.th}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests?.length > 0 ? (
-              requests.map(request => (
-                <tr key={request.id} style={styles.tableRow}>
-                  <td style={styles.td}>#{request.id}</td>
-                  <td style={styles.td}>{request.tenant_name || 'N/A'}</td>
-                  <td style={styles.td}>{request.room_number || 'N/A'}</td>
-                  <td style={styles.td}>{request.issue_type || 'N/A'}</td>
-                  <td style={styles.td}>
-                    <span style={{
-                      ...styles.statusBadge,
-                      backgroundColor: request.priority === 'high' ? '#fee2e2' :
-                        request.priority === 'medium' ? '#fef3c7' : '#dcfce7',
-                      color: request.priority === 'high' ? '#991b1b' :
-                        request.priority === 'medium' ? '#92400e' : '#166534'
-                    }}>
-                      {request.priority || 'medium'}
-                    </span>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={{
-                      ...styles.statusBadge,
-                      backgroundColor: request.status === 'completed' ? '#dcfce7' :
-                        request.status === 'in_progress' ? '#fef3c7' : '#fee2e2',
-                      color: request.status === 'completed' ? '#166534' :
-                        request.status === 'in_progress' ? '#92400e' : '#991b1b'
-                    }}>
-                      {request.status || 'pending'}
-                    </span>
-                  </td>
-                  <td style={styles.td}>
-                    {request.created_at ? new Date(request.created_at).toLocaleDateString() : 'N/A'}
-                  </td>
-                  <td style={styles.td}>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        style={{ ...styles.btn, ...styles.btnSm, ...styles.btnPrimary }}
-                        onClick={() => onViewDetails(request)}
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <select
-                        value={request.status}
-                        onChange={(e) => onUpdateStatus(request.id, e.target.value)}
-                        style={{ ...styles.filterSelect, padding: '4px 8px', fontSize: '12px' }}
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                      </select>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="8" style={{ ...styles.td, textAlign: 'center', padding: '40px' }}>
-                  No maintenance requests found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
 
 const CaretakerDashboard = () => {
   const navigate = useNavigate();
@@ -1658,7 +599,8 @@ const CaretakerDashboard = () => {
             await Promise.all([
               fetchAvailableRooms(),
               fetchOccupiedRooms(),
-              fetchAllRooms()
+              fetchAllRooms(),
+              fetchTenants()
             ]);
             break;
           case 'tenants':
@@ -1674,11 +616,11 @@ const CaretakerDashboard = () => {
             ]);
             break;
           case 'vacate':
-            await fetchVacateNotices();
+            await Promise.all([fetchVacateNotices(), fetchTenants()]);
             break;
           case 'notifications':
           case 'inquiries':
-            await fetchNotifications();
+            await Promise.all([fetchNotifications(), fetchTenants()]);
             break;
           default:
             break;
@@ -1747,10 +689,21 @@ const CaretakerDashboard = () => {
           />
         );
       case 'tenants':
+        // Map payment status array to an object keyed by tenant_id for O(1) lookup
+        const paymentStatusMap = {};
+        if (Array.isArray(allTenantsPaymentStatus)) {
+          allTenantsPaymentStatus.forEach(status => {
+            paymentStatusMap[status.tenant_id] = {
+              status: status.current_month_paid ? 'paid' : 'unpaid',
+              ...status
+            };
+          });
+        }
+
         return (
           <TenantsPage
             tenants={tenants}
-            paymentStatus={allTenantsPaymentStatus}
+            paymentStatus={paymentStatusMap}
             loading={loading}
             onMarkPayment={(tenant) => {
               setSelectedTenantForPayment(tenant);
@@ -2155,16 +1108,10 @@ const DashboardPage = ({
 
   return (
     <>
-      <div style={styles.pageHeader}>
-        <h2 style={styles.pageTitle}>Caretaker Overview</h2>
-        <div style={styles.headerActions}>
-          <button style={styles.btnSecondary} onClick={onCreateMaintenance}>
-            <Plus size={16} /> Maintenance
-          </button>
-          <button style={styles.btnPrimary} onClick={() => window.location.reload()}>
-            <RefreshCw size={16} /> Refresh
-          </button>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
+        <button style={styles.btnSecondary} onClick={onCreateMaintenance}>
+          <Plus size={16} /> Maintenance
+        </button>
       </div>
 
       <div style={styles.gridContainer}>
@@ -2441,28 +1388,25 @@ const PaymentsPage = ({ pendingPayments, allPayments, loading, onMarkPayment }) 
 
   return (
     <>
-      <div style={styles.pageHeader}>
-        <h2 style={styles.pageTitle}>Payments Management</h2>
-        <div style={styles.tabs}>
-          <button
-            style={{
-              ...styles.tabButton,
-              ...(activeTab === 'all' ? styles.tabButtonActive : {})
-            }}
-            onClick={() => setActiveTab('all')}
-          >
-            All Payments ({allPayments.length})
-          </button>
-          <button
-            style={{
-              ...styles.tabButton,
-              ...(activeTab === 'pending' ? styles.tabButtonActive : {})
-            }}
-            onClick={() => setActiveTab('pending')}
-          >
-            Pending ({pendingPayments.length})
-          </button>
-        </div>
+      <div style={{ ...styles.tabs, marginBottom: '20px' }}>
+        <button
+          style={{
+            ...styles.tabButton,
+            ...(activeTab === 'all' ? styles.tabButtonActive : {})
+          }}
+          onClick={() => setActiveTab('all')}
+        >
+          All Payments ({allPayments.length})
+        </button>
+        <button
+          style={{
+            ...styles.tabButton,
+            ...(activeTab === 'pending' ? styles.tabButtonActive : {})
+          }}
+          onClick={() => setActiveTab('pending')}
+        >
+          Pending ({pendingPayments.length})
+        </button>
       </div>
 
       <div style={styles.gridContainer}>
@@ -2607,8 +1551,7 @@ const VacatePage = ({ notices, loading, onViewDetails, onUpdateStatus, onDelete,
 
   return (
     <>
-      <div style={styles.pageHeader}>
-        <h2 style={styles.pageTitle}>Vacate Notices Management</h2>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
         <button style={styles.btnPrimary} onClick={onCreateNotice}>
           <Plus size={16} /> Create Notice
         </button>
@@ -2838,8 +1781,8 @@ const NotificationsPage = ({ tenants, onSendNotification }) => {
 
   return (
     <div style={styles.section}>
-      <div style={styles.pageHeaderControls}>
-        <h2 style={styles.pageTitle}>Send Messages ({activeTenantsCount} active tenants)</h2>
+      <div style={{ marginBottom: '20px' }}>
+        <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Send Message to Tenants</h3>
       </div>
 
       <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
@@ -2935,73 +1878,7 @@ const NotificationsPage = ({ tenants, onSendNotification }) => {
 };
 
 
-const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
-  const [formData, setFormData] = useState({
-    rent_id: tenant.current_rent_id || tenant.id,
-    amount_paid: tenant.rent_amount || '',
-    payment_method: 'M-Pesa',
-    payment_reference: '',
-    notes: ''
-  });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
-
-  return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <h3>Mark Rent Payment: {tenant.tenant_name || tenant.name}</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
-        </div>
-        <form onSubmit={handleSubmit}>
-          <div style={styles.modalBody}>
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Amount (KSh)</label>
-              <input
-                type="number"
-                value={formData.amount_paid}
-                onChange={(e) => setFormData({ ...formData, amount_paid: e.target.value })}
-                required
-                style={styles.formInput}
-              />
-            </div>
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Method</label>
-              <select
-                value={formData.payment_method}
-                onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                style={styles.formSelect}
-              >
-                <option value="M-Pesa">M-Pesa</option>
-                <option value="Cash">Cash</option>
-                <option value="Bank">Bank</option>
-              </select>
-            </div>
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Reference</label>
-              <input
-                type="text"
-                value={formData.payment_reference}
-                onChange={(e) => setFormData({ ...formData, payment_reference: e.target.value })}
-                placeholder="Transaction ID"
-                style={styles.formInput}
-              />
-            </div>
-          </div>
-          <div style={styles.modalFooter}>
-            <button type="button" style={styles.btnSecondary} onClick={onClose}>Cancel</button>
-            <button type="submit" style={styles.btnPrimary} disabled={loading}>
-              {loading ? 'Submitting...' : 'Mark Paid'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
 
 
 const SendNotificationModal = ({ tenants = [], onClose, onSubmit, loading }) => {
@@ -3087,7 +1964,7 @@ const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNot
 
   return (
     <div style={styles.section}>
-      <h2 style={styles.pageTitle}>Tenants Management</h2>
+
 
       {tenants?.length === 0 ? (
         <div style={styles.emptyState}>
@@ -3160,7 +2037,7 @@ const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading, onVi
 
   return (
     <div style={styles.section}>
-      <h2 style={styles.pageTitle}>Properties Management</h2>
+
 
       <div style={styles.section}>
         <h3 style={styles.sectionTitle}>Available Rooms ({availableRooms?.length || 0})</h3>
@@ -3240,3 +2117,310 @@ const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading, onVi
     </div>
   );
 };
+
+const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
+  const [formData, setFormData] = useState({
+    amount_paid: tenant?.rent_amount || '',
+    payment_method: 'Cash',
+    payment_reference: '',
+    notes: ''
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit({
+      tenant_id: tenant.tenant_id || tenant.id,
+      ...formData
+    });
+  };
+
+  return (
+    <div style={styles.overlay} onClick={onClose}>
+      <div style={styles.card} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.pageHeaderControls}>
+          <h3 style={styles.pageTitle}>Mark Rent Payment</h3>
+          <button style={styles.closeBtn} onClick={onClose}>×</button>
+        </div>
+        <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+          <p style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+            Tenant: {tenant?.tenant_name || tenant?.name}
+          </p>
+          <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
+            Room: {tenant?.room_number || 'N/A'}
+          </p>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div style={styles.section}>
+            <div style={styles.formGroup}>
+              <label style={styles.statLabel}>Amount Paid (KSh)</label>
+              <input
+                type="number"
+                value={formData.amount_paid}
+                onChange={(e) => setFormData({ ...formData, amount_paid: e.target.value })}
+                required
+                style={styles.filterSelect}
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.statLabel}>Payment Method</label>
+              <select
+                value={formData.payment_method}
+                onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+                style={styles.filterSelect}
+              >
+                <option value="Cash">Cash</option>
+                <option value="M-Pesa">M-Pesa</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="Cheque">Cheque</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '20px' }}>
+            <button type="button" style={styles.btnSecondary} onClick={onClose}>Cancel</button>
+            <button type="submit" style={styles.btnPrimary} disabled={loading}>
+              {loading ? 'Processing...' : 'Mark Paid'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const WaterBillPage = () => {
+  const [waterBillRecords, setWaterBillRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showReadingModal, setShowReadingModal] = useState(false);
+  const [selectedTenant, setSelectedTenant] = useState(null);
+  const [tenants, setTenants] = useState([]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedBillForPayment, setSelectedBillForPayment] = useState(null);
+  const [readingForm, setReadingForm] = useState({
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear(),
+    previous_reading: '',
+    current_reading: '',
+    unit_rate: 50.0
+  });
+
+  const fetchWaterBillRecords = async () => {
+    try {
+      setLoading(true);
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/water-bill/records`);
+      if (response.ok) {
+        const data = await response.json();
+        setWaterBillRecords(data.records || []);
+      }
+    } catch (err) { setError('Error fetching water bills'); } finally { setLoading(false); }
+  };
+
+  const fetchTenantsForWater = async () => {
+    try {
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/tenants-with-leases`);
+      if (response.ok) {
+        const data = await response.json();
+        setTenants(data.tenants || []);
+      }
+    } catch (err) { console.error('Failed to fetch tenants:', err); }
+  };
+
+  useEffect(() => {
+    fetchWaterBillRecords();
+    fetchTenantsForWater();
+  }, []);
+
+  const getMonthName = (month) => {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+    return months[month - 1] || 'Unknown';
+  };
+
+  const handleCreateWaterBill = async () => {
+    try {
+      const tenant = tenants.find(t => t.tenant_id === parseInt(selectedTenant)) || tenants.find(t => t.id === parseInt(selectedTenant));
+      if (!tenant) throw new Error("Selected tenant not found");
+
+      const units_consumed = parseFloat(readingForm.current_reading) - parseFloat(readingForm.previous_reading);
+      const amount = units_consumed * parseFloat(readingForm.unit_rate);
+
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/water-bill/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: parseInt(selectedTenant),
+          property_id: parseInt(tenant.property_id),
+          month: parseInt(readingForm.month),
+          year: parseInt(readingForm.year),
+          reading_date: new Date().toISOString().split('T')[0],
+          previous_reading: parseFloat(readingForm.previous_reading),
+          current_reading: parseFloat(readingForm.current_reading),
+          units_consumed: units_consumed,
+          unit_rate: parseFloat(readingForm.unit_rate),
+          amount_due: amount
+        })
+      });
+
+      if (response.ok) {
+        setSuccessMessage('Water bill created!');
+        setShowReadingModal(false);
+        fetchWaterBillRecords();
+      }
+    } catch (err) { setError(err.message); }
+  };
+
+  const handleRecordPayment = async (billId, paymentData) => {
+    try {
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/water-bill/mark-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bill_id: billId, ...paymentData })
+      });
+      if (response.ok) {
+        setSuccessMessage('Payment recorded!');
+        setShowPaymentModal(false);
+        fetchWaterBillRecords();
+      }
+    } catch (err) { setError('Failed to record payment'); }
+  };
+
+  if (loading) return <div style={styles.loadingContainer}><div style={styles.spinner}></div></div>;
+
+  return (
+    <div style={styles.section}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
+        <button onClick={() => setShowReadingModal(true)} style={styles.btnPrimary}>Create Water Bill</button>
+      </div>
+      {error && <div style={styles.errorBanner}>{error}</div>}
+      {successMessage && <div style={styles.successBanner}>{successMessage}</div>}
+      <div style={styles.tableWrapper}>
+        <table style={styles.table}>
+          <thead style={styles.tableHeader}>
+            <tr><th>Tenant</th><th>Period</th><th>Units</th><th>Amount</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {waterBillRecords.map(record => (
+              <tr key={record.id} style={styles.tableRow}>
+                <td style={styles.td}>{record.tenant_name}</td>
+                <td style={styles.td}>{getMonthName(record.month)} {record.year}</td>
+                <td style={styles.td}>{record.units_consumed} units</td>
+                <td style={styles.td}>KSh {record.amount_due?.toLocaleString()}</td>
+                <td style={styles.td}>
+                  <span style={{ ...styles.statusBadge, backgroundColor: record.status === 'paid' ? '#dcfce7' : '#fef3c7', color: record.status === 'paid' ? '#166534' : '#92400e' }}>
+                    {record.status}
+                  </span>
+                </td>
+                <td style={styles.td}>
+                  {record.status !== 'paid' && (
+                    <button onClick={() => { setSelectedBillForPayment(record); setShowPaymentModal(true); }} style={styles.btnSuccess}>Pay</button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+const DepositsPage = () => {
+  const [depositRecords, setDepositRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [paymentForm, setPaymentForm] = useState({ amount_paid: '', payment_method: 'Cash' });
+
+  useEffect(() => { fetchDepositRecords(); }, []);
+
+  const fetchDepositRecords = async () => {
+    try {
+      setLoading(true);
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/deposit/records`);
+      if (response.ok) {
+        const data = await response.json();
+        setDepositRecords(data.records || []);
+      }
+    } catch (err) { setError('Error fetching deposits'); } finally { setLoading(false); }
+  };
+
+  const handleMarkPayment = async () => {
+    try {
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/deposit/mark-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deposit_id: selectedRecord.id, ...paymentForm })
+      });
+      if (response.ok) {
+        setSuccess('Payment marked!');
+        setShowPaymentModal(false);
+        fetchDepositRecords();
+      }
+    } catch (err) { setError(err.message); }
+  };
+
+  if (loading) return <div style={styles.loadingContainer}><div style={styles.spinner}></div></div>;
+
+  return (
+    <div style={styles.section}>
+
+      {error && <div style={styles.errorBanner}>{error}</div>}
+      {success && <div style={styles.successBanner}>{success}</div>}
+      <div style={styles.tableWrapper}>
+        <table style={styles.table}>
+          <thead style={styles.tableHeader}>
+            <tr><th>Tenant</th><th>Property</th><th>Required</th><th>Balance</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {depositRecords.map(r => (
+              <tr key={r.id} style={styles.tableRow}>
+                <td style={styles.td}>{r.tenant_name}</td>
+                <td style={styles.td}>{r.property_name}</td>
+                <td style={styles.td}>{r.amount_required}</td>
+                <td style={styles.td}>{r.balance}</td>
+                <td style={styles.td}>{r.status}</td>
+                <td style={styles.td}>
+                  <button onClick={() => { setSelectedRecord(r); setShowPaymentModal(true); }} style={styles.btnPrimary}>Pay</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) => {
+  if (loading) return <div style={styles.loadingContainer}><div style={styles.spinner}></div></div>;
+  return (
+    <div style={styles.section}>
+
+      <div style={styles.tableWrapper}>
+        <table style={styles.table}>
+          <thead style={styles.tableHeader}>
+            <tr><th>ID</th><th>Tenant</th><th>Issue</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {requests?.map(r => (
+              <tr key={r.id} style={styles.tableRow}>
+                <td style={styles.td}>#{r.id}</td>
+                <td style={styles.td}>{r.tenant_name}</td>
+                <td style={styles.td}>{r.issue_type}</td>
+                <td style={styles.td}>{r.status}</td>
+                <td style={styles.td}>
+                  <button onClick={() => onViewDetails(r)} style={styles.btnPrimary}><Eye size={14} /></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default CaretakerDashboard;
