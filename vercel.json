@@ -1,4 +1,11 @@
 {
-    "buildCommand": "cd joyce-suites && npm run build",
-    "outputDirectory": "joyce-suites/build"
+    "builds": [
+        {
+            "src": "joyce-suites/package.json",
+            "use": "@vercel/static-build",
+            "config": {
+                "distDir": "build"
+            }
+        }
+    ]
 }
