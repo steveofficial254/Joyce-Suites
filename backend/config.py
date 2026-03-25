@@ -2,7 +2,14 @@ import os
 from datetime import timedelta
 from dotenv import load_dotenv
 
+print("🔍 DEBUG: Loading environment variables...", flush=True)
 load_dotenv()
+print("🔍 DEBUG: Environment variables loaded", flush=True)
+
+print("🔍 DEBUG: All environment variables starting with SQL or DB:", flush=True)
+for key, value in os.environ.items():
+    if key.startswith(('SQL', 'DB', 'FLASK')):
+        print(f"🔍 {key} = {value}", flush=True)
 
 class BaseConfig:
     """Base configuration"""
