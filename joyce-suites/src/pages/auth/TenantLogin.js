@@ -4,6 +4,8 @@ import './Login.css';
 import logo from '../../assets/image1.png';
 import backgroundImage from '../../assets/image21.jpg';
 import config from '../../config';
+import { ArrowRight, X, AlertCircle } from 'lucide-react';
+
 
 const TenantLogin = () => {
   const navigate = useNavigate();
@@ -46,14 +48,14 @@ const TenantLogin = () => {
         data = await response.json();
       } else {
         const text = await response.text();
-        console.error('❌ Non-JSON response received:', text);
+        console.error('Error: Non-JSON response received:', text);
         setError(`Server error (${response.status}). Please try again later.`);
         setLoading(false);
         return;
       }
 
       if (!response.ok) {
-        console.error('❌ Login failed with status:', response.status);
+        console.error('Error: Login failed with status:', response.status);
         setError(data.error || data.message || 'Login failed');
         setLoading(false);
         return;
@@ -90,7 +92,7 @@ const TenantLogin = () => {
         navigate('/tenant/dashboard');
       }
     } catch (err) {
-      console.error('❌ Login error:', err);
+      console.error('Error: Login error:', err);
       setError(err.message || 'Network error. Please try again.');
       setLoading(false);
     }
@@ -105,8 +107,8 @@ const TenantLogin = () => {
 
       <div className="login-content">
         <div className="login-card">
-          <img src={logo} alt="Joyce Suits Logo" className="login-logo" />
-          <h1>Joyce Suits Apartments</h1>
+          <img src={logo} alt="Joyce Suites Logo" className="login-logo" />
+          <h1>Joyce Suites Apartments</h1>
           <h2>Tenant Login</h2>
 
           {error && <div className="alert alert-error">{error}</div>}
@@ -162,17 +164,19 @@ const TenantLogin = () => {
         <div className="auth-navigation">
           <button
             onClick={() => navigate('/caretaker-login')}
-            className="nav-btn caretaker-btn"
+            className="btn-link"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             disabled={loading}
           >
-            Caretaker Login →
+            Caretaker Login <ArrowRight size={16} />
           </button>
           <button
             onClick={() => navigate('/admin-login')}
-            className="nav-btn admin-btn"
+            className="btn-link"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             disabled={loading}
           >
-            Admin Login →
+            Admin Login <ArrowRight size={16} />
           </button>
         </div>
       </div>

@@ -17,24 +17,24 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  
+
   const userRef = useRef(null);
   const initializedRef = useRef(false);
 
-  
+
   const STORAGE_KEYS = {
     USER: 'joyce-suites-user',
     TOKEN: 'joyce-suites-token',
     ROLE: 'joyce-suites-role'
   };
 
-  
+
   const login = useCallback(async (email, password) => {
     setError('');
     setLoading(true);
 
     try {
-      
+
       const response = await apiService.auth.login(email, password);
 
       if (response.success) {
@@ -43,15 +43,15 @@ export function AuthProvider({ children }) {
           loginTime: new Date().toISOString()
         };
 
-        
+
         setUser(userData);
         userRef.current = userData;
 
-        
+
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
         if (response.token) {
           localStorage.setItem(STORAGE_KEYS.TOKEN, response.token);
-          
+
         }
         if (userData.role) {
           localStorage.setItem(STORAGE_KEYS.ROLE, userData.role);
@@ -63,7 +63,7 @@ export function AuthProvider({ children }) {
       }
     } catch (err) {
       const errorMessage = err.message || 'An error occurred during login';
-      console.error('❌ Login error:', errorMessage);
+      console.error('Error: Login error:', errorMessage);
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
@@ -71,13 +71,13 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  
+
   const signup = useCallback(async (userData) => {
     setError('');
     setLoading(true);
 
     try {
-      
+
       const response = await apiService.auth.signup(userData);
 
       if (response.success) {
@@ -86,11 +86,11 @@ export function AuthProvider({ children }) {
           loginTime: new Date().toISOString()
         };
 
-        
+
         setUser(newUser);
         userRef.current = newUser;
 
-        
+
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
         if (response.token) {
           localStorage.setItem(STORAGE_KEYS.TOKEN, response.token);
@@ -105,7 +105,7 @@ export function AuthProvider({ children }) {
       }
     } catch (err) {
       const errorMessage = err.message || 'An error occurred during signup';
-      console.error('❌ Signup error:', errorMessage);
+      console.error('Error: Signup error:', errorMessage);
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
@@ -113,39 +113,39 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  
-  const logout = useCallback(async () => {
-    
 
-    
+  const logout = useCallback(async () => {
+
+
+
     setUser(null);
     userRef.current = null;
     setError('');
 
-    
+
     localStorage.removeItem(STORAGE_KEYS.USER);
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
     localStorage.removeItem(STORAGE_KEYS.ROLE);
 
-    
 
-    
+
+
     try {
       await apiService.auth.logout();
-      
+
     } catch (error) {
-      console.warn('⚠️ Logout endpoint unreachable:', error.message);
+      console.warn('Warning: Logout endpoint unreachable:', error.message);
     }
   }, []);
 
-  
+
   const updateProfile = useCallback(async (updatedData) => {
     if (!userRef.current) {
       return { success: false, error: 'No user logged in' };
     }
 
     try {
-      
+
       const response = await apiService.auth.updateProfile(updatedData);
 
       if (response.success) {
@@ -156,40 +156,40 @@ export function AuthProvider({ children }) {
         if (updatedUser.role) {
           localStorage.setItem(STORAGE_KEYS.ROLE, updatedUser.role);
         }
-        
+
         return { success: true, user: updatedUser };
       } else {
         throw new Error(response.message || 'Profile update failed');
       }
     } catch (err) {
       const errorMessage = err.message || 'An error occurred while updating profile';
-      console.error('❌ Profile update error:', errorMessage);
+      console.error('Error: Profile update error:', errorMessage);
       setError(errorMessage);
       return { success: false, error: errorMessage };
     }
   }, []);
 
-  
+
   const refreshUser = useCallback(async () => {
     if (!userRef.current) return;
 
     try {
-      
+
       const profile = await apiService.auth.getProfile();
       const updatedUser = { ...userRef.current, ...profile };
       setUser(updatedUser);
       userRef.current = updatedUser;
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
-      
+
     } catch (error) {
-      console.error('❌ Error refreshing user data:', error);
-      
+      console.error('Error: Error refreshing user data:', error);
+
     }
   }, []);
 
   const clearError = useCallback(() => setError(''), []);
 
-  
+
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
@@ -204,13 +204,13 @@ export function AuthProvider({ children }) {
             const currentTime = Date.now() / 1000;
 
             if (decodedNode.exp < currentTime) {
-              
+
               localStorage.removeItem(STORAGE_KEYS.TOKEN);
               localStorage.removeItem(STORAGE_KEYS.USER);
               localStorage.removeItem(STORAGE_KEYS.ROLE);
               setUser(null);
             } else {
-              
+
               const userData = {
                 user_id: decodedNode.user_id,
                 email: decodedNode.email,
@@ -221,20 +221,20 @@ export function AuthProvider({ children }) {
                 is_active: decodedNode.is_active
               };
 
-              
+
               setUser(userData);
               userRef.current = userData;
             }
 
           } catch (decodeError) {
-            console.error('❌ Error decoding token:', decodeError);
+            console.error('Error: Error decoding token:', decodeError);
             localStorage.removeItem(STORAGE_KEYS.TOKEN);
           }
         } else {
-          
+
         }
       } catch (err) {
-        console.error('❌ Error initializing auth:', err);
+        console.error('Error: Error initializing auth:', err);
       } finally {
         setLoading(false);
       }
@@ -243,7 +243,7 @@ export function AuthProvider({ children }) {
     initializeAuth();
   }, []);
 
-  
+
   const isTenant = user?.role === 'tenant';
   const isCaretaker = user?.role === 'caretaker';
   const isAdmin = user?.role === 'admin';

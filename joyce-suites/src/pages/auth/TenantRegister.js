@@ -368,8 +368,8 @@ const TenantRegister = () => {
       <div className="register-content">
 
         <div className="register-header">
-          <img src={logo} alt="Joyce Suits Logo" className="register-logo" />
-          <h1>Joyce Suits Apartments</h1>
+          <img src={logo} alt="Joyce Suites Logo" className="register-logo" />
+          <h1>Joyce Suites Apartments</h1>
           <p>Tenant Registration</p>
         </div>
 
@@ -389,7 +389,7 @@ const TenantRegister = () => {
                     </div>
                   ) : (
                     <div className="upload-placeholder">
-                      <span className="upload-icon">📷</span>
+                      <Camera size={40} className="upload-icon-style" />
                       <p>Click to upload photo</p>
                     </div>
                   )}
@@ -415,7 +415,7 @@ const TenantRegister = () => {
                     </div>
                   ) : (
                     <div className="upload-placeholder">
-                      <span className="upload-icon">📄</span>
+                      <FileText size={40} className="upload-icon-style" />
                       <p>Click to upload ID</p>
                     </div>
                   )}

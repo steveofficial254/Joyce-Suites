@@ -8,7 +8,7 @@ import json
 
 def test_cors():
     """Test CORS endpoints"""
-    base_url = "https://joyce-suites-xdkp.onrender.com"
+    base_url = "https://joyce-suites.onrender.com"
     
     # Test preflight request
     print("🧪 Testing CORS preflight request...")

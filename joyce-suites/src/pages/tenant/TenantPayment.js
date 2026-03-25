@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; 
+import { useNavigate, Link } from 'react-router-dom';
 import './TenantPayment.css';
 import logo from '../../assets/image1.png';
+import {
+  LayoutDashboard, CreditCard, User,
+  Wrench, FileText, LogOut, X, AlertCircle
+} from 'lucide-react';
+
 
 const TenantPayments = () => {
   const navigate = useNavigate();
@@ -14,53 +19,53 @@ const TenantPayments = () => {
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [mpesaPhone, setMpesaPhone] = useState('');
-  
-  
+
+
   const [tenantInfo, setTenantInfo] = useState({ leaseId: null, roomNumber: null });
 
-  
+
   useEffect(() => {
     fetchPayments(currentPage, statusFilter);
   }, [statusFilter, currentPage]);
 
-  
+
   useEffect(() => {
     fetchTenantLeaseInfo();
-  }, []); 
+  }, []);
 
   const fetchTenantLeaseInfo = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        
-        return; 
+
+        return;
       }
-      
-      
-      const response = await fetch('/api/tenant/lease/active', { 
+
+
+      const response = await fetch('/api/tenant/lease/active', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok || !data.lease_id || !data.room_number) {
         console.warn('Could not load active lease information. Payment initiation will be disabled.');
-        
-        return; 
+
+        return;
       }
-      
-      setTenantInfo({ 
-          leaseId: data.lease_id, 
-          roomNumber: data.room_number 
+
+      setTenantInfo({
+        leaseId: data.lease_id,
+        roomNumber: data.room_number
       });
-      
+
     } catch (err) {
       console.error('Error fetching tenant lease info:', err);
-      
+
       setError('Failed to load critical tenant data. Cannot initiate payments.');
     }
   };
@@ -87,9 +92,9 @@ const TenantPayments = () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to load payments');
       }
@@ -107,10 +112,10 @@ const TenantPayments = () => {
 
   const handlePayNow = (payment) => {
     if (!tenantInfo.leaseId || !tenantInfo.roomNumber) {
-        setError('Cannot initiate payment. Active lease information is missing.');
-        return;
+      setError('Cannot initiate payment. Active lease information is missing.');
+      return;
     }
-    
+
     setSelectedPayment(payment);
     setShowPaymentModal(true);
     setMpesaPhone('');
@@ -123,14 +128,14 @@ const TenantPayments = () => {
     }
 
     if (!tenantInfo.leaseId || !tenantInfo.roomNumber) {
-        setError('System error: Lease information is missing. Cannot proceed with payment.');
-        return;
+      setError('System error: Lease information is missing. Cannot proceed with payment.');
+      return;
     }
 
     setError('');
     try {
       const token = localStorage.getItem('token');
-      
+
       const response = await fetch('/api/payments/initiate', {
         method: 'POST',
         headers: {
@@ -140,8 +145,8 @@ const TenantPayments = () => {
         body: JSON.stringify({
           amount: selectedPayment.amount,
           phone_number: mpesaPhone,
-          
-          lease_id: tenantInfo.leaseId, 
+
+          lease_id: tenantInfo.leaseId,
           room_number: tenantInfo.roomNumber
         })
       });
@@ -202,36 +207,35 @@ const TenantPayments = () => {
       <aside className="sidebar">
         <div className="sidebar-header">
           <img src={logo} alt="Logo" className="sidebar-logo" />
-          <h2>Joyce Suits</h2>
+          <h2>Joyce Suites</h2>
         </div>
 
         <nav className="sidebar-nav">
-          {}
           <Link to="/tenant/dashboard" className="nav-item">
-            <span className="nav-icon">📊</span>
+            <LayoutDashboard size={18} />
             Dashboard
           </Link>
           <Link to="/tenant/payments" className="nav-item active">
-            <span className="nav-icon">💵</span>
+            <CreditCard size={18} />
             Payments
           </Link>
           <Link to="/tenant/profile" className="nav-item">
-            <span className="nav-icon">👤</span>
+            <User size={18} />
             Profile
           </Link>
           <Link to="/tenant/maintenance" className="nav-item">
-            <span className="nav-icon">🔧</span>
+            <Wrench size={18} />
             Maintenance
           </Link>
           <Link to="/tenant/lease" className="nav-item">
-            <span className="nav-icon">📄</span>
+            <FileText size={18} />
             My Lease
           </Link>
         </nav>
 
         <div className="sidebar-footer">
           <button onClick={handleLogout} className="logout-btn">
-            <span className="nav-icon">🚪</span>
+            <LogOut size={18} />
             Logout
           </button>
         </div>
@@ -244,16 +248,16 @@ const TenantPayments = () => {
             <p className="breadcrumb">Home / Payments</p>
           </div>
           <div className="topbar-right">
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={() => {
                 const payable = payments.find(p => p.status === 'pending' || p.status === 'overdue');
                 handlePayNow(payable || { amount: summary.total_pending, month: 'Current', due_date: new Date().toISOString() });
               }}
-              
-              disabled={!tenantInfo.leaseId || !tenantInfo.roomNumber} 
+
+              disabled={!tenantInfo.leaseId || !tenantInfo.roomNumber}
             >
-              💳 Make Payment
+              <CreditCard size={18} /> Make Payment
             </button>
           </div>
         </header>
@@ -285,25 +289,25 @@ const TenantPayments = () => {
           <div className="filters-section">
             <h3>Payment History</h3>
             <div className="filter-buttons">
-              <button 
+              <button
                 className={`filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
                 onClick={() => { setStatusFilter('all'); setCurrentPage(1); }}
               >
                 All
               </button>
-              <button 
+              <button
                 className={`filter-btn ${statusFilter === 'paid' ? 'active' : ''}`}
                 onClick={() => { setStatusFilter('paid'); setCurrentPage(1); }}
               >
                 Paid
               </button>
-              <button 
+              <button
                 className={`filter-btn ${statusFilter === 'pending' ? 'active' : ''}`}
                 onClick={() => { setStatusFilter('pending'); setCurrentPage(1); }}
               >
                 Pending
               </button>
-              <button 
+              <button
                 className={`filter-btn ${statusFilter === 'overdue' ? 'active' : ''}`}
                 onClick={() => { setStatusFilter('overdue'); setCurrentPage(1); }}
               >
@@ -341,10 +345,10 @@ const TenantPayments = () => {
                       <td className="reference">{payment.transaction_ref || '-'}</td>
                       <td className="actions">
                         {payment.status === 'pending' || payment.status === 'overdue' ? (
-                          <button 
+                          <button
                             className="action-btn pay"
                             onClick={() => handlePayNow(payment)}
-                            
+
                             disabled={!tenantInfo.leaseId || !tenantInfo.roomNumber}
                           >
                             Pay
@@ -369,20 +373,20 @@ const TenantPayments = () => {
           </div>
         </div>
 
-        {}
+        { }
         {showPaymentModal && (
           <div className="modal-overlay" onClick={() => setShowPaymentModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <button className="modal-close" onClick={() => setShowPaymentModal(false)}>
-                ×
+                <X size={20} />
               </button>
               <h2>Make Payment</h2>
-              
+
               {selectedPayment && (
                 <div className="payment-details-summary">
                   <p><strong>Month:</strong> {selectedPayment.month || 'N/A'}</p>
                   <p><strong>Amount:</strong> <span className="modal-amount">KSh {selectedPayment.amount.toLocaleString()}</span></p>
-                  {}
+                  { }
                   <p><strong>Lease:</strong> Lease ID {tenantInfo.leaseId || 'N/A'} (Room {tenantInfo.roomNumber || 'N/A'})</p>
                 </div>
               )}
@@ -396,20 +400,20 @@ const TenantPayments = () => {
 
                   <div className="form-group">
                     <label htmlFor="mpesa-phone">M-Pesa Phone (e.g., 2547XXXXXXXX):</label>
-                    <input 
+                    <input
                       id="mpesa-phone"
-                      type="tel" 
+                      type="tel"
                       value={mpesaPhone}
                       onChange={(e) => setMpesaPhone(e.target.value)}
                       placeholder="2547..."
                       required
                     />
                   </div>
-                  <button 
-                    className="btn btn-primary" 
+                  <button
+                    className="btn btn-primary"
                     onClick={handleMpesaPayment}
-                    
-                    disabled={!tenantInfo.leaseId || !tenantInfo.roomNumber || !mpesaPhone} 
+
+                    disabled={!tenantInfo.leaseId || !tenantInfo.roomNumber || !mpesaPhone}
                   >
                     Initiate STK Push
                   </button>
@@ -419,11 +423,11 @@ const TenantPayments = () => {
                   <h3>Bank Transfer Details</h3>
                   <div className="payment-details">
                     <p><strong>Bank:</strong> Equity Bank</p>
-                    <p><strong>Account Name:</strong> JOYCE SUITS LTD</p>
+                    <p><strong>Account Name:</strong> JOYCE SUITES LTD</p>
                     <p><strong>Account No:</strong> 0123456789</p>
                   </div>
-                  <button className="btn btn-secondary" 
-					onClick={() => navigator.clipboard.writeText('0123456789').then(() => alert('Account number copied!'))}>
+                  <button className="btn btn-secondary"
+                    onClick={() => navigator.clipboard.writeText('0123456789').then(() => alert('Account number copied!'))}>
                     Copy Account No.
                   </button>
                 </div>
@@ -435,7 +439,7 @@ const TenantPayments = () => {
         <footer className="dashboard-footer">
           <div className="footer-content">
             <div className="footer-section">
-              <h4>Joyce Suits Apartments</h4>
+              <h4>Joyce Suites Apartments</h4>
               <p>Your home, our care</p>
             </div>
             <div className="footer-section">
@@ -445,14 +449,13 @@ const TenantPayments = () => {
             </div>
             <div className="footer-section">
               <h4>Quick Links</h4>
-              {}
               <Link to="/tenant/dashboard">Dashboard</Link>
               <Link to="/tenant/maintenance">Maintenance</Link>
               <Link to="/tenant/profile">Profile</Link>
             </div>
           </div>
           <div className="footer-bottom">
-            <p>&copy; 2024 Joyce Suits Apartments. All rights reserved.</p>
+            <p>&copy; 2024 Joyce Suites Apartments. All rights reserved.</p>
           </div>
         </footer>
       </main>

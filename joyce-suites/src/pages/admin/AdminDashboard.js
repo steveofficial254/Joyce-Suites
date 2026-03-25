@@ -154,10 +154,10 @@ const AdminRentDeposit = ({ defaultTab = 'rent' }) => {
 const AdminMaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) => {
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '400px',
         flexDirection: 'column',
         gap: '20px'
@@ -618,14 +618,14 @@ const AdminDashboard = () => {
         switch (activePage) {
           case 'dashboard':
             await Promise.all([
-              fetchOverview().catch(() => {}),
-              fetchMaintenanceRequests().catch(() => {}),
-              fetchAvailableRooms().catch(() => {}),
-              fetchTenants().catch(() => {}),
-              fetchPaymentReport().catch(() => {}),
-              fetchOccupancyReport().catch(() => {}),
-              fetchContracts().catch(() => {}),
-              fetchUserProfile().catch(() => {})
+              fetchOverview().catch(() => { }),
+              fetchMaintenanceRequests().catch(() => { }),
+              fetchAvailableRooms().catch(() => { }),
+              fetchTenants().catch(() => { }),
+              fetchPaymentReport().catch(() => { }),
+              fetchOccupancyReport().catch(() => { }),
+              fetchContracts().catch(() => { }),
+              fetchUserProfile().catch(() => { })
             ]);
             break;
           case 'contracts':
@@ -847,7 +847,6 @@ const AdminDashboard = () => {
             { id: 'notifications', label: 'Notifications', icon: Bell },
             { id: 'reports', label: 'Reports', icon: FileSpreadsheet },
             { id: 'properties', label: 'Properties', icon: Building },
-            { id: 'financial-summary', label: 'Financial Summary', icon: TrendingUp },
             { id: 'messages', label: 'Inquiries', icon: MessageSquare }
           ].map(item => (
             <button
@@ -868,12 +867,12 @@ const AdminDashboard = () => {
         <div style={styles.userInfo}>
           <div style={styles.userAvatar}>
             {userProfile?.photo_path ? (
-              <img 
+              <img
                 src={`${API_BASE_URL}/${userProfile.photo_path}`}
-                alt="Profile" 
-                style={{ 
-                  width: '36px', 
-                  height: '36px', 
+                alt="Profile"
+                style={{
+                  width: '36px',
+                  height: '36px',
                   borderRadius: '50%',
                   objectFit: 'cover'
                 }}
@@ -967,7 +966,7 @@ const AdminDashboard = () => {
           <div style={styles.errorBanner}>
             <AlertCircle size={16} />
             <span>{error}</span>
-            <button style={styles.closeBannerBtn} onClick={() => setError('')}>×</button>
+            <button style={styles.closeBannerBtn} onClick={() => setError('')}><X size={18} /></button>
           </div>
         )}
 
@@ -975,7 +974,7 @@ const AdminDashboard = () => {
           <div style={styles.successBanner}>
             <CheckCircle size={16} />
             <span>{successMessage}</span>
-            <button style={styles.closeBannerBtn} onClick={() => setSuccessMessage('')}>×</button>
+            <button style={styles.closeBannerBtn} onClick={() => setSuccessMessage('')}><X size={18} /></button>
           </div>
         )}
 
@@ -1331,7 +1330,7 @@ const DashboardPage = ({
                     <tr>
                       <td colSpan="5" style={{ ...styles.td, textAlign: 'center' }}>
                         <button style={styles.btnText} onClick={() => window.location.hash = '#tenants'}>
-                          {"View all " + filteredTenants.length + " tenants →"}
+                          {"View all " + filteredTenants.length + " tenants "} <ArrowRight size={14} style={{ marginLeft: '4px' }} />
                         </button>
                       </td>
                     </tr>
@@ -1802,35 +1801,6 @@ const ReportsPage = ({ paymentReport, occupancyReport, loading, tenants }) => {
         </div>
       )}
 
-      { }
-      <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>Financial Summary</h3>
-        <div style={styles.financialSummary}>
-          <div style={styles.financialCard}>
-            <h4>Monthly Revenue Potential</h4>
-            <p style={styles.financialValue}>
-              {"KSh " + (occupancyStats ? (occupancyStats.total * 5250).toLocaleString() : '0')}
-            </p>
-            <small style={styles.financialNote}>Based on average rent of KSh 5,250</small>
-          </div>
-          <div style={styles.financialCard}>
-            <h4>Collection Rate</h4>
-            <p style={{ ...styles.financialValue, color: paymentStats?.successRate > 80 ? '#10b981' : '#f59e0b' }}>
-              {(paymentStats ? paymentStats.successRate : 0) + "%"}
-            </p>
-            <small style={styles.financialNote}>Payment success rate</small>
-          </div>
-          <div style={styles.financialCard}>
-            <h4>Revenue per Room</h4>
-            <p style={styles.financialValue}>
-              {"KSh " + (paymentStats && occupancyStats?.occupied > 0
-                ? Math.round(paymentStats.totalAmount / occupancyStats.occupied).toLocaleString()
-                : '0')}
-            </p>
-            <small style={styles.financialNote}>Average per occupied room</small>
-          </div>
-        </div>
-      </div>
     </>
   );
 };
@@ -1951,7 +1921,7 @@ const TenantDetailsModal = ({ tenant, onClose }) => {
       <div style={{ ...styles.modalContent, maxWidth: '800px' }} onClick={(e) => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <h3>Tenant Details</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
+          <button style={styles.modalClose} onClick={onClose}><X size={20} /></button>
         </div>
 
         <div style={styles.modalTabs}>
@@ -2184,7 +2154,7 @@ const CreateTenantModal = ({ onClose, onSubmit, loading }) => {
       <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <h3>Create New Tenant</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
+          <button style={styles.modalClose} onClick={onClose}><X size={20} /></button>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -2341,7 +2311,7 @@ const CreateLeaseModal = ({ tenant, rooms, onClose, onSubmit, loading }) => {
       <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <h3>Create Lease for {tenant.name}</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
+          <button style={styles.modalClose} onClick={onClose}><X size={20} /></button>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -2484,7 +2454,7 @@ const SendNotificationModal = ({ tenants, onClose, onSubmit, loading }) => {
       <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <h3>Send Notification</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
+          <button style={styles.modalClose} onClick={onClose}><X size={20} /></button>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -2574,7 +2544,7 @@ const MaintenanceDetailsModal = ({ request, onClose, onUpdateStatus }) => {
       <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <h3>Maintenance Request Details</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
+          <button style={styles.modalClose} onClick={onClose}><X size={20} /></button>
         </div>
 
         <div style={styles.modalBody}>
@@ -2708,7 +2678,7 @@ const VacateNoticeDetailsModal = ({ notice, onClose, onUpdateStatus }) => {
       <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <h3>Vacate Notice Details</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
+          <button style={styles.modalClose} onClick={onClose}><X size={20} /></button>
         </div>
 
         <div style={styles.modalBody}>
@@ -3421,28 +3391,6 @@ const styles = {
     fontSize: '20px',
     fontWeight: '600',
     color: '#111827'
-  },
-  financialSummary: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-    gap: '16px'
-  },
-  financialCard: {
-    padding: '20px',
-    backgroundColor: '#f8fafc',
-    borderRadius: '8px',
-    border: '1px solid #e5e7eb',
-    textAlign: 'center'
-  },
-  financialValue: {
-    fontSize: '28px',
-    fontWeight: '600',
-    color: '#111827',
-    margin: '8px 0'
-  },
-  financialNote: {
-    fontSize: '12px',
-    color: '#6b7280'
   },
   activitiesGrid: {
     display: 'grid',

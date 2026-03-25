@@ -36,9 +36,9 @@ class ApiService {
     try {
       const response = await fetch(url, requestOptions);
 
-      
 
-      
+
+
       const contentType = response.headers.get('content-type');
       let data;
 
@@ -49,18 +49,18 @@ class ApiService {
       }
 
       if (!response.ok) {
-        console.error('❌ API Error Response:', data);
+        console.error('Error: API Error Response:', data);
         throw new Error(data.message || data.error || `HTTP error! status: ${response.status}`);
       }
 
       return data;
     } catch (error) {
-      console.error('❌ API request failed:', error);
+      console.error('Error: API request failed:', error);
       throw error;
     }
   }
 
-  
+
   auth = {
     login: async (email, password) => {
       return this.request(config.endpoints.auth.login, {
@@ -94,7 +94,7 @@ class ApiService {
     },
   };
 
-  
+
   mpesa = {
     stkPush: async (paymentData) => {
       return this.request(config.endpoints.mpesa.stkPush, {
@@ -111,7 +111,7 @@ class ApiService {
     },
   };
 
-  
+
   payments = {
     create: async (paymentData) => {
       return this.request(config.endpoints.payments.create, {
@@ -131,7 +131,7 @@ class ApiService {
     },
   };
 
-  
+
   caretaker = {
     getProfile: async () => {
       return this.request(config.endpoints.caretaker.profile);
@@ -155,7 +155,7 @@ class ApiService {
     },
   };
 
-  
+
   tenant = {
     getDashboard: async () => {
       return this.request(config.endpoints.tenant.dashboard);

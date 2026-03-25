@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './TenantProfile.css';
 import logo from '../../assets/image1.png';
+import {
+  LayoutDashboard, CreditCard, User,
+  Wrench, FileText, LogOut, Edit, Save
+} from 'lucide-react';
+
 
 const TenantProfile = () => {
   const navigate = useNavigate();
@@ -22,7 +27,7 @@ const TenantProfile = () => {
     emergency_phone: ''
   });
 
-  const [formData, setFormData] = useState({...profileData});
+  const [formData, setFormData] = useState({ ...profileData });
 
   useEffect(() => {
     fetchProfile();
@@ -43,9 +48,9 @@ const TenantProfile = () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to load profile');
       }
@@ -110,7 +115,7 @@ const TenantProfile = () => {
   };
 
   const handleCancelEdit = () => {
-    setFormData({...profileData});
+    setFormData({ ...profileData });
     setEditing(false);
     setError('');
   };
@@ -141,47 +146,47 @@ const TenantProfile = () => {
 
   return (
     <div className="tenant-dashboard">
-      {}
+      { }
       <aside className="sidebar">
         <div className="sidebar-header">
           <img src={logo} alt="Logo" className="sidebar-logo" />
-          <h2>Joyce Suits</h2>
+          <h2>Joyce Suites</h2>
         </div>
 
         <nav className="sidebar-nav">
           <a href="/tenant/dashboard" className="nav-item">
-            <span className="nav-icon">📊</span>
+            <LayoutDashboard size={18} />
             Dashboard
           </a>
           <a href="/tenant/payments" className="nav-item">
-            <span className="nav-icon">💳</span>
+            <CreditCard size={18} />
             Payments
           </a>
           <a href="/tenant/profile" className="nav-item active">
-            <span className="nav-icon"></span>
+            <User size={18} />
             Profile
           </a>
           <a href="/tenant/maintenance" className="nav-item">
-            <span className="nav-icon"></span>
+            <Wrench size={18} />
             Maintenance
           </a>
           <a href="/tenant/lease" className="nav-item">
-            <span className="nav-icon"></span>
+            <FileText size={18} />
             My Lease
           </a>
         </nav>
 
         <div className="sidebar-footer">
           <button onClick={handleLogout} className="logout-btn">
-            <span className="nav-icon">🚪</span>
+            <LogOut size={18} />
             Logout
           </button>
         </div>
       </aside>
 
-      {}
+      { }
       <main className="main-content">
-        {}
+        { }
         <header className="topbar">
           <div className="topbar-left">
             <h1>Profile</h1>
@@ -189,11 +194,11 @@ const TenantProfile = () => {
           </div>
         </header>
 
-        {}
+        { }
         {success && <div className="alert alert-success">{success}</div>}
         {error && <div className="alert alert-error">{error}</div>}
 
-        {}
+        { }
         <div className="profile-content">
           <div className="profile-card">
             <div className="profile-header">
@@ -235,11 +240,12 @@ const TenantProfile = () => {
                   <span className="detail-value">{profileData.emergency_phone}</span>
                 </div>
 
-                <button 
+                <button
                   className="btn btn-primary"
                   onClick={() => setEditing(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
                 >
-                  ✏️ Edit Profile
+                  <Edit size={18} /> Edit Profile
                 </button>
               </div>
             ) : (
@@ -290,11 +296,11 @@ const TenantProfile = () => {
                 </div>
 
                 <div className="form-actions">
-                  <button type="submit" className="btn btn-primary" disabled={loading}>
-                    {loading ? 'Saving...' : ' Save Changes'}
+                  <button type="submit" className="btn btn-primary" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                    <Save size={18} /> {loading ? 'Saving...' : ' Save Changes'}
                   </button>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="btn btn-secondary"
                     onClick={handleCancelEdit}
                   >
@@ -306,11 +312,11 @@ const TenantProfile = () => {
           </div>
         </div>
 
-        {}
+        { }
         <footer className="dashboard-footer">
           <div className="footer-content">
             <div className="footer-section">
-              <h4>Joyce Suits Apartments</h4>
+              <h4>Joyce Suites Apartments</h4>
               <p>Your home, our care</p>
             </div>
             <div className="footer-section">
@@ -326,7 +332,7 @@ const TenantProfile = () => {
             </div>
           </div>
           <div className="footer-bottom">
-            <p>&copy; 2024 Joyce Suits Apartments. All rights reserved.</p>
+            <p>&copy; 2024 Joyce Suites Apartments. All rights reserved.</p>
           </div>
         </footer>
       </main>

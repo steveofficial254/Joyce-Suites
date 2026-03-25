@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import './Login.css';
 import logo from '../../assets/image1.png';
 import backgroundImage from '../../assets/image21.jpg';
+import { ArrowLeft, ArrowRight, Key, X, AlertCircle } from 'lucide-react';
+
 
 const CaretakerLogin = () => {
   const navigate = useNavigate();
@@ -15,7 +17,7 @@ const CaretakerLogin = () => {
     password: ''
   });
 
-  
+
   useEffect(() => {
     if (user && (user.role === 'caretaker' || user.role === 'admin')) {
       navigate('/caretaker/dashboard', { replace: true });
@@ -40,7 +42,7 @@ const CaretakerLogin = () => {
   };
 
   const getErrorMessage = (err, status = null, responseData = null) => {
-    
+
     if (err?.message?.includes('Failed to fetch')) {
       return 'Network error: Unable to reach the server. Please check your internet connection.';
     }
@@ -53,7 +55,7 @@ const CaretakerLogin = () => {
       return 'Server returned invalid data. Please try again.';
     }
 
-    
+
     if (status === 401) {
       return 'Invalid email or password. Please try again.';
     }
@@ -70,7 +72,7 @@ const CaretakerLogin = () => {
       return 'Server error. Please try again later.';
     }
 
-    
+
     if (responseData?.error) {
       return responseData.error;
     }
@@ -79,7 +81,7 @@ const CaretakerLogin = () => {
       return responseData.message;
     }
 
-    
+
     return 'Login failed. Please try again.';
   };
 
@@ -96,9 +98,9 @@ const CaretakerLogin = () => {
       }
 
       const email = formData.email.trim().toLowerCase();
-      
+
       const result = await login(email, formData.password);
-      
+
       if (result.success) {
         const validRoles = ['caretaker', 'admin'];
         if (!validRoles.includes(result.user.role)) {
@@ -106,8 +108,8 @@ const CaretakerLogin = () => {
           setLoading(false);
           return;
         }
-        
-        
+
+
       } else {
         setError(result.error || 'Login failed');
       }
@@ -118,7 +120,7 @@ const CaretakerLogin = () => {
     }
   };
 
-  
+
   const fillDefaultCredentials = () => {
     const defaultEmail = process.env.REACT_APP_DEFAULT_CARETAKER_EMAIL;
     const defaultPassword = process.env.REACT_APP_DEFAULT_CARETAKER_PASSWORD;
@@ -145,21 +147,11 @@ const CaretakerLogin = () => {
           <h2>Caretaker Portal</h2>
 
           {error && (
-            <div className="alert alert-error">
+            <div className="error-banner">
+              <AlertCircle size={16} />
               <span>{error}</span>
-              <button
-                onClick={() => setError('')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'inherit',
-                  fontSize: '20px',
-                  cursor: 'pointer',
-                  marginLeft: '10px'
-                }}
-                aria-label="Close error message"
-              >
-                ×
+              <button onClick={() => setError('')} className="close-error">
+                <X size={18} />
               </button>
             </div>
           )}
@@ -230,8 +222,11 @@ const CaretakerLogin = () => {
                   color: '#0369a1'
                 }}
               >
-                <strong>🔑 Development Mode:</strong>
-                <br />
+                <div className="dev-mode-badge" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Key size={16} />
+                  <strong>Development Mode:</strong>
+                  <span>Caretaker access enabled</span>
+                </div>
                 Default credentials available via button above
               </div>
             )}
@@ -240,17 +235,19 @@ const CaretakerLogin = () => {
         <div className="auth-navigation">
           <button
             onClick={() => navigate('/login')}
-            className="nav-btn tenant-btn"
+            className="btn-link"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             disabled={loading || authLoading}
           >
-            ← Tenant Login
+            <ArrowLeft size={16} /> Tenant Login
           </button>
           <button
-            onClick={() => navigate('/admin-login')}
-            className="nav-btn admin-btn"
+            onClick={() => navigate('/login-admin')}
+            className="btn-link"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             disabled={loading || authLoading}
           >
-            Admin Login →
+            Admin Login <ArrowRight size={16} />
           </button>
         </div>
       </div>

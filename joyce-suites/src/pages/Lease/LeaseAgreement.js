@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SignatureCanvas from 'react-signature-canvas';
+import { Printer, ArrowLeft } from 'lucide-react';
+
 import './LeaseAgreement.css';
 import logo from '../../assets/image1.png';
 
@@ -22,14 +24,14 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
   });
 
   useEffect(() => {
-    
+
     fetchLeaseData();
   }, []);
 
   const fetchLeaseData = async () => {
     try {
-      
-      
+
+
       setLeaseData({
         tenant: tenantData || {
           fullName: 'John Doe',
@@ -82,10 +84,10 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
     setLoading(true);
 
     try {
-      
+
       const signatureDataUrl = signatureRef.current.toDataURL();
 
-      
+
       const leaseSubmission = {
         tenantId: leaseData.tenant.id,
         roomNumber: leaseData.tenant.roomNumber,
@@ -100,7 +102,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
         }
       };
 
-      
+
       const response = await fetch('/api/lease/sign', {
         method: 'POST',
         headers: {
@@ -117,7 +119,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
       }
 
       setSuccess('Lease agreement signed successfully! Redirecting to dashboard...');
-      
+
       setTimeout(() => {
         navigate('/tenant/dashboard');
       }, 2000);
@@ -140,17 +142,17 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
   return (
     <div className="lease-agreement-container">
       <div className="lease-header">
-        <img src={logo} alt="Joyce Suits Logo" className="lease-logo" />
-        <h1>Joyce Suits Apartments</h1>
+        <img src={logo} alt="Joyce Suites Logo" className="lease-logo" />
+        <h1>Joyce Suites Apartments</h1>
         <h2>House Lease Agreement</h2>
       </div>
 
       <div className="lease-content-wrapper">
-        {}
+        { }
         {error && <div className="alert alert-error">{error}</div>}
         {success && <div className="alert alert-success">{success}</div>}
 
-        {}
+        { }
         <div className="lease-document">
           <div className="lease-intro">
             <p>
@@ -159,7 +161,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
             </p>
           </div>
 
-          {}
+          { }
           <div className="lease-section">
             <h3>LANDLORD:</h3>
             <div className="info-box">
@@ -169,7 +171,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
             </div>
           </div>
 
-          {}
+          { }
           <div className="lease-section">
             <h3>TENANT:</h3>
             <div className="info-box tenant-info">
@@ -180,7 +182,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
             </div>
           </div>
 
-          {}
+          { }
           <div className="lease-section">
             <h3>PROPERTY ADDRESS:</h3>
             <div className="info-box">
@@ -191,7 +193,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
             </div>
           </div>
 
-          {}
+          { }
           <div className="lease-terms">
             <div className="term-item">
               <h4>1. TERM OF LEASE</h4>
@@ -307,11 +309,11 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
           </div>
         </div>
 
-        {}
+        { }
         <div className="signature-section">
           <h3>Agreement Acceptance & Signature</h3>
 
-          {}
+          { }
           <div className="terms-acceptance">
             <label className="checkbox-label">
               <input
@@ -328,7 +330,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
             </label>
           </div>
 
-          {}
+          { }
           <div className="signature-canvas-container">
             <label className="signature-label">
               Tenant's Signature *
@@ -336,7 +338,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
                 (Draw your signature in the box below)
               </span>
             </label>
-            
+
             <div className="canvas-wrapper">
               <SignatureCanvas
                 ref={signatureRef}
@@ -363,7 +365,7 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
             </div>
           </div>
 
-          {}
+          { }
           <div className="submit-section">
             <button
               onClick={handleSubmit}
@@ -387,19 +389,21 @@ const LeaseAgreement = ({ tenantData, unitData }) => {
           </div>
         </div>
 
-        {}
+        { }
         <div className="lease-actions">
           <button
             onClick={() => window.print()}
             className="btn btn-outline"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
           >
-            📄 Print Agreement
+            <Printer size={18} /> Print Agreement
           </button>
           <button
             onClick={() => navigate('/tenant/dashboard')}
             className="btn btn-outline"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
           >
-            ← Back to Dashboard
+            <ArrowLeft size={18} /> Back to Dashboard
           </button>
         </div>
       </div>

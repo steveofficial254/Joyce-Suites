@@ -5,7 +5,7 @@ import '@testing-library/jest-dom';
 
 // Mock the config module to use the database URL
 jest.mock('../config', () => ({
-  apiBaseUrl: 'https://joyce-suites-xdkp.onrender.com'
+  apiBaseUrl: 'https://joyce-suites.onrender.com'
 }));
 
 // Mock File and FileReader
@@ -122,7 +122,7 @@ const ImageUpload = ({
         formData.append('images', file);
       });
 
-      const response = await fetch('https://joyce-suites-xdkp.onrender.com/api/upload/images', {
+      const response = await fetch('https://joyce-suites.onrender.com/api/upload/images', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('joyce-suites-token')}`
@@ -356,7 +356,7 @@ describe('ImageUpload Component - Production Ready Tests', () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('https://joyce-suites-xdkp.onrender.com/api/upload/images'),
+        expect.stringContaining('https://joyce-suites.onrender.com/api/upload/images'),
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({

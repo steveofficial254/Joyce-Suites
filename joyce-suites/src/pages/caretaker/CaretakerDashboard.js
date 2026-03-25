@@ -9,10 +9,10 @@ import {
   TrendingUp, PieChart, FileSpreadsheet, DoorOpen, List, CreditCard as PaymentIcon,
   FileCheck, AlertOctagon, Home as RoomIcon, CalendarDays, UserCheck,
   Receipt, FileWarning, ShieldCheck, ShieldX, CalendarCheck, CalendarX,
-  BedDouble, Bath, Square, Layers, MapPin, Droplet
+  BedDouble, Bath, Square, Layers, MapPin, Droplet, ArrowRight
 } from 'lucide-react';
 
-import './CaretakerDashboard.css';
+
 
 import config from '../../config';
 
@@ -32,74 +32,511 @@ const fetchWithAuth = async (url, options = {}) => {
   return response;
 };
 
-// Basic styles object to prevent ReferenceError
+const OverviewCard = ({ title, value, icon: Icon, color, subtitle }) => (
+  <div style={styles.overviewCard}>
+    <div style={{ ...styles.cardIcon, backgroundColor: color + '20', color: color }}>
+      <Icon size={24} />
+    </div>
+    <div style={styles.cardContent}>
+      <h3 style={styles.cardTitle}>{title}</h3>
+      <p style={styles.cardValue}>{value}</p>
+      {subtitle && <p style={styles.cardSubtitle}>{subtitle}</p>}
+    </div>
+  </div>
+);
+
+const SummaryCard = ({ label, value, color = '#6b7280' }) => (
+  <div style={styles.summaryCard}>
+    <span style={styles.summaryLabel}>{label}</span>
+    <span style={{ ...styles.summaryValue, color: color }}>{value}</span>
+  </div>
+);
+
 const styles = {
-  loadingContainer: { display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px' },
-  spinner: { width: '40px', height: '40px', border: '4px solid #f3f4f6', borderTop: '4px solid #3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' },
-  section: { marginBottom: '24px' },
-  pageHeaderControls: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
-  pageTitle: { fontSize: '24px', fontWeight: '600', margin: 0 },
-  tableWrapper: { overflowX: 'auto' },
-  table: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
-  tableHeader: { backgroundColor: '#f8fafc' },
-  th: { padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' },
-  tableRow: { borderBottom: '1px solid #e5e7eb', transition: 'background-color 0.2s ease' },
-  td: { padding: '12px 16px', color: '#6b7280' },
-  statusBadge: { padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '500' },
-  btn: { padding: '8px 12px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s ease' },
-  btnSm: { padding: '4px 8px', fontSize: '12px' },
-  btnPrimary: { backgroundColor: '#3b82f6', color: 'white' },
-  btnSecondary: { backgroundColor: '#6b7280', color: 'white' },
-  btnSuccess: { backgroundColor: '#10b981', color: 'white' },
-  btnWarning: { backgroundColor: '#f59e0b', color: 'white' },
-  btnDanger: { backgroundColor: '#ef4444', color: 'white' },
-  filterSelect: { padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', backgroundColor: 'white' },
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' },
-  statCard: { backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease' },
-  statIcon: { color: '#3b82f6' },
-  statNumber: { fontSize: '24px', fontWeight: '600', color: '#111827' },
-  statLabel: { fontSize: '14px', color: '#6b7280' },
-  sectionTitle: { fontSize: '18px', fontWeight: '600', margin: '0 0 16px 0' },
-  card: { backgroundColor: 'white', padding: '16px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
-
-  // Enhanced admin-like styles
-  container: { display: 'flex', minHeight: '100vh' },
-  sidebar: { width: '260px', backgroundColor: '#1f2937', color: 'white', position: 'fixed', height: '100vh', overflowY: 'auto', transition: 'all 0.3s ease', zIndex: 1000 },
-  sidebarHidden: { width: '60px' },
-  sidebarHeader: { padding: '20px', borderBottom: '1px solid #374151', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  sidebarTitle: { fontSize: '18px', fontWeight: '600', margin: 0 },
-  closeBtn: { background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px' },
-  nav: { padding: '20px 0' },
-  navItem: { display: 'flex', alignItems: 'center', padding: '12px 20px', color: 'white', textDecoration: 'none', cursor: 'pointer', border: 'none', background: 'none', width: '100%', textAlign: 'left', transition: 'background-color 0.2s ease' },
-  navItemActive: { backgroundColor: '#3b82f6' },
-  userInfo: { padding: '20px', borderTop: '1px solid #374151' },
-  userAvatar: { width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' },
-  userDetails: { fontSize: '14px' },
-  logoutBtnWrapper: { padding: '0 20px 20px', opacity: 0, transition: 'opacity 0.3s ease' },
-  logoutBtnWrapperVisible: { opacity: 1 },
-  logoutBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 15px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', width: '100%', justifyContent: 'center' },
-  main: { flex: 1, backgroundColor: '#f8fafc', minHeight: '100vh' },
-  header: { backgroundColor: 'white', padding: '16px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' },
-  headerLeft: { display: 'flex', alignItems: 'center', gap: '12px' },
-  menuBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px' },
-  homeBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#3b82f6' },
-  headerTitle: { fontSize: '20px', fontWeight: '600', margin: 0 },
-  headerRight: { display: 'flex', alignItems: 'center', gap: '12px' },
-  refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px' },
-  notificationBadge: { position: 'relative', cursor: 'pointer' },
-  badgeCount: { position: 'absolute', top: '-8px', right: '-8px', backgroundColor: '#ef4444', color: 'white', fontSize: '10px', padding: '2px 4px', borderRadius: '10px' },
-
-  errorBanner: { backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: '6px', margin: '16px', display: 'flex', alignItems: 'center', gap: '8px' },
-  successBanner: { backgroundColor: '#f0fdf4', color: '#16a34a', padding: '12px 16px', borderRadius: '6px', margin: '16px', display: 'flex', alignItems: 'center', gap: '8px' },
-  closeBannerBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px', marginLeft: 'auto' },
-  content: { padding: '24px' },
-  overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 999 }
+  container: {
+    display: 'flex',
+    height: '100vh',
+    backgroundColor: '#f9fafb',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+  },
+  sidebar: {
+    width: '260px',
+    backgroundColor: '#1f2937',
+    color: 'white',
+    display: 'flex',
+    flexDirection: 'column',
+    transition: 'transform 0.3s',
+    position: 'fixed',
+    height: '100vh',
+    zIndex: 100,
+    boxShadow: '2px 0 10px rgba(0,0,0,0.1)'
+  },
+  sidebarHidden: {
+    transform: 'translateX(-100%)'
+  },
+  sidebarHeader: {
+    padding: '20px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottom: '1px solid #374151'
+  },
+  sidebarTitle: {
+    margin: 0,
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#fbbf24'
+  },
+  closeBtn: {
+    background: 'transparent',
+    border: 'none',
+    color: 'white',
+    cursor: 'pointer',
+    padding: '4px',
+    display: 'flex',
+    alignItems: 'center'
+  },
+  nav: {
+    flex: 1,
+    padding: '20px 0',
+    overflowY: 'auto'
+  },
+  navItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '12px 24px',
+    color: '#9ca3af',
+    textDecoration: 'none',
+    transition: 'all 0.2s',
+    border: 'none',
+    background: 'none',
+    width: '100%',
+    textAlign: 'left',
+    cursor: 'pointer'
+  },
+  navItemActive: {
+    color: 'white',
+    backgroundColor: '#374151',
+    borderLeft: '4px solid #fbbf24'
+  },
+  userInfo: {
+    padding: '20px',
+    borderTop: '1px solid #374151',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  userAvatar: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    backgroundColor: '#374151',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  userDetails: {
+    flex: 1,
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  logoutBtnWrapper: {
+    padding: '10px 20px 20px',
+    display: 'none'
+  },
+  logoutBtnWrapperVisible: {
+    display: 'block'
+  },
+  logoutBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    color: '#ef4444',
+    background: 'none',
+    border: 'none',
+    padding: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    width: '100%',
+    borderRadius: '6px',
+    transition: 'background 0.2s'
+  },
+  main: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100vh',
+    transition: 'margin-left 0.3s'
+  },
+  header: {
+    height: '64px',
+    backgroundColor: 'white',
+    borderBottom: '1px solid #e5e7eb',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '0 24px',
+    position: 'sticky',
+    top: 0,
+    zIndex: 50
+  },
+  headerLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px'
+  },
+  menuBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#6b7280',
+    cursor: 'pointer',
+    padding: '4px',
+    display: 'flex',
+    alignItems: 'center'
+  },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  refreshBtn: {
+    background: 'transparent',
+    border: '1px solid #e5e7eb',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    padding: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    transition: 'all 0.2s'
+  },
+  notificationBadge: {
+    position: 'relative',
+    padding: '8px',
+    cursor: 'pointer'
+  },
+  badgeCount: {
+    position: 'absolute',
+    top: '-2px',
+    right: '-2px',
+    backgroundColor: '#ef4444',
+    color: 'white',
+    borderRadius: '50%',
+    width: '18px',
+    height: '18px',
+    fontSize: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  content: {
+    flex: 1,
+    padding: '24px',
+    overflowY: 'auto'
+  },
+  pageHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '24px',
+    flexWrap: 'wrap',
+    gap: '16px'
+  },
+  pageTitle: {
+    margin: 0,
+    fontSize: '24px',
+    fontWeight: '600',
+    color: '#111827'
+  },
+  gridContainer: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gap: '20px',
+    marginBottom: '32px'
+  },
+  dashboardGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '24px',
+    marginBottom: '32px'
+  },
+  dashboardColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px'
+  },
+  overviewCard: {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    padding: '20px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    border: '1px solid #e5e7eb',
+    transition: 'all 0.2s'
+  },
+  cardIcon: {
+    width: '48px',
+    height: '48px',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  cardContent: {
+    flex: 1
+  },
+  cardTitle: {
+    margin: '0 0 4px 0',
+    fontSize: '14px',
+    color: '#6b7280',
+    fontWeight: '500'
+  },
+  cardValue: {
+    margin: '0 0 4px 0',
+    fontSize: '24px',
+    fontWeight: '600',
+    color: '#111827'
+  },
+  cardSubtitle: {
+    margin: 0,
+    fontSize: '12px',
+    color: '#9ca3af'
+  },
+  section: {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    padding: '24px',
+    marginBottom: '24px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    border: '1px solid #e5e7eb'
+  },
+  sectionTitle: {
+    margin: '0 0 20px 0',
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#111827',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px',
+    flexWrap: 'wrap',
+    gap: '12px'
+  },
+  sectionHeaderControls: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  summaryGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '16px'
+  },
+  summaryCard: {
+    padding: '16px',
+    backgroundColor: '#f9fafb',
+    borderRadius: '6px',
+    border: '1px solid #e5e7eb',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    transition: 'all 0.2s'
+  },
+  summaryLabel: {
+    fontSize: '14px',
+    color: '#6b7280',
+    fontWeight: '500'
+  },
+  summaryValue: {
+    fontSize: '24px',
+    fontWeight: '600'
+  },
+  tableWrapper: {
+    overflowX: 'auto',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb'
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontSize: '14px',
+    minWidth: '800px'
+  },
+  tableHeader: {
+    backgroundColor: '#f9fafb',
+    borderBottom: '2px solid #e5e7eb'
+  },
+  th: {
+    padding: '12px 16px',
+    textAlign: 'left',
+    fontWeight: '600',
+    color: '#374151',
+    borderRight: '1px solid #e5e7eb'
+  },
+  tableRow: {
+    borderBottom: '1px solid #e5e7eb',
+    transition: 'all 0.2s'
+  },
+  td: {
+    padding: '12px 16px',
+    color: '#6b7280',
+    borderRight: '1px solid #e5e7eb'
+  },
+  statusBadge: {
+    display: 'inline-block',
+    padding: '4px 12px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500',
+    whiteSpace: 'nowrap'
+  },
+  btnPrimary: {
+    padding: '10px 16px',
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    transition: 'all 0.2s'
+  },
+  btnSecondary: {
+    padding: '10px 16px',
+    backgroundColor: 'white',
+    color: '#374151',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    transition: 'all 0.2s'
+  },
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '60px 20px',
+    color: '#6b7280',
+    minHeight: '400px'
+  },
+  spinner: {
+    width: '40px',
+    height: '40px',
+    border: '4px solid #e5e7eb',
+    borderTopColor: '#3b82f6',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+    marginBottom: '16px'
+  },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: '60px 20px',
+    color: '#9ca3af',
+    textAlign: 'center'
+  },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    padding: '20px',
+    backdropFilter: 'blur(4px)',
+    overflowY: 'auto'
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    maxWidth: '600px',
+    width: '100%',
+    maxHeight: 'calc(100vh - 40px)',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+    overflow: 'hidden'
+  },
+  modalHeader: {
+    padding: '20px 24px',
+    borderBottom: '1px solid #e5e7eb',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb'
+  },
+  modalBody: {
+    padding: '24px',
+    overflowY: 'auto',
+    flex: 1
+  },
+  modalFooter: {
+    padding: '16px 24px',
+    borderTop: '1px solid #e5e7eb',
+    display: 'flex',
+    gap: '12px',
+    justifyContent: 'flex-end',
+    backgroundColor: '#f9fafb'
+  },
+  formGroup: {
+    marginBottom: '16px'
+  },
+  formLabel: {
+    display: 'block',
+    marginBottom: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151'
+  },
+  formInput: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px',
+    transition: 'all 0.2s'
+  },
+  formSelect: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px',
+    backgroundColor: 'white'
+  }
 };
 
+const spinKeyframes = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
 
-
-
-// End of styles
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = spinKeyframes;
+  document.head.appendChild(style);
+}
 
 
 const CaretakerDashboard = () => {
@@ -380,14 +817,14 @@ const CaretakerDashboard = () => {
         setUserProfile(data.user);
         // Debug: Log profile data
         if (data.user?.photo_path) {
-          console.log('✅ Caretaker photo found:', data.user.photo_path);
+          console.log('Success: Caretaker photo found:', data.user.photo_path);
         } else {
-          console.log('ℹ️ No caretaker photo found, will use default icon');
+          console.log('Info: No caretaker photo found, will use default icon');
         }
       }
     } catch (err) {
       // Failed to fetch user profile
-      console.log('❌ Failed to fetch caretaker profile');
+      console.log('Error: Failed to fetch caretaker profile');
     }
   };
 
@@ -398,7 +835,7 @@ const CaretakerDashboard = () => {
         setFinancialSummary(data.summary);
       }
     } catch (err) {
-      console.log('❌ Failed to fetch financial summary');
+      console.log('Error: Failed to fetch financial summary');
     }
   };
 
@@ -829,11 +1266,19 @@ const CaretakerDashboard = () => {
   };
 
   return (
-    <div className="caretaker-dashboard">
+    <div style={styles.container}>
+      {/* Sidebar Overlay for Mobile */}
+      {isMobile && sidebarOpen && (
+        <div
+          style={styles.overlay}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
       <aside style={{
         ...styles.sidebar,
-        transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-        display: isMobile && !sidebarOpen ? 'none' : 'block'
+        ...(isMobile && !sidebarOpen ? styles.sidebarHidden : {})
       }}>
         <div style={styles.sidebarHeader}>
           <h2 style={styles.sidebarTitle}>Joyce Suites</h2>
@@ -843,91 +1288,109 @@ const CaretakerDashboard = () => {
             </button>
           )}
         </div>
+
         <nav style={styles.nav}>
-          <button
-            style={{ ...styles.navItem, ...(activePage === 'dashboard' ? styles.navItemActive : {}) }}
-            onClick={() => { setActivePage('dashboard'); if (isMobile) setSidebarOpen(false); }}
-          >
-            <PieChart size={18} /> Dashboard
-          </button>
-          <button
-            style={{ ...styles.navItem, ...(activePage === 'properties' ? styles.navItemActive : {}) }}
-            onClick={() => { setActivePage('properties'); if (isMobile) setSidebarOpen(false); }}
-          >
-            <Home size={18} /> Room Management
-          </button>
-          <button
-            style={{ ...styles.navItem, ...(activePage === 'tenants' ? styles.navItemActive : {}) }}
-            onClick={() => { setActivePage('tenants'); if (isMobile) setSidebarOpen(false); }}
-          >
-            <Users size={18} /> Tenants
-          </button>
-          <button
-            style={{ ...styles.navItem, ...(activePage === 'payments' ? styles.navItemActive : {}) }}
-            onClick={() => { setActivePage('payments'); if (isMobile) setSidebarOpen(false); }}
-          >
-            <CreditCard size={18} /> Rent Payments
-          </button>
-          <button
-            style={{ ...styles.navItem, ...(activePage === 'water-bill' ? styles.navItemActive : {}) }}
-            onClick={() => { setActivePage('water-bill'); if (isMobile) setSidebarOpen(false); }}
-          >
-            <Droplet size={18} /> Water Bills
-          </button>
-          <button
-            style={{ ...styles.navItem, ...(activePage === 'maintenance' ? styles.navItemActive : {}) }}
-            onClick={() => { setActivePage('maintenance'); if (isMobile) setSidebarOpen(false); }}
-          >
-            <Wrench size={18} /> Maintenance
-          </button>
-          <button
-            style={{ ...styles.navItem, ...(activePage === 'vacate' ? styles.navItemActive : {}) }}
-            onClick={() => { setActivePage('vacate'); if (isMobile) setSidebarOpen(false); }}
-          >
-            <LogOut size={18} /> Vacate Notices
-          </button>
-          <button
-            style={{ ...styles.navItem, ...(activePage === 'notifications' ? styles.navItemActive : {}) }}
-            onClick={() => { setActivePage('notifications'); if (isMobile) setSidebarOpen(false); }}
-          >
-            <Bell size={18} /> Notifications
-          </button>
+          {[
+            { id: 'dashboard', label: 'Dashboard', icon: Home },
+            { id: 'properties', label: 'Room Management', icon: Building },
+            { id: 'tenants', label: 'Tenants', icon: Users },
+            { id: 'payments', label: 'Rent Payments', icon: CreditCard },
+            { id: 'water-bill', label: 'Water Bills', icon: Droplet },
+            { id: 'maintenance', label: 'Maintenance', icon: Wrench },
+            { id: 'vacate', label: 'Vacate Notices', icon: LogOut },
+            { id: 'notifications', label: 'Notifications', icon: Bell }
+          ].map(item => (
+            <button
+              key={item.id}
+              style={{
+                ...styles.navItem,
+                ...(activePage === item.id ? styles.navItemActive : {})
+              }}
+              onClick={() => {
+                handlePageChange(item.id);
+                if (isMobile) setSidebarOpen(false);
+              }}
+            >
+              <item.icon size={18} />
+              <span>{item.label}</span>
+            </button>
+          ))}
         </nav>
 
         <div style={styles.userInfo}>
           <div style={styles.userAvatar}>
-            <User size={20} color="white" />
+            {userProfile?.photo_path ? (
+              <img
+                src={`${API_BASE_URL}/${userProfile.photo_path}`}
+                alt="Profile"
+                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+              />
+            ) : (
+              <User size={20} color="white" />
+            )}
           </div>
           <div style={styles.userDetails}>
-            <p style={{ margin: 0, fontWeight: '600' }}>{userProfile?.name || 'Caretaker'}</p>
-            <p style={{ margin: 0, fontSize: '12px', color: '#9ca3af' }}>{userProfile?.email}</p>
+            <p style={{ margin: 0, fontWeight: '600', color: 'white', fontSize: '14px' }}>
+              {userProfile?.name || 'Caretaker'}
+            </p>
+            <p style={{ margin: 0, fontSize: '11px', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {userProfile?.email}
+            </p>
           </div>
         </div>
-        <div style={{ ...styles.logoutBtnWrapper, ...(sidebarOpen ? styles.logoutBtnWrapperVisible : {}) }}>
-          <button style={styles.logoutBtn} onClick={() => { localStorage.clear(); window.location.href = '/caretaker-login'; }}>
-            <LogOut size={18} /> Logout
+
+        <div style={{ ...styles.logoutBtnWrapper, display: 'block' }}>
+          <button
+            style={styles.logoutBtn}
+            onClick={() => { localStorage.clear(); window.location.href = '/caretaker-login'; }}
+          >
+            <LogOut size={18} />
+            <span>Logout</span>
           </button>
         </div>
       </aside>
 
+      {/* Main Content Area */}
       <main style={{
         ...styles.main,
-        marginLeft: !isMobile && sidebarOpen ? '260px' : '0',
-        width: !isMobile && sidebarOpen ? 'calc(100% - 260px)' : '100%'
+        marginLeft: isMobile ? 0 : (sidebarOpen ? '260px' : 0),
+        width: '100%'
       }}>
         <header style={styles.header}>
           <div style={styles.headerLeft}>
-            <button style={styles.menuBtn} onClick={() => setSidebarOpen(!sidebarOpen)}>
-              <Menu size={24} />
+            {!isMobile && (
+              <button style={styles.menuBtn} onClick={() => setSidebarOpen(true)}>
+                <Menu size={24} />
+              </button>
+            )}
+            <button
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#6b7280',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '8px'
+              }}
+              onClick={() => handlePageChange('dashboard')}
+            >
+              <Home size={20} />
             </button>
             <h1 style={styles.headerTitle}>
-              {activePage.charAt(0).toUpperCase() + activePage.slice(1)}
+              {activePage.charAt(0).toUpperCase() + activePage.slice(1).replace('-', ' ')}
             </h1>
           </div>
           <div style={styles.headerRight}>
             <button style={styles.refreshBtn} onClick={() => window.location.reload()}>
               <RefreshCw size={20} />
             </button>
+            <div style={styles.notificationBadge}>
+              <Bell size={20} color="#6b7280" />
+              {overview?.pending_maintenance > 0 && (
+                <span style={styles.badgeCount}>{overview.pending_maintenance}</span>
+              )}
+            </div>
           </div>
         </header>
 
@@ -935,7 +1398,7 @@ const CaretakerDashboard = () => {
           <div style={styles.errorBanner}>
             <AlertCircle size={16} />
             <span>{error}</span>
-            <button style={styles.closeBannerBtn} onClick={() => setError('')}>×</button>
+            <button style={styles.closeBannerBtn} onClick={() => setError('')}><X size={18} /></button>
           </div>
         )}
 
@@ -943,7 +1406,7 @@ const CaretakerDashboard = () => {
           <div style={styles.successBanner}>
             <CheckCircle size={16} />
             <span>{successMessage}</span>
-            <button style={styles.closeBannerBtn} onClick={() => setSuccessMessage('')}>×</button>
+            <button style={styles.closeBannerBtn} onClick={() => setSuccessMessage('')}><X size={18} /></button>
           </div>
         )}
 
@@ -1060,6 +1523,7 @@ const DashboardPage = ({
   availableRooms,
   pendingPayments,
   vacateNotices,
+  financialSummary,
   loading,
   onUpdateStatus,
   onViewDetails,
@@ -1110,7 +1574,7 @@ const DashboardPage = ({
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
         <button style={styles.btnSecondary} onClick={onCreateMaintenance}>
-          <Plus size={16} /> Maintenance
+          <Plus size={16} /> Maintenance Request
         </button>
       </div>
 
@@ -1153,23 +1617,25 @@ const DashboardPage = ({
         />
       </div>
 
-      <div style={styles.columnsContainer}>
-        <div style={styles.column}>
+      <div style={styles.dashboardGrid}>
+        <div style={styles.dashboardColumn}>
           <div style={styles.section}>
             <div style={styles.sectionHeader}>
               <h3 style={styles.sectionTitle}>
                 <Wrench size={18} /> Recent Maintenance ({filteredMaintenance.length})
               </h3>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                style={styles.filterSelect}
-              >
-                <option value="all">All</option>
-                <option value="pending">Pending</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-              </select>
+              <div style={styles.sectionHeaderControls}>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  style={styles.formSelect}
+                >
+                  <option value="all">All</option>
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
             </div>
             <div style={styles.tableWrapper}>
               <table style={styles.table}>
@@ -1209,11 +1675,11 @@ const DashboardPage = ({
                           </td>
                           <td style={styles.td}>
                             <button
-                              style={styles.btnSmallPrimary}
+                              style={styles.btnPrimary}
                               onClick={() => onViewDetails(req)}
                               title="View Details"
                             >
-                              <Eye size={14} />
+                              <Eye size={14} /> View
                             </button>
                           </td>
                         </tr>
@@ -1229,18 +1695,18 @@ const DashboardPage = ({
                 </tbody>
               </table>
             </div>
-            <div style={styles.sectionFooter}>
+            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
               <button
-                style={styles.btnText}
+                style={styles.btnSecondary}
                 onClick={onViewAllMaintenance || (() => { })}
               >
-                View All <ArrowLeft size={14} style={{ transform: 'rotate(180deg)' }} />
+                View All <ArrowRight size={14} style={{ marginLeft: '8px' }} />
               </button>
             </div>
           </div>
         </div>
 
-        <div style={styles.column}>
+        <div style={styles.dashboardColumn}>
           <div style={styles.section}>
             <div style={styles.sectionHeader}>
               <h3 style={styles.sectionTitle}>
@@ -1265,17 +1731,21 @@ const DashboardPage = ({
                           <td style={styles.td}>{tenant.tenant_name}</td>
                           <td style={styles.td}>{tenant.room_number || 'N/A'}</td>
                           <td style={styles.td}>
-                            <span style={styles.badgeWarning}>
+                            <span style={{
+                              ...styles.statusBadge,
+                              backgroundColor: '#fef3c7',
+                              color: '#92400e'
+                            }}>
                               {tenant.pending_payments} payments
                             </span>
                           </td>
                           <td style={styles.td}>
                             <button
-                              style={styles.btnSmallPrimary}
+                              style={styles.btnPrimary}
                               onClick={() => onMarkPayment(tenant)}
                               title="Mark Payment"
                             >
-                              <Check size={14} />
+                              <CheckCircle size={14} /> Pay
                             </button>
                           </td>
                         </tr>
@@ -1333,11 +1803,10 @@ const DashboardPage = ({
                           </td>
                           <td style={styles.td}>
                             <button
-                              style={styles.btnSmallPrimary}
+                              style={styles.btnPrimary}
                               onClick={() => onViewVacateNotice(notice)}
-                              title="View Details"
                             >
-                              <Eye size={14} />
+                              <Eye size={14} /> View
                             </button>
                           </td>
                         </tr>
@@ -1360,7 +1829,6 @@ const DashboardPage = ({
   );
 };
 
-
 const PaymentsPage = ({ pendingPayments, allPayments, loading, onMarkPayment }) => {
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -1376,87 +1844,78 @@ const PaymentsPage = ({ pendingPayments, allPayments, loading, onMarkPayment }) 
 
   const paymentsToShow = activeTab === 'pending' ? pendingPayments : allPayments;
 
-  const filteredPayments = paymentsToShow.filter(payment =>
+  const filteredPayments = (Array.isArray(paymentsToShow) ? paymentsToShow : []).filter(payment =>
     !searchTerm ||
-    payment.tenant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    payment.room_number.toLowerCase().includes(searchTerm.toLowerCase())
+    (payment.tenant_name && payment.tenant_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (payment.room_number && String(payment.room_number).toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const totalPending = pendingPayments.reduce((sum, p) => sum + (p.pending_payments || 0), 0);
-  const paidCount = allPayments.filter(p => p.current_month_paid).length;
-  const unpaidCount = allPayments.filter(p => !p.current_month_paid).length;
+  const paidCount = (Array.isArray(allPayments) ? allPayments : []).filter(p => p.current_month_paid || p.status === 'paid').length;
+  const unpaidCount = (Array.isArray(allPayments) ? allPayments : []).length - paidCount;
 
   return (
     <>
-      <div style={{ ...styles.tabs, marginBottom: '20px' }}>
-        <button
-          style={{
-            ...styles.tabButton,
-            ...(activeTab === 'all' ? styles.tabButtonActive : {})
-          }}
-          onClick={() => setActiveTab('all')}
-        >
-          All Payments ({allPayments.length})
-        </button>
-        <button
-          style={{
-            ...styles.tabButton,
-            ...(activeTab === 'pending' ? styles.tabButtonActive : {})
-          }}
-          onClick={() => setActiveTab('pending')}
-        >
-          Pending ({pendingPayments.length})
-        </button>
-      </div>
-
-      <div style={styles.gridContainer}>
-        <OverviewCard
-          title="Paid This Month"
+      <div style={styles.summaryGrid}>
+        <SummaryCard
+          label="Paid This Month"
           value={paidCount}
-          icon={CheckCircle}
           color="#10b981"
         />
-        <OverviewCard
-          title="Unpaid This Month"
+        <SummaryCard
+          label="Unpaid This Month"
           value={unpaidCount}
-          icon={AlertCircle}
           color="#ef4444"
         />
-        <OverviewCard
-          title="Total Pending"
-          value={totalPending}
-          icon={FileWarning}
+        <SummaryCard
+          label="Pending Payments"
+          value={pendingPayments.length}
           color="#f59e0b"
         />
-        <OverviewCard
-          title="Total Tenants"
+        <SummaryCard
+          label="Total Tenants"
           value={allPayments.length}
-          icon={Users}
           color="#3b82f6"
         />
       </div>
 
-      <div style={styles.filterBar}>
-        <div style={styles.searchBox}>
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Search tenants..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
-        </div>
-      </div>
-
       <div style={styles.section}>
+        <div style={styles.sectionHeader}>
+          <div style={styles.tabContainer}>
+            <button
+              style={activeTab === 'all' ? styles.tabActive : styles.tab}
+              onClick={() => setActiveTab('all')}
+            >
+              All Tenants
+            </button>
+            <button
+              style={activeTab === 'pending' ? styles.tabActive : styles.tab}
+              onClick={() => setActiveTab('pending')}
+            >
+              Pending Only
+            </button>
+          </div>
+
+          <div style={styles.sectionHeaderControls}>
+            <div style={styles.searchWrapper}>
+              <Search size={18} style={styles.searchIcon} />
+              <input
+                type="text"
+                placeholder="Search tenant or room..."
+                style={styles.searchInput}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
         <div style={styles.tableWrapper}>
           <table style={styles.table}>
             <thead style={styles.tableHeader}>
               <tr>
-                <th style={styles.th}>Tenant Name</th>
+                <th style={styles.th}>Tenant</th>
                 <th style={styles.th}>Room</th>
-                <th style={styles.th}>Rent Amount</th>
+                <th style={styles.th}>Monthly Rent</th>
                 <th style={styles.th}>Status</th>
                 <th style={styles.th}>Last Payment</th>
                 <th style={styles.th}>Actions</th>
@@ -1464,50 +1923,45 @@ const PaymentsPage = ({ pendingPayments, allPayments, loading, onMarkPayment }) 
             </thead>
             <tbody>
               {filteredPayments.length > 0 ? (
-                filteredPayments.map(function (payment) {
-                  return (
-                    <tr key={payment.tenant_id || payment.id} style={styles.tableRow}>
-                      <td style={styles.td}>{payment.tenant_name}</td>
-                      <td style={styles.td}>
-                        <span style={styles.roomBadge}>{payment.room_number || 'N/A'}</span>
-                      </td>
-                      <td style={styles.td}>
-                        <span style={styles.rentAmount}>
-                          KSh {payment.rent_amount ? payment.rent_amount.toLocaleString() : '0'}
-                        </span>
-                      </td>
-                      <td style={styles.td}>
-                        <span style={{
-                          ...styles.statusBadge,
-                          backgroundColor: payment.current_month_paid ? '#dcfce7' :
-                            payment.pending_payments > 0 ? '#fee2e2' : '#fef3c7',
-                          color: payment.current_month_paid ? '#166534' :
-                            payment.pending_payments > 0 ? '#991b1b' : '#92400e'
-                        }}>
-                          {payment.current_month_paid ? 'Paid' :
-                            payment.pending_payments > 0 ? `Pending (${payment.pending_payments})` : 'Unpaid'}
-                        </span>
-                      </td>
-                      <td style={styles.td}>
-                        {payment.last_payment_date ?
-                          new Date(payment.last_payment_date).toLocaleDateString() : 'Never'}
-                      </td>
-                      <td style={styles.td}>
+                filteredPayments.map((payment) => (
+                  <tr key={payment.tenant_id || payment.id} style={styles.tableRow}>
+                    <td style={styles.td}>
+                      <div style={{ fontWeight: '500', color: '#111827' }}>{payment.tenant_name}</div>
+                    </td>
+                    <td style={styles.td}>{payment.room_number || 'N/A'}</td>
+                    <td style={styles.td}>KSh {payment.monthly_rent?.toLocaleString() || payment.amount?.toLocaleString() || '0'}</td>
+                    <td style={styles.td}>
+                      <span style={{
+                        ...styles.statusBadge,
+                        backgroundColor: (payment.current_month_paid || payment.status === 'paid') ? '#dcfce7' : '#fef3c7',
+                        color: (payment.current_month_paid || payment.status === 'paid') ? '#166534' : '#92400e'
+                      }}>
+                        {payment.current_month_paid || payment.status === 'paid' ? 'Paid' : 'Unpaid'}
+                        {payment.pending_payments > 0 && ` (${payment.pending_payments} pending)`}
+                      </span>
+                    </td>
+                    <td style={styles.td}>
+                      {payment.last_payment_date ?
+                        new Date(payment.last_payment_date).toLocaleDateString() :
+                        'Never'
+                      }
+                    </td>
+                    <td style={styles.td}>
+                      {!(payment.current_month_paid || payment.status === 'paid') && (
                         <button
-                          style={styles.btnSmallPrimary}
+                          style={styles.btnPrimary}
                           onClick={() => onMarkPayment(payment)}
-                          title="Mark Payment"
                         >
-                          <CreditCard size={14} />
+                          Mark Paid
                         </button>
-                      </td>
-                    </tr>
-                  );
-                })
+                      )}
+                    </td>
+                  </tr>
+                ))
               ) : (
                 <tr>
-                  <td colSpan="6" style={{ ...styles.td, textAlign: 'center', padding: '40px' }}>
-                    No payments found
+                  <td colSpan="6" style={{ ...styles.td, textAlign: 'center', color: '#6b7280', padding: '32px' }}>
+                    No matching payment records found
                   </td>
                 </tr>
               )}
@@ -1533,20 +1987,20 @@ const VacatePage = ({ notices, loading, onViewDetails, onUpdateStatus, onDelete,
     );
   }
 
-  const filtered = notices.filter(notice => {
+  const filtered = (Array.isArray(notices) ? notices : []).filter(notice => {
     const statusMatch = filterStatus === 'all' || notice.status === filterStatus;
     const searchMatch = !searchTerm ||
-      notice.tenant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      notice.property_name.toLowerCase().includes(searchTerm.toLowerCase());
+      (notice.tenant_name && notice.tenant_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (notice.property_name && notice.property_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (notice.room_number && String(notice.room_number).toLowerCase().includes(searchTerm.toLowerCase()));
     return statusMatch && searchMatch;
   });
 
   const summary = {
-    pending: notices.filter(n => n.status === 'pending').length,
-    approved: notices.filter(n => n.status === 'approved').length,
-    rejected: notices.filter(n => n.status === 'rejected').length,
-    completed: notices.filter(n => n.status === 'completed').length,
-    total: notices.length
+    pending: (Array.isArray(notices) ? notices : []).filter(n => n.status === 'pending').length,
+    approved: (Array.isArray(notices) ? notices : []).filter(n => n.status === 'approved').length,
+    rejected: (Array.isArray(notices) ? notices : []).filter(n => n.status === 'rejected').length,
+    total: (Array.isArray(notices) ? notices : []).length
   };
 
   return (
@@ -1577,44 +2031,56 @@ const VacatePage = ({ notices, loading, onViewDetails, onUpdateStatus, onDelete,
           color="#ef4444"
         />
         <OverviewCard
-          title="Completed"
-          value={summary.completed}
-          icon={ShieldCheck}
+          title="Total Notices"
+          value={summary.total}
+          icon={FileText}
           color="#3b82f6"
         />
       </div>
 
-      <div style={styles.filterBar}>
-        <div style={styles.searchBox}>
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Search vacate notices..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
-        </div>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          style={styles.filterSelect}
-        >
-          <option value="all">All Status</option>
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-          <option value="completed">Completed</option>
-        </select>
-      </div>
-
       <div style={styles.section}>
+        <div style={styles.sectionHeader}>
+          <div style={styles.tabContainer}>
+            <button
+              style={filterStatus === 'all' ? styles.tabActive : styles.tab}
+              onClick={() => setFilterStatus('all')}
+            >
+              All Notices
+            </button>
+            <button
+              style={filterStatus === 'pending' ? styles.tabActive : styles.tab}
+              onClick={() => setFilterStatus('pending')}
+            >
+              Pending
+            </button>
+            <button
+              style={filterStatus === 'approved' ? styles.tabActive : styles.tab}
+              onClick={() => setFilterStatus('approved')}
+            >
+              Approved
+            </button>
+          </div>
+
+          <div style={styles.sectionHeaderControls}>
+            <div style={styles.searchWrapper}>
+              <Search size={18} style={styles.searchIcon} />
+              <input
+                type="text"
+                placeholder="Search tenant or room..."
+                style={styles.searchInput}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
         <div style={styles.tableWrapper}>
           <table style={styles.table}>
             <thead style={styles.tableHeader}>
               <tr>
                 <th style={styles.th}>Tenant</th>
-                <th style={styles.th}>Property</th>
+                <th style={styles.th}>Room / Property</th>
                 <th style={styles.th}>Vacate Date</th>
                 <th style={styles.th}>Status</th>
                 <th style={styles.th}>Created</th>
@@ -1623,93 +2089,86 @@ const VacatePage = ({ notices, loading, onViewDetails, onUpdateStatus, onDelete,
             </thead>
             <tbody>
               {filtered.length > 0 ? (
-                filtered.map(function (notice) {
-                  return (
-                    <tr key={notice.id} style={styles.tableRow}>
-                      <td style={styles.td}>
-                        <div style={styles.tenantInfo}>
-                          <User size={16} />
-                          <span>{notice.tenant_name}</span>
-                        </div>
-                        {notice.room_number && (
-                          <small style={styles.roomNumber}>Room {notice.room_number}</small>
+                filtered.map((notice) => (
+                  <tr key={notice.id} style={styles.tableRow}>
+                    <td style={styles.td}>
+                      <div style={{ fontWeight: '500', color: '#111827' }}>{notice.tenant_name}</div>
+                    </td>
+                    <td style={styles.td}>
+                      <div>{notice.room_number || 'N/A'}</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>{notice.property_name}</div>
+                    </td>
+                    <td style={styles.td}>
+                      {notice.vacate_date ? new Date(notice.vacate_date).toLocaleDateString() : 'N/A'}
+                    </td>
+                    <td style={styles.td}>
+                      <span style={{
+                        ...styles.statusBadge,
+                        backgroundColor:
+                          notice.status === 'approved' ? '#dcfce7' :
+                            notice.status === 'rejected' ? '#fee2e2' :
+                              notice.status === 'completed' ? '#dbeafe' : '#fef3c7',
+                        color:
+                          notice.status === 'approved' ? '#166534' :
+                            notice.status === 'rejected' ? '#991b1b' :
+                              notice.status === 'completed' ? '#1e40af' : '#92400e'
+                      }}>
+                        {notice.status}
+                      </span>
+                    </td>
+                    <td style={styles.td}>
+                      {notice.created_at ? new Date(notice.created_at).toLocaleDateString() : 'N/A'}
+                    </td>
+                    <td style={styles.td}>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          style={styles.btnPrimary}
+                          onClick={() => onViewDetails(notice)}
+                          title="View Details"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        {notice.status === 'pending' && (
+                          <>
+                            <button
+                              style={{ ...styles.btnPrimary, backgroundColor: '#10b981' }}
+                              onClick={() => onUpdateStatus(notice.id, 'approve')}
+                              title="Approve"
+                            >
+                              <Check size={14} />
+                            </button>
+                            <button
+                              style={{ ...styles.btnPrimary, backgroundColor: '#ef4444' }}
+                              onClick={() => onUpdateStatus(notice.id, 'reject')}
+                              title="Reject"
+                            >
+                              <X size={14} />
+                            </button>
+                          </>
                         )}
-                      </td>
-                      <td style={styles.td}>{notice.property_name}</td>
-                      <td style={styles.td}>
-                        {notice.vacate_date ? new Date(notice.vacate_date).toLocaleDateString() : 'N/A'}
-                      </td>
-                      <td style={styles.td}>
-                        <span style={{
-                          ...styles.statusBadge,
-                          backgroundColor:
-                            notice.status === 'approved' ? '#dcfce7' :
-                              notice.status === 'rejected' ? '#fee2e2' :
-                                notice.status === 'completed' ? '#dbeafe' : '#fef3c7',
-                          color:
-                            notice.status === 'approved' ? '#166534' :
-                              notice.status === 'rejected' ? '#991b1b' :
-                                notice.status === 'completed' ? '#1e40af' : '#92400e'
-                        }}>
-                          {notice.status}
-                        </span>
-                      </td>
-                      <td style={styles.td}>
-                        {notice.created_at ? new Date(notice.created_at).toLocaleDateString() : 'N/A'}
-                      </td>
-                      <td style={styles.td}>
-                        <div style={styles.actionButtons}>
+                        {notice.status === 'approved' && (
                           <button
-                            style={styles.btnSmallPrimary}
-                            onClick={() => onViewDetails(notice)}
-                            title="View Details"
+                            style={{ ...styles.btnPrimary, backgroundColor: '#3b82f6' }}
+                            onClick={() => onUpdateStatus(notice.id, 'complete')}
+                            title="Mark Complete"
                           >
-                            <Eye size={14} />
+                            <ShieldCheck size={14} />
                           </button>
-                          {notice.status === 'pending' && (
-                            <>
-                              <button
-                                style={styles.btnSmallSuccess}
-                                onClick={() => onUpdateStatus(notice.id, 'approve')}
-                                title="Approve"
-                              >
-                                <Check size={14} />
-                              </button>
-                              <button
-                                style={styles.btnSmallDanger}
-                                onClick={() => onUpdateStatus(notice.id, 'reject')}
-                                title="Reject"
-                              >
-                                <X size={14} />
-                              </button>
-                            </>
-                          )}
-                          {notice.status === 'approved' && (
-                            <button
-                              style={styles.btnSmallSuccess}
-                              onClick={() => onUpdateStatus(notice.id, 'complete')}
-                              title="Mark Complete"
-                            >
-                              <ShieldCheck size={14} />
-                            </button>
-                          )}
-                          {notice.status === 'pending' && (
-                            <button
-                              style={styles.btnSmallDanger}
-                              onClick={() => onDelete(notice.id)}
-                              title="Delete"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                        )}
+                        <button
+                          style={{ ...styles.btnPrimary, backgroundColor: '#9ca3af' }}
+                          onClick={() => onDelete(notice.id)}
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               ) : (
                 <tr>
-                  <td colSpan="6" style={{ ...styles.td, textAlign: 'center', padding: '40px' }}>
+                  <td colSpan="6" style={{ ...styles.td, textAlign: 'center', color: '#6b7280', padding: '32px' }}>
                     No vacate notices found
                   </td>
                 </tr>
@@ -1722,13 +2181,12 @@ const VacatePage = ({ notices, loading, onViewDetails, onUpdateStatus, onDelete,
   );
 };
 
-
 const NotificationsPage = ({ tenants, onSendNotification }) => {
   const [messageType, setMessageType] = useState('individual');
   const [selectedTenant, setSelectedTenant] = useState('');
   const [messageTitle, setMessageTitle] = useState('');
   const [messageContent, setMessageContent] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSendMessage = async () => {
     if (!messageTitle || !messageContent) {
@@ -1741,7 +2199,7 @@ const NotificationsPage = ({ tenants, onSendNotification }) => {
       return;
     }
 
-    setLoading(true);
+    setIsSubmitting(true);
     try {
       const token = localStorage.getItem('joyce-suites-token');
       const recipients = messageType === 'all'
@@ -1771,65 +2229,60 @@ const NotificationsPage = ({ tenants, onSendNotification }) => {
         alert('Failed to send message');
       }
     } catch (err) {
+      console.error('Error sending message:', err);
       alert('Error sending message');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const activeTenantsCount = tenants.filter(t => t.is_active).length;
-
   return (
     <div style={styles.section}>
-      <div style={{ marginBottom: '20px' }}>
-        <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Send Message to Tenants</h3>
+      <div style={styles.sectionHeader}>
+        <h3 style={styles.sectionTitle}>Send Message to Tenants</h3>
       </div>
 
       <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Message Type</label>
-          <div style={{ display: 'flex', gap: '16px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+            Recipients
+          </label>
+          <div style={{ display: 'flex', gap: '24px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '8px' }}>
               <input
                 type="radio"
                 value="individual"
                 checked={messageType === 'individual'}
                 onChange={(e) => setMessageType(e.target.value)}
-                style={{ marginRight: '8px' }}
               />
-              Send to Individual Tenant
+              <span style={{ fontSize: '14px' }}>Single Tenant</span>
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '8px' }}>
               <input
                 type="radio"
                 value="all"
                 checked={messageType === 'all'}
                 onChange={(e) => setMessageType(e.target.value)}
-                style={{ marginRight: '8px' }}
               />
-              Send to All Tenants
+              <span style={{ fontSize: '14px' }}>All Active Tenants</span>
             </label>
           </div>
         </div>
 
         {messageType === 'individual' && (
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Select Tenant</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+              Select Tenant
+            </label>
             <select
               value={selectedTenant}
               onChange={(e) => setSelectedTenant(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '14px'
-              }}
+              style={styles.formSelect}
             >
               <option value="">Choose a tenant...</option>
-              {tenants.filter(t => t.is_active).map(tenant => (
+              {(Array.isArray(tenants) ? tenants : []).filter(t => t.is_active).map(tenant => (
                 <option key={tenant.id} value={tenant.id}>
-                  {tenant.name} - Room {tenant.room_number}
+                  {tenant.name} - Room {tenant.room_number || 'N/A'}
                 </option>
               ))}
             </select>
@@ -1837,49 +2290,56 @@ const NotificationsPage = ({ tenants, onSendNotification }) => {
         )}
 
         <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Message Title</label>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+            Subject / Title
+          </label>
           <input
             type="text"
             value={messageTitle}
             onChange={(e) => setMessageTitle(e.target.value)}
-            placeholder="Enter message title..."
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              fontSize: '14px'
-            }}
+            placeholder="e.g., Routine Maintenance Notice"
+            style={styles.formInput}
           />
         </div>
 
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Message Content</label>
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+            Message Content
+          </label>
           <textarea
             value={messageContent}
             onChange={(e) => setMessageContent(e.target.value)}
             placeholder="Type your message here..."
             rows={6}
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              fontSize: '14px',
-              minHeight: '120px',
-              resize: 'vertical'
-            }}
+            style={{ ...styles.formInput, minHeight: '120px', resize: 'vertical' }}
           />
         </div>
 
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            onClick={handleSendMessage}
+            disabled={isSubmitting}
+            style={{
+              ...styles.btnPrimary,
+              padding: '10px 24px',
+              opacity: isSubmitting ? 0.7 : 1
+            }}
+          >
+            {isSubmitting ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <RefreshCw size={16} className="animate-spin" /> Sending...
+              </span>
+            ) : (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Send size={16} /> Send Announcement
+              </span>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
 };
-
-
-
-
 
 const SendNotificationModal = ({ tenants = [], onClose, onSubmit, loading }) => {
   const [formData, setFormData] = useState({
@@ -1898,20 +2358,20 @@ const SendNotificationModal = ({ tenants = [], onClose, onSubmit, loading }) => 
     <div style={styles.modalOverlay} onClick={onClose}>
       <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div style={styles.modalHeader}>
-          <h3>Send Notification</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
+          <h3>Send Direct Notification</h3>
+          <button style={styles.modalClose} onClick={onClose}><X size={20} /></button>
         </div>
         <form onSubmit={handleSubmit}>
           <div style={styles.modalBody}>
             <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Select Tenant</label>
+              <label style={styles.formLabel}>Recipient</label>
               <select
                 value={formData.tenant_id}
                 onChange={(e) => setFormData({ ...formData, tenant_id: e.target.value })}
                 required
                 style={styles.formSelect}
               >
-                <option value="">Choose...</option>
+                <option value="">Choose a tenant...</option>
                 {tenants.map(t => (
                   <option key={t.tenant_id || t.id} value={t.tenant_id || t.id}>
                     {t.tenant_name || t.name} - {t.room_number || 'No Room'}
@@ -1920,12 +2380,13 @@ const SendNotificationModal = ({ tenants = [], onClose, onSubmit, loading }) => 
               </select>
             </div>
             <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Title</label>
+              <label style={styles.formLabel}>Subject</label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 required
+                placeholder="e.g., Payment Received"
                 style={styles.formInput}
               />
             </div>
@@ -1936,6 +2397,7 @@ const SendNotificationModal = ({ tenants = [], onClose, onSubmit, loading }) => 
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 rows="4"
                 required
+                placeholder="Type your message..."
                 style={styles.formInput}
               />
             </div>
@@ -1943,7 +2405,7 @@ const SendNotificationModal = ({ tenants = [], onClose, onSubmit, loading }) => 
           <div style={styles.modalFooter}>
             <button type="button" style={styles.btnSecondary} onClick={onClose}>Cancel</button>
             <button type="submit" style={styles.btnPrimary} disabled={loading}>
-              {loading ? 'Sending...' : 'Send'}
+              {loading ? 'Sending...' : 'Send Message'}
             </button>
           </div>
         </form>
@@ -1953,6 +2415,8 @@ const SendNotificationModal = ({ tenants = [], onClose, onSubmit, loading }) => 
 };
 
 const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNotification, onViewDetails, onCreateVacateNotice }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -1962,37 +2426,68 @@ const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNot
     );
   }
 
+  const filteredTenants = (Array.isArray(tenants) ? tenants : []).filter(tenant =>
+    !searchTerm ||
+    (tenant.name && tenant.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (tenant.room_number && String(tenant.room_number).toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   return (
     <div style={styles.section}>
-
-
-      {tenants?.length === 0 ? (
-        <div style={styles.emptyState}>
-          <Users size={48} />
-          <p>No tenants found</p>
+      <div style={styles.sectionHeader}>
+        <h3 style={styles.sectionTitle}>
+          <Users size={18} /> Resident Directory ({filteredTenants.length})
+        </h3>
+        <div style={styles.sectionHeaderControls}>
+          <div style={styles.searchWrapper}>
+            <Search size={18} style={styles.searchIcon} />
+            <input
+              type="text"
+              placeholder="Search by name or room..."
+              style={styles.searchInput}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <button style={styles.btnSecondary} onClick={onSendNotification}>
+            <Bell size={16} /> Bulk Notify
+          </button>
         </div>
-      ) : (
-        <div style={styles.tableContainer}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Name</th>
-                <th style={styles.th}>Room</th>
-                <th style={styles.th}>Rent</th>
-                <th style={styles.th}>Payment Status</th>
-                <th style={styles.th}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tenants?.map(tenant => (
-                <tr key={tenant.id} style={styles.tr}>
+      </div>
+
+      <div style={styles.tableWrapper}>
+        <table style={styles.table}>
+          <thead style={styles.tableHeader}>
+            <tr>
+              <th style={styles.th}>Name</th>
+              <th style={styles.th}>Room</th>
+              <th style={styles.th}>Monthly Rent</th>
+              <th style={styles.th}>Financial Status</th>
+              <th style={styles.th}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredTenants.length > 0 ? (
+              filteredTenants.map((tenant) => (
+                <tr key={tenant.id} style={styles.tableRow}>
                   <td style={styles.td}>
-                    <div style={styles.userCell}>
-                      <User size={16} />
-                      <span>{tenant.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        backgroundColor: '#f3f4f6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#6b7280'
+                      }}>
+                        <User size={16} />
+                      </div>
+                      <span style={{ fontWeight: '500', color: '#111827' }}>{tenant.name}</span>
                     </div>
                   </td>
-                  <td style={styles.td}>{tenant.room_number}</td>
+                  <td style={styles.td}>{tenant.room_number || 'N/A'}</td>
                   <td style={styles.td}>KSh {tenant.rent_amount?.toLocaleString() || '0'}</td>
                   <td style={styles.td}>
                     <span style={{
@@ -2000,27 +2495,41 @@ const TenantsPage = ({ tenants, paymentStatus, loading, onMarkPayment, onSendNot
                       backgroundColor: paymentStatus?.[tenant.id]?.status === 'paid' ? '#dcfce7' : '#fef3c7',
                       color: paymentStatus?.[tenant.id]?.status === 'paid' ? '#166534' : '#92400e'
                     }}>
-                      {paymentStatus?.[tenant.id]?.status || 'Unknown'}
+                      {paymentStatus?.[tenant.id]?.status === 'paid' ? 'Clear' : 'Overdue'}
                     </span>
                   </td>
                   <td style={styles.td}>
-                    <div style={styles.actionButtons}>
-                      <button style={styles.btnSmallPrimary} onClick={() => onViewDetails(tenant)}>
-                        View
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        style={styles.btnPrimary}
+                        onClick={() => onViewDetails(tenant)}
+                        title="View Profile"
+                      >
+                        <Eye size={14} /> View
                       </button>
                       {paymentStatus?.[tenant.id]?.status !== 'paid' && (
-                        <button style={styles.btnSmallSecondary} onClick={() => onMarkPayment(tenant)}>
-                          Mark Paid
+                        <button
+                          style={{ ...styles.btnPrimary, backgroundColor: '#10b981' }}
+                          onClick={() => onMarkPayment(tenant)}
+                          title="Record Payment"
+                        >
+                          <DollarSign size={14} /> Pay
                         </button>
                       )}
                     </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5" style={{ ...styles.td, textAlign: 'center', color: '#6b7280', padding: '32px' }}>
+                  No residents found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
@@ -2037,83 +2546,85 @@ const PropertiesPage = ({ availableRooms, occupiedRooms, allRooms, loading, onVi
 
   return (
     <div style={styles.section}>
-
-
-      <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>Available Rooms ({availableRooms?.length || 0})</h3>
-        {availableRooms?.length === 0 ? (
-          <div style={styles.emptyState}>
-            <Building size={48} />
-            <p>No available rooms found</p>
-          </div>
-        ) : (
-          <div style={styles.roomsGrid}>
-            {availableRooms?.map(room => (
-              <div key={room.id} style={styles.roomCard} onClick={() => onViewDetails(room)}>
-                <div style={styles.roomHeader}>
+      <div style={styles.sectionHeader}>
+        <h3 style={styles.sectionTitle}>
+          <Building size={18} /> Available Rooms ({availableRooms?.length || 0})
+        </h3>
+      </div>
+      {availableRooms?.length === 0 ? (
+        <div style={styles.emptyState}>
+          <Building size={48} color="#9ca3af" />
+          <p>No available rooms found</p>
+        </div>
+      ) : (
+        <div style={styles.roomsGrid}>
+          {availableRooms?.map(room => (
+            <div key={room.id} style={styles.roomCard} onClick={() => onViewDetails(room)}>
+              <div style={styles.roomHeader}>
+                <div style={styles.roomIconWrapper}>
                   <Building size={20} />
-                  <span style={styles.roomName}>{room.name}</span>
-                  <span style={styles.roomTypeBadge}>{room.property_type}</span>
                 </div>
-                <div style={styles.roomDetails}>
-                  <div style={styles.roomDetail}>
-                    <span style={styles.detailLabel}>Monthly Rent:</span>
-                    <span style={styles.detailValue}>KSh {room.rent_amount?.toLocaleString() || '0'}</span>
-                  </div>
-                  <div style={styles.roomDetail}>
-                    <span style={styles.detailLabel}>Deposit:</span>
-                    <span style={styles.detailValue}>KSh {room.deposit_amount?.toLocaleString() || '0'}</span>
-                  </div>
-                  <div style={styles.roomDetail}>
-                    <span style={styles.detailLabel}>Status:</span>
-                    <span style={{ ...styles.statusBadge, backgroundColor: '#dcfce7', color: '#166534' }}>
-                      Vacant
-                    </span>
-                  </div>
+                <div style={styles.roomMeta}>
+                  <span style={styles.roomName}>{room.name}</span>
+                  <span style={styles.roomTypeBadge}>{room.property_type || 'Residential'}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <div style={styles.roomDetails}>
+                <div style={styles.roomDetail}>
+                  <span style={styles.detailLabel}>Monthly Rent</span>
+                  <span style={styles.detailValue}>KSh {room.rent_amount?.toLocaleString() || '0'}</span>
+                </div>
+                <div style={styles.roomDetail}>
+                  <span style={styles.detailLabel}>Status</span>
+                  <span style={{ ...styles.statusBadge, backgroundColor: '#dcfce7', color: '#166534' }}>
+                    Vacant
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
-      <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>Occupied Rooms ({occupiedRooms?.length || 0})</h3>
-        {occupiedRooms?.length === 0 ? (
-          <div style={styles.emptyState}>
-            <Home size={48} />
-            <p>No occupied rooms found</p>
-          </div>
-        ) : (
-          <div style={styles.roomsGrid}>
-            {occupiedRooms?.map(room => (
-              <div key={room.id} style={styles.roomCard} onClick={() => onViewDetails(room)}>
-                <div style={styles.roomHeader}>
+      <div style={{ ...styles.sectionHeader, marginTop: '32px' }}>
+        <h3 style={styles.sectionTitle}>
+          <Home size={18} /> Occupied Rooms ({occupiedRooms?.length || 0})
+        </h3>
+      </div>
+      {occupiedRooms?.length === 0 ? (
+        <div style={styles.emptyState}>
+          <Home size={48} color="#9ca3af" />
+          <p>No occupied rooms found</p>
+        </div>
+      ) : (
+        <div style={styles.roomsGrid}>
+          {occupiedRooms?.map(room => (
+            <div key={room.id} style={styles.roomCard} onClick={() => onViewDetails(room)}>
+              <div style={styles.roomHeader}>
+                <div style={{ ...styles.roomIconWrapper, backgroundColor: '#eff6ff', color: '#3b82f6' }}>
                   <Home size={20} />
-                  <span style={styles.roomName}>{room.name}</span>
-                  <span style={styles.roomTypeBadge}>{room.property_type}</span>
                 </div>
-                <div style={styles.roomDetails}>
-                  <div style={styles.roomDetail}>
-                    <span style={styles.detailLabel}>Monthly Rent:</span>
-                    <span style={styles.detailValue}>KSh {room.rent_amount?.toLocaleString() || '0'}</span>
-                  </div>
-                  <div style={styles.roomDetail}>
-                    <span style={styles.detailLabel}>Tenant:</span>
-                    <span style={styles.detailValue}>{room.current_tenant || 'N/A'}</span>
-                  </div>
-                  <div style={styles.roomDetail}>
-                    <span style={styles.detailLabel}>Status:</span>
-                    <span style={{ ...styles.statusBadge, backgroundColor: '#fef3c7', color: '#92400e' }}>
-                      Occupied
-                    </span>
-                  </div>
+                <div style={styles.roomMeta}>
+                  <span style={styles.roomName}>{room.name}</span>
+                  <span style={styles.roomTypeBadge}>{room.property_type || 'Residential'}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <div style={styles.roomDetails}>
+                <div style={styles.roomDetail}>
+                  <span style={styles.detailLabel}>Tenant</span>
+                  <span style={styles.detailValue}>{room.tenant_name || 'N/A'}</span>
+                </div>
+                <div style={styles.roomDetail}>
+                  <span style={styles.detailLabel}>Status</span>
+                  <span style={{ ...styles.statusBadge, backgroundColor: '#fef3c7', color: '#92400e' }}>
+                    Occupied
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -2135,50 +2646,65 @@ const MarkPaymentModal = ({ tenant, onClose, onSubmit, loading }) => {
   };
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.card} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.pageHeaderControls}>
-          <h3 style={styles.pageTitle}>Mark Rent Payment</h3>
-          <button style={styles.closeBtn} onClick={onClose}>×</button>
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h3>Record Rent Payment</h3>
+          <button style={styles.modalClose} onClick={onClose}><X size={20} /></button>
         </div>
-        <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
-          <p style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-            Tenant: {tenant?.tenant_name || tenant?.name}
-          </p>
-          <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
-            Room: {tenant?.room_number || 'N/A'}
-          </p>
+        <div style={{ padding: '16px 24px', backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>Tenant</p>
+              <p style={{ margin: 0, fontWeight: '600', color: '#111827' }}>{tenant?.tenant_name || tenant?.name}</p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>Room</p>
+              <p style={{ margin: 0, fontWeight: '600', color: '#111827' }}>{tenant?.room_number || 'N/A'}</p>
+            </div>
+          </div>
         </div>
         <form onSubmit={handleSubmit}>
-          <div style={styles.section}>
+          <div style={styles.modalBody}>
             <div style={styles.formGroup}>
-              <label style={styles.statLabel}>Amount Paid (KSh)</label>
+              <label style={styles.formLabel}>Amount (KSh)</label>
               <input
                 type="number"
                 value={formData.amount_paid}
                 onChange={(e) => setFormData({ ...formData, amount_paid: e.target.value })}
                 required
-                style={styles.filterSelect}
+                placeholder="0.00"
+                style={styles.formInput}
               />
             </div>
             <div style={styles.formGroup}>
-              <label style={styles.statLabel}>Payment Method</label>
+              <label style={styles.formLabel}>Payment Channel</label>
               <select
                 value={formData.payment_method}
                 onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                style={styles.filterSelect}
+                style={styles.formSelect}
               >
-                <option value="Cash">Cash</option>
-                <option value="M-Pesa">M-Pesa</option>
+                <option value="Cash">Cash Payment</option>
+                <option value="M-Pesa">M-Pesa STK/Paybill</option>
                 <option value="Bank Transfer">Bank Transfer</option>
-                <option value="Cheque">Cheque</option>
+                <option value="Cheque">Bank Cheque</option>
               </select>
             </div>
+            <div style={styles.formGroup}>
+              <label style={styles.formLabel}>Reference Number (Optional)</label>
+              <input
+                type="text"
+                value={formData.payment_reference}
+                onChange={(e) => setFormData({ ...formData, payment_reference: e.target.value })}
+                placeholder="e.g., M-Pesa Transaction ID"
+                style={styles.formInput}
+              />
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '20px' }}>
-            <button type="button" style={styles.btnSecondary} onClick={onClose}>Cancel</button>
+          <div style={styles.modalFooter}>
+            <button type="button" style={styles.btnSecondary} onClick={onClose}>Discard</button>
             <button type="submit" style={styles.btnPrimary} disabled={loading}>
-              {loading ? 'Processing...' : 'Mark Paid'}
+              {loading ? 'Processing...' : 'Confirm Receipt'}
             </button>
           </div>
         </form>
@@ -2193,7 +2719,7 @@ const WaterBillPage = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [showReadingModal, setShowReadingModal] = useState(false);
-  const [selectedTenant, setSelectedTenant] = useState(null);
+  const [selectedTenant, setSelectedTenant] = useState('');
   const [tenants, setTenants] = useState([]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedBillForPayment, setSelectedBillForPayment] = useState(null);
@@ -2202,7 +2728,7 @@ const WaterBillPage = () => {
     year: new Date().getFullYear(),
     previous_reading: '',
     current_reading: '',
-    unit_rate: 50.0
+    unit_rate: 100.0
   });
 
   const fetchWaterBillRecords = async () => {
@@ -2213,7 +2739,11 @@ const WaterBillPage = () => {
         const data = await response.json();
         setWaterBillRecords(data.records || []);
       }
-    } catch (err) { setError('Error fetching water bills'); } finally { setLoading(false); }
+    } catch (err) {
+      setError('Error connecting to water billing service');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchTenantsForWater = async () => {
@@ -2223,7 +2753,9 @@ const WaterBillPage = () => {
         const data = await response.json();
         setTenants(data.tenants || []);
       }
-    } catch (err) { console.error('Failed to fetch tenants:', err); }
+    } catch (err) {
+      console.error('Failed to fetch residents for billing:', err);
+    }
   };
 
   useEffect(() => {
@@ -2240,9 +2772,11 @@ const WaterBillPage = () => {
   const handleCreateWaterBill = async () => {
     try {
       const tenant = tenants.find(t => t.tenant_id === parseInt(selectedTenant)) || tenants.find(t => t.id === parseInt(selectedTenant));
-      if (!tenant) throw new Error("Selected tenant not found");
+      if (!tenant) throw new Error("Please select a valid resident");
 
       const units_consumed = parseFloat(readingForm.current_reading) - parseFloat(readingForm.previous_reading);
+      if (units_consumed < 0) throw new Error("Current reading cannot be less than previous reading");
+
       const amount = units_consumed * parseFloat(readingForm.unit_rate);
 
       const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/water-bill/create`, {
@@ -2263,11 +2797,17 @@ const WaterBillPage = () => {
       });
 
       if (response.ok) {
-        setSuccessMessage('Water bill created!');
+        setSuccessMessage('Water bill generated successfully!');
         setShowReadingModal(false);
         fetchWaterBillRecords();
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        const errData = await response.json();
+        throw new Error(errData.message || 'Failed to create bill');
       }
-    } catch (err) { setError(err.message); }
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   const handleRecordPayment = async (billId, paymentData) => {
@@ -2278,49 +2818,135 @@ const WaterBillPage = () => {
         body: JSON.stringify({ bill_id: billId, ...paymentData })
       });
       if (response.ok) {
-        setSuccessMessage('Payment recorded!');
+        setSuccessMessage('Water bill payment recorded!');
         setShowPaymentModal(false);
         fetchWaterBillRecords();
+        setTimeout(() => setSuccessMessage(''), 3000);
       }
-    } catch (err) { setError('Failed to record payment'); }
+    } catch (err) {
+      setError('Failed to process payment');
+    }
   };
 
   if (loading) return <div style={styles.loadingContainer}><div style={styles.spinner}></div></div>;
 
   return (
     <div style={styles.section}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
-        <button onClick={() => setShowReadingModal(true)} style={styles.btnPrimary}>Create Water Bill</button>
+      <div style={styles.sectionHeader}>
+        <h3 style={styles.sectionTitle}>
+          <Droplet size={18} /> Water Billing Records
+        </h3>
+        <button onClick={() => setShowReadingModal(true)} style={styles.btnPrimary}>
+          <Plus size={16} /> New Reading
+        </button>
       </div>
-      {error && <div style={styles.errorBanner}>{error}</div>}
-      {successMessage && <div style={styles.successBanner}>{successMessage}</div>}
+
+      {error && <div style={styles.errorBanner}><AlertCircle size={16} /> {error}</div>}
+      {successMessage && <div style={styles.successBanner}><CheckCircle size={16} /> {successMessage}</div>}
+
       <div style={styles.tableWrapper}>
         <table style={styles.table}>
           <thead style={styles.tableHeader}>
-            <tr><th>Tenant</th><th>Period</th><th>Units</th><th>Amount</th><th>Status</th><th>Actions</th></tr>
+            <tr>
+              <th style={styles.th}>Resident</th>
+              <th style={styles.th}>Billing Period</th>
+              <th style={styles.th}>Consumption</th>
+              <th style={styles.th}>Amount</th>
+              <th style={styles.th}>Status</th>
+              <th style={styles.th}>Actions</th>
+            </tr>
           </thead>
           <tbody>
-            {waterBillRecords.map(record => (
-              <tr key={record.id} style={styles.tableRow}>
-                <td style={styles.td}>{record.tenant_name}</td>
-                <td style={styles.td}>{getMonthName(record.month)} {record.year}</td>
-                <td style={styles.td}>{record.units_consumed} units</td>
-                <td style={styles.td}>KSh {record.amount_due?.toLocaleString()}</td>
-                <td style={styles.td}>
-                  <span style={{ ...styles.statusBadge, backgroundColor: record.status === 'paid' ? '#dcfce7' : '#fef3c7', color: record.status === 'paid' ? '#166534' : '#92400e' }}>
-                    {record.status}
-                  </span>
-                </td>
-                <td style={styles.td}>
-                  {record.status !== 'paid' && (
-                    <button onClick={() => { setSelectedBillForPayment(record); setShowPaymentModal(true); }} style={styles.btnSuccess}>Pay</button>
-                  )}
+            {waterBillRecords.length > 0 ? (
+              waterBillRecords.map(record => (
+                <tr key={record.id} style={styles.tableRow}>
+                  <td style={styles.td}>{record.tenant_name}</td>
+                  <td style={styles.td}>{getMonthName(record.month)} {record.year}</td>
+                  <td style={styles.td}>{record.units_consumed} Units</td>
+                  <td style={styles.td}>KSh {record.amount_due?.toLocaleString()}</td>
+                  <td style={styles.td}>
+                    <span style={{
+                      ...styles.statusBadge,
+                      backgroundColor: record.status === 'paid' ? '#dcfce7' : '#fef3c7',
+                      color: record.status === 'paid' ? '#166534' : '#92400e'
+                    }}>
+                      {record.status}
+                    </span>
+                  </td>
+                  <td style={styles.td}>
+                    {record.status !== 'paid' && (
+                      <button
+                        onClick={() => { setSelectedBillForPayment(record); setShowPaymentModal(true); }}
+                        style={{ ...styles.btnPrimary, backgroundColor: '#10b981' }}
+                      >
+                        Record Pay
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="6" style={{ ...styles.td, textAlign: 'center', color: '#6b7280', padding: '32px' }}>
+                  No water billing records found
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
+
+      {showReadingModal && (
+        <div style={styles.modalOverlay} onClick={() => setShowReadingModal(false)}>
+          <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3>Entry New Meter Reading</h3>
+              <button style={styles.modalClose} onClick={() => setShowReadingModal(false)}><X size={20} /></button>
+            </div>
+            <div style={styles.modalBody}>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Select Resident</label>
+                <select
+                  value={selectedTenant}
+                  onChange={e => setSelectedTenant(e.target.value)}
+                  style={styles.formSelect}
+                >
+                  <option value="">Choose resident...</option>
+                  {tenants.map(t => (
+                    <option key={t.id || t.tenant_id} value={t.id || t.tenant_id}>
+                      {t.name || t.tenant_name} - {t.room_number}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Previous Reading</label>
+                  <input
+                    type="number"
+                    value={readingForm.previous_reading}
+                    onChange={e => setReadingForm({ ...readingForm, previous_reading: e.target.value })}
+                    style={styles.formInput}
+                  />
+                </div>
+                <div style={styles.formGroup}>
+                  <label style={styles.formLabel}>Current Reading</label>
+                  <input
+                    type="number"
+                    value={readingForm.current_reading}
+                    onChange={e => setReadingForm({ ...readingForm, current_reading: e.target.value })}
+                    style={styles.formInput}
+                  />
+                </div>
+              </div>
+            </div>
+            <div style={styles.modalFooter}>
+              <button style={styles.btnSecondary} onClick={() => setShowReadingModal(false)}>Cancel</button>
+              <button style={styles.btnPrimary} onClick={handleCreateWaterBill}>Generate Bill</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -2344,7 +2970,7 @@ const DepositsPage = () => {
         const data = await response.json();
         setDepositRecords(data.records || []);
       }
-    } catch (err) { setError('Error fetching deposits'); } finally { setLoading(false); }
+    } catch (err) { setError('Error fetching security deposit data'); } finally { setLoading(false); }
   };
 
   const handleMarkPayment = async () => {
@@ -2355,67 +2981,187 @@ const DepositsPage = () => {
         body: JSON.stringify({ deposit_id: selectedRecord.id, ...paymentForm })
       });
       if (response.ok) {
-        setSuccess('Payment marked!');
+        setSuccess('Deposit payment recorded!');
         setShowPaymentModal(false);
         fetchDepositRecords();
+        setTimeout(() => setSuccess(''), 3000);
       }
-    } catch (err) { setError(err.message); }
+    } catch (err) { alert(err.message); }
   };
 
   if (loading) return <div style={styles.loadingContainer}><div style={styles.spinner}></div></div>;
 
   return (
     <div style={styles.section}>
+      <div style={styles.sectionHeader}>
+        <h3 style={styles.sectionTitle}>
+          <ShieldCheck size={18} /> Tenant Security Deposits
+        </h3>
+      </div>
 
-      {error && <div style={styles.errorBanner}>{error}</div>}
-      {success && <div style={styles.successBanner}>{success}</div>}
+      {error && <div style={styles.errorBanner}><AlertCircle size={16} /> {error}</div>}
+      {success && <div style={styles.successBanner}><CheckCircle size={16} /> {success}</div>}
+
       <div style={styles.tableWrapper}>
         <table style={styles.table}>
           <thead style={styles.tableHeader}>
-            <tr><th>Tenant</th><th>Property</th><th>Required</th><th>Balance</th><th>Status</th><th>Actions</th></tr>
+            <tr>
+              <th style={styles.th}>Resident</th>
+              <th style={styles.th}>Room</th>
+              <th style={styles.th}>Target Deposit</th>
+              <th style={styles.th}>Current Balance</th>
+              <th style={styles.th}>Status</th>
+              <th style={styles.th}>Actions</th>
+            </tr>
           </thead>
           <tbody>
-            {depositRecords.map(r => (
-              <tr key={r.id} style={styles.tableRow}>
-                <td style={styles.td}>{r.tenant_name}</td>
-                <td style={styles.td}>{r.property_name}</td>
-                <td style={styles.td}>{r.amount_required}</td>
-                <td style={styles.td}>{r.balance}</td>
-                <td style={styles.td}>{r.status}</td>
-                <td style={styles.td}>
-                  <button onClick={() => { setSelectedRecord(r); setShowPaymentModal(true); }} style={styles.btnPrimary}>Pay</button>
+            {depositRecords.length > 0 ? (
+              depositRecords.map(r => (
+                <tr key={r.id} style={styles.tableRow}>
+                  <td style={styles.td}>{r.tenant_name}</td>
+                  <td style={styles.td}>{r.property_name}</td>
+                  <td style={styles.td}>KSh {r.amount_required?.toLocaleString()}</td>
+                  <td style={styles.td}>KSh {r.balance?.toLocaleString()}</td>
+                  <td style={styles.td}>
+                    <span style={{
+                      ...styles.statusBadge,
+                      backgroundColor: r.status === 'fully_paid' ? '#dcfce7' : '#fef3c7',
+                      color: r.status === 'fully_paid' ? '#166534' : '#92400e'
+                    }}>
+                      {r.status?.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td style={styles.td}>
+                    {r.status !== 'fully_paid' && (
+                      <button
+                        onClick={() => { setSelectedRecord(r); setShowPaymentModal(true); }}
+                        style={styles.btnPrimary}
+                      >
+                        Take Deposit
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="6" style={{ ...styles.td, textAlign: 'center', color: '#6b7280', padding: '32px' }}>
+                  No deposit records found
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
+
+      {showPaymentModal && (
+        <div style={styles.modalOverlay} onClick={() => setShowPaymentModal(false)}>
+          <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3>Record Deposit Installment</h3>
+              <button style={styles.modalClose} onClick={() => setShowPaymentModal(false)}><X size={20} /></button>
+            </div>
+            <div style={styles.modalBody}>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Amount (KSh)</label>
+                <input
+                  type="number"
+                  placeholder="Enter amount paid"
+                  value={paymentForm.amount_paid}
+                  onChange={e => setPaymentForm({ ...paymentForm, amount_paid: e.target.value })}
+                  style={styles.formInput}
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Method</label>
+                <select
+                  value={paymentForm.payment_method}
+                  onChange={e => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
+                  style={styles.formSelect}
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="M-Pesa">M-Pesa</option>
+                  <option value="Bank">Bank Deposit</option>
+                </select>
+              </div>
+            </div>
+            <div style={styles.modalFooter}>
+              <button style={styles.btnSecondary} onClick={() => setShowPaymentModal(false)}>Cancel</button>
+              <button style={styles.btnPrimary} onClick={handleMarkPayment}>Commit Payment</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 const MaintenancePage = ({ requests, loading, onUpdateStatus, onViewDetails }) => {
-  if (loading) return <div style={styles.loadingContainer}><div style={styles.spinner}></div></div>;
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p>Loading maintenance requests...</p>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.section}>
+      <div style={styles.sectionHeader}>
+        <h3 style={styles.sectionTitle}>
+          <Wrench size={18} /> Active Maintenance Tickets
+        </h3>
+      </div>
 
       <div style={styles.tableWrapper}>
         <table style={styles.table}>
           <thead style={styles.tableHeader}>
-            <tr><th>ID</th><th>Tenant</th><th>Issue</th><th>Status</th><th>Actions</th></tr>
+            <tr>
+              <th style={styles.th}>ID</th>
+              <th style={styles.th}>Resident</th>
+              <th style={styles.th}>Issue Categorization</th>
+              <th style={styles.th}>Ticket Status</th>
+              <th style={styles.th}>Actions</th>
+            </tr>
           </thead>
           <tbody>
-            {requests?.map(r => (
-              <tr key={r.id} style={styles.tableRow}>
-                <td style={styles.td}>#{r.id}</td>
-                <td style={styles.td}>{r.tenant_name}</td>
-                <td style={styles.td}>{r.issue_type}</td>
-                <td style={styles.td}>{r.status}</td>
-                <td style={styles.td}>
-                  <button onClick={() => onViewDetails(r)} style={styles.btnPrimary}><Eye size={14} /></button>
+            {(Array.isArray(requests) ? requests : []).length > 0 ? (
+              requests.map(r => (
+                <tr key={r.id} style={styles.tableRow}>
+                  <td style={styles.td}>#{r.id}</td>
+                  <td style={styles.td}>{r.tenant_name}</td>
+                  <td style={styles.td}>{r.issue_type?.toUpperCase()} - {r.title}</td>
+                  <td style={styles.td}>
+                    <span style={{
+                      ...styles.statusBadge,
+                      backgroundColor:
+                        r.status === 'completed' ? '#dcfce7' :
+                          r.status === 'in_progress' ? '#dbeafe' : '#fef3c7',
+                      color:
+                        r.status === 'completed' ? '#166534' :
+                          r.status === 'in_progress' ? '#1e40af' : '#92400e'
+                    }}>
+                      {r.status?.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td style={styles.td}>
+                    <button
+                      onClick={() => onViewDetails(r)}
+                      style={styles.btnPrimary}
+                    >
+                      <Eye size={14} /> Handle
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5" style={{ ...styles.td, textAlign: 'center', color: '#6b7280', padding: '32px' }}>
+                  No active maintenance tickets
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

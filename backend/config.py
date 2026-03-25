@@ -11,13 +11,17 @@ class BaseConfig:
     PORT = int(os.getenv("PORT", 5000))
 
     if os.getenv("FLASK_ENV") == "production":
-        SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
+        SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI") or os.getenv("DATABASE_URL")
+        # SQLAlchemy 1.4+ requires postgresql:// instead of postgres://
+        if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
+            SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
+            
         if not SQLALCHEMY_DATABASE_URI:
-            raise ValueError("❌ SQLALCHEMY_DATABASE_URI must be set in production environment")
+            raise ValueError("❌ SQLALCHEMY_DATABASE_URI or DATABASE_URL must be set in production environment")
     else:
         SQLALCHEMY_DATABASE_URI = os.getenv(
             "SQLALCHEMY_DATABASE_URI",
-            "sqlite:///joyce_suites_dev.db"
+            os.getenv("DATABASE_URL", "sqlite:///joyce_suites_dev.db")
         )
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -44,7 +48,7 @@ class BaseConfig:
     JWT_ALGORITHM = "HS256"
     JWT_EXPIRATION_HOURS = 24
 
-    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,https://joyce-suites.vercel.app,https://joyce-suites-jcfw.vercel.app,https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app,https://joyce-suites.onrender.com,https://joyce-suites-xdkp.onrender.com").split(",")
+    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,https://joyce-suites.vercel.app,https://joyce-suites-jcfw.vercel.app,https://joyce-suites-git-main-steves-projects-d95e3bef.vercel.app,https://joyce-suites.onrender.com").split(",")
 
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
     SESSION_COOKIE_HTTPONLY = True

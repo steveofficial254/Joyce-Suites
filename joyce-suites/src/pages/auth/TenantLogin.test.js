@@ -112,7 +112,7 @@ describe('TenantLogin Component', () => {
   test('renders login form with email and password fields', () => {
     renderComponent();
 
-    expect(screen.getByText(/Joyce Suits Apartments/i)).toBeInTheDocument();
+    expect(screen.getByText(/Joyce Suites Apartments/i)).toBeInTheDocument();
     expect(screen.getByText(/Tenant Login/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();

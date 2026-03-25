@@ -1,14 +1,16 @@
 import React from 'react';
+import { X } from 'lucide-react';
+
 import './TenantRegister.css';
 
 const TermsAndConditionsModal = ({ roomData, onClose, onAccept, onDecline }) => {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        
+
         <div className="modal-header">
           <h3>Lease Agreement Terms and Conditions</h3>
-          <button onClick={onClose} className="modal-close">×</button>
+          <button onClick={onClose} className="modal-close"><X size={20} /></button>
         </div>
 
         <div className="modal-body">
@@ -54,7 +56,7 @@ const TermsAndConditionsModal = ({ roomData, onClose, onAccept, onDecline }) => 
 
           <div className="terms-content">
             <h4>Terms and Conditions</h4>
-            
+
             <section className="terms-section">
               <h5>1. Lease Term</h5>
               <p>The lease is on a month-to-month basis and continues until terminated by either party with 30 days written notice.</p>

@@ -276,65 +276,9 @@ const TenantDashboard = () => {
   };
 
 
-  const getAccountDetails = (roomNumber) => {
-    const roomNum = parseInt(roomNumber);
 
-    const joyceRooms = [1, 2, 3, 4, 5, 6, 8, 9, 10];
-    const lawrenceRooms = [11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26];
+  // getAccountDetails removed in favor of dynamic backend data
 
-    let rentAmount = 5000;
-    let depositAmount = 5400;
-    let roomType = 'bedsitter';
-
-    if (!roomNum) return { rentAmount: 0, depositAmount: 0, roomType: 'N/A', landlordName: 'N/A', paybill: 'N/A', accountNumber: 'N/A' };
-
-    if ([8, 9, 10, 17, 19, 20].includes(roomNum)) {
-      rentAmount = 7500;
-      depositAmount = 7900;
-      roomType = 'one_bedroom';
-    } else if (roomNum === 18) {
-      rentAmount = 7000;
-      depositAmount = 7400;
-      roomType = 'one_bedroom';
-    } else if ([12, 22].includes(roomNum)) {
-      rentAmount = 5500;
-      depositAmount = 5900;
-      roomType = 'bedsitter';
-    } else {
-      rentAmount = 5000;
-      depositAmount = 5400;
-      roomType = 'bedsitter';
-    }
-
-    let landlordName = '';
-    let paybill = '';
-    let accountNumber = '';
-
-    if (joyceRooms.includes(roomNum)) {
-      landlordName = 'Joyce Muthoni Mathea';
-      paybill = '222111';
-      accountNumber = '2536316';
-    } else if (lawrenceRooms.includes(roomNum)) {
-      landlordName = 'Lawrence Mathea';
-      paybill = '222222';
-      accountNumber = '54544';
-    } else {
-      landlordName = 'Not Assigned';
-      paybill = 'N/A';
-      accountNumber = 'N/A';
-    }
-
-    return {
-      roomNumber: roomNum,
-      roomType,
-      rentAmount,
-      depositAmount,
-      landlordName,
-      paybill,
-      accountNumber,
-      fullAccountName: `${accountNumber} - ${landlordName}`
-    };
-  };
 
   const fetchUserProfile = async () => {
     try {
@@ -354,8 +298,7 @@ const TenantDashboard = () => {
 
           // Update account details with user's actual room information
           if (data.user?.room_number) {
-            const roomAccountDetails = getAccountDetails(data.user.room_number);
-            setAccountDetails(roomAccountDetails);
+            await fetchRoomDetails(data.user.room_number);
           }
         }
       }
@@ -373,6 +316,19 @@ const TenantDashboard = () => {
       if (response.ok) {
         const data = await response.json();
         setRoomDetails(data.room);
+
+        // Map backend room data to the accountDetails format used in UI
+        setAccountDetails({
+          roomNumber: data.room.room_number,
+          roomType: data.room.property_type,
+          rentAmount: data.room.rent_amount,
+          depositAmount: data.room.deposit_amount,
+          landlordName: data.room.landlord?.name || 'Not Assigned',
+          paybill: data.room.paybill_number,
+          accountNumber: data.room.account_number,
+          fullAccountName: `${data.room.account_number} - ${data.room.landlord?.name || 'Not Assigned'}`
+        });
+
         return data.room;
       } else {
         console.error(`Room details response not OK: ${response.status}`);
@@ -507,8 +463,6 @@ const TenantDashboard = () => {
 
 
         if (dashData.dashboard?.unit_number) {
-          const accountInfo = getAccountDetails(dashData.dashboard.unit_number);
-          setAccountDetails(accountInfo);
           await fetchRoomDetails(dashData.dashboard.unit_number);
         }
       } else {
@@ -985,7 +939,7 @@ const TenantDashboard = () => {
 
 
   const roomNumber = dashboardData?.unit_number || profileData?.room_number || 'Not Assigned';
-  const currentAccountDetails = accountDetails || getAccountDetails(roomNumber);
+  const currentAccountDetails = accountDetails;
 
 
   const outstandingBalance = dashboardData?.outstanding_balance !== undefined

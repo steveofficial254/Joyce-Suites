@@ -238,7 +238,7 @@ body {
     .topbar-nav {
         gap: 6px;
     }
-    
+
     .topbar-nav-item {
         padding: 6px 12px;
         font-size: 13px;
@@ -283,11 +283,11 @@ body {
         gap: 12px;
         align-items: stretch;
     }
-    
+
     .topbar-left {
         align-items: center;
     }
-    
+
     .topbar-right {
         justify-content: space-between;
         width: 100%;
@@ -1177,7 +1177,7 @@ body {
 }
 
 .footer-links button:before {
-    content: '→';
+    content: '->';
     font-size: 0.8rem;
     opacity: 0;
     transition: opacity 0.3s ease;

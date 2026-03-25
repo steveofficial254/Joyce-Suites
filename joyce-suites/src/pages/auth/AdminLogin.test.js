@@ -131,7 +131,7 @@ describe('AdminLogin Component', () => {
   test('renders login form with email and password fields', () => {
     renderComponent();
 
-    expect(screen.getByText(/Joyce Suits Apartments/i)).toBeInTheDocument();
+    expect(screen.getByText(/Joyce Suites Apartments/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Admin Portal/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/Admin Email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Admin Password/i)).toBeInTheDocument();

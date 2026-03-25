@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import './Login.css';
 import logo from '../../assets/image1.png';
 import backgroundImage from '../../assets/image21.jpg';
+import { ArrowLeft, ArrowRight, Key, X, AlertCircle } from 'lucide-react';
+
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -15,7 +17,7 @@ const AdminLogin = () => {
     password: ''
   });
 
-  
+
   useEffect(() => {
     if (user && user.role === 'admin') {
       navigate('/admin/dashboard', { replace: true });
@@ -40,7 +42,7 @@ const AdminLogin = () => {
   };
 
   const getErrorMessage = (err, status = null, responseData = null) => {
-    
+
     if (err?.message?.includes('Failed to fetch')) {
       return 'Network error: Unable to reach the server. Please check your internet connection.';
     }
@@ -53,7 +55,7 @@ const AdminLogin = () => {
       return 'Server returned invalid data. Please try again.';
     }
 
-    
+
     if (status === 401) {
       return 'Invalid email or password. Please try again.';
     }
@@ -70,7 +72,7 @@ const AdminLogin = () => {
       return 'Server error. Please try again later.';
     }
 
-    
+
     if (responseData?.error) {
       return responseData.error;
     }
@@ -79,7 +81,7 @@ const AdminLogin = () => {
       return responseData.message;
     }
 
-    
+
     return 'Login failed. Please try again.';
   };
 
@@ -96,17 +98,17 @@ const AdminLogin = () => {
       }
 
       const email = formData.email.trim().toLowerCase();
-      
+
       const result = await login(email, formData.password);
-      
+
       if (result.success) {
         if (result.user.role !== 'admin') {
           setError('Admin access required. Please use your admin credentials.');
           setLoading(false);
           return;
         }
-        
-        
+
+
       } else {
         setError(result.error || 'Login failed');
       }
@@ -117,7 +119,7 @@ const AdminLogin = () => {
     }
   };
 
-  
+
   const fillDefaultCredentials = () => {
     const defaultEmail = process.env.REACT_APP_DEFAULT_ADMIN_EMAIL;
     const defaultPassword = process.env.REACT_APP_DEFAULT_ADMIN_PASSWORD;
@@ -136,7 +138,7 @@ const AdminLogin = () => {
   return (
     <div className="login-container" style={{ backgroundImage: `url(${backgroundImage})` }}>
       <div className="login-overlay"></div>
-      
+
       <div className="login-content">
         <div className="login-card">
           <img src={logo} alt="Joyce Suites Logo" className="login-logo" />
@@ -144,21 +146,11 @@ const AdminLogin = () => {
           <h2>Admin Portal</h2>
 
           {error && (
-            <div className="alert alert-error">
+            <div className="error-banner">
+              <AlertCircle size={16} />
               <span>{error}</span>
-              <button 
-                onClick={() => setError('')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'inherit',
-                  fontSize: '20px',
-                  cursor: 'pointer',
-                  marginLeft: '10px'
-                }}
-                aria-label="Close error message"
-              >
-                ×
+              <button onClick={() => setError('')} className="close-error">
+                <X size={18} />
               </button>
             </div>
           )}
@@ -207,9 +199,9 @@ const AdminLogin = () => {
                 </button>
               )}
 
-            <button 
-              type="submit" 
-              className="btn btn-primary" 
+            <button
+              type="submit"
+              className="btn btn-primary"
               disabled={loading || authLoading}
             >
               {(loading || authLoading) ? 'Verifying...' : 'Login to Admin Portal'}
@@ -229,28 +221,32 @@ const AdminLogin = () => {
                   color: '#0369a1'
                 }}
               >
-                <strong>🔑 Development Mode:</strong>
-                <br />
-                Default credentials available via button above
+                <div className="dev-mode-badge" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Key size={16} />
+                  <strong>Development Mode:</strong>
+                  <span>Admin access enabled</span>
+                </div>
               </div>
             )}
 
         </div>
 
         <div className="auth-navigation">
-          <button 
-            onClick={() => navigate('/login')} 
-            className="nav-btn tenant-btn"
+          <button
+            onClick={() => navigate('/login')}
+            className="btn-link"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             disabled={loading || authLoading}
           >
-            ← Tenant Login
+            <ArrowLeft size={16} /> Tenant Login
           </button>
-          <button 
-            onClick={() => navigate('/caretaker-login')} 
-            className="nav-btn caretaker-btn"
+          <button
+            onClick={() => navigate('/caretaker-login')}
+            className="btn-link"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             disabled={loading || authLoading}
           >
-            Caretaker Login →
+            Caretaker Login <ArrowRight size={16} />
           </button>
         </div>
       </div>

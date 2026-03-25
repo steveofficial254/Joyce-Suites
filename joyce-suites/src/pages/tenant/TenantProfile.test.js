@@ -7,7 +7,7 @@ import config from '../../config';
 
 // Mock the config module to use the database URL
 jest.mock('../../config', () => ({
-  apiBaseUrl: 'https://joyce-suites-xdkp.onrender.com'
+  apiBaseUrl: 'https://joyce-suites.onrender.com'
 }));
 
 // Mock the navigate function
