@@ -11,7 +11,12 @@ class BaseConfig:
     PORT = int(os.getenv("PORT", 5000))
 
     if os.getenv("FLASK_ENV") == "production":
+        print(f"🔍 DEBUG: FLASK_ENV = {os.getenv('FLASK_ENV')}", flush=True)
+        print(f"🔍 DEBUG: SQLALCHEMY_DATABASE_URI = {os.getenv('SQLALCHEMY_DATABASE_URI')}", flush=True)
+        print(f"🔍 DEBUG: DATABASE_URL = {os.getenv('DATABASE_URL')}", flush=True)
+        
         SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI") or os.getenv("DATABASE_URL")
+        print(f"🔍 DEBUG: Final SQLALCHEMY_DATABASE_URI = {SQLALCHEMY_DATABASE_URI}", flush=True)
         # SQLAlchemy 1.4+ requires postgresql:// instead of postgres://
         if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
             SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
