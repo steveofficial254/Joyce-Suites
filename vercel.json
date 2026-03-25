@@ -1,5 +1,4 @@
 {
-    "rootDirectory": "joyce-suites",
-    "buildCommand": "npm run build",
-    "outputDirectory": "build"
+    "buildCommand": "cd joyce-suites && npm run build",
+    "outputDirectory": "joyce-suites/build"
 }
