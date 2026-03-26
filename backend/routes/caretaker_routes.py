@@ -878,17 +878,6 @@ def get_financial_summary():
     try:
         from datetime import datetime, timedelta
         
-        # Try to import models, handle if they don't exist yet
-        try:
-            from models.rent_deposit import RentRecord, DepositRecord, RentStatus, DepositStatus
-            from models.water_bill import WaterBill, WaterBillStatus
-            rent_models_exist = True
-        except ImportError:
-            rent_models_exist = False
-        
-        current_month = datetime.now().month
-        current_year = datetime.now().year
-        
         # Initialize default values
         financial_data = {
             'rent_stats': {
@@ -923,14 +912,17 @@ def get_financial_summary():
             }
         }
         
-        if rent_models_exist:
-            # Rent Statistics
+        # Try to get rent statistics
+        try:
+            from models.rent_deposit import RentRecord, RentStatus
+            current_month = datetime.now().month
+            current_year = datetime.now().year
+            
             total_rent_records = RentRecord.query.count()
             paid_rent = RentRecord.query.filter_by(status=RentStatus.PAID.value).count()
             unpaid_rent = RentRecord.query.filter_by(status=RentStatus.UNPAID.value).count()
             overdue_rent = RentRecord.query.filter_by(status=RentStatus.OVERDUE.value).count()
             
-            # Current month rent
             current_month_rent = RentRecord.query.filter(
                 RentRecord.month == current_month,
                 RentRecord.year == current_year
@@ -949,8 +941,12 @@ def get_financial_summary():
                 'current_month_due': current_month_due,
                 'current_month_balance': current_month_balance
             }
-            
-            # Deposit Statistics
+        except Exception as rent_error:
+            current_app.logger.warning(f"Rent stats not available: {str(rent_error)}")
+        
+        # Try to get deposit statistics
+        try:
+            from models.rent_deposit import DepositRecord, DepositStatus
             total_deposits = DepositRecord.query.count()
             paid_deposits = DepositRecord.query.filter_by(status=DepositStatus.PAID.value).count()
             pending_deposits = DepositRecord.query.filter_by(status=DepositStatus.UNPAID.value).count()
@@ -967,8 +963,12 @@ def get_financial_summary():
                 'total_amount': total_deposit_amount,
                 'total_paid': total_deposit_paid
             }
-            
-            # Water Bill Statistics
+        except Exception as deposit_error:
+            current_app.logger.warning(f"Deposit stats not available: {str(deposit_error)}")
+        
+        # Try to get water bill statistics
+        try:
+            from models.water_bill import WaterBill, WaterBillStatus
             total_water_bills = WaterBill.query.count()
             paid_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.PAID.value).count()
             unpaid_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.UNPAID.value).count()
@@ -987,8 +987,8 @@ def get_financial_summary():
             }
             
             # Overall Financial Summary
-            total_expected_revenue = current_month_due + total_deposit_amount + total_water_amount
-            total_actual_revenue = current_month_paid + total_deposit_paid + total_water_paid
+            total_expected_revenue = financial_data['rent_stats']['current_month_due'] + total_deposit_amount + total_water_amount
+            total_actual_revenue = financial_data['rent_stats']['current_month_paid'] + total_deposit_paid + total_water_paid
             total_outstanding = total_expected_revenue - total_actual_revenue
             
             financial_data['overall'] = {
@@ -996,6 +996,8 @@ def get_financial_summary():
                 'total_actual_revenue': total_actual_revenue,
                 'total_outstanding': total_outstanding
             }
+        except Exception as water_error:
+            current_app.logger.warning(f"Water bill stats not available: {str(water_error)}")
         
         return jsonify({
             'success': True,
