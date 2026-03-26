@@ -331,6 +331,175 @@ def create_app():
                 'error': str(e)
             }), 500
 
+    # Add comprehensive setup endpoint
+    @app.route('/api/comprehensive-setup', methods=['POST'])
+    def comprehensive_setup():
+        """Create all missing data: rooms, leases, and basic records"""
+        try:
+            from datetime import datetime
+            from models.base import db
+            from models.user import User
+            from models.property import Property
+            from models.lease import Lease
+            from models.rent_deposit import RentRecord, DepositRecord, RentStatus, DepositStatus
+            from models.water_bill import WaterBill, WaterBillStatus
+            
+            # Get existing users
+            joyce = User.query.filter_by(email='joyce@joycesuites.com').first()
+            lawrence = User.query.filter_by(email='lawrence@joycesuites.com').first()
+            tenants = User.query.filter_by(role='tenant').all()
+            
+            if not joyce or not lawrence:
+                return jsonify({
+                    'success': False,
+                    'error': 'Landlord users not found'
+                }), 400
+            
+            # Clear and recreate properties
+            Property.query.delete()
+            db.session.commit()
+            
+            # Create rooms with correct data from seed_rooms.py
+            rooms_data = [
+                # Joyce Muthoni's rooms (paybill 222111)
+                {'room': 1, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 2, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 3, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 4, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 5, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 6, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 7, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 8, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 9, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                {'room': 10, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+                
+                # Lawrence Mathea's rooms (paybill 222222)
+                {'room': 11, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 12, 'type': 'bedsitter', 'rent': 5500, 'deposit': 5900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 13, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 14, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 15, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 16, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 17, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 18, 'type': 'one_bedroom', 'rent': 7000, 'deposit': 7400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 19, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 20, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 21, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 22, 'type': 'bedsitter', 'rent': 5500, 'deposit': 5900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 23, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 24, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 25, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+                {'room': 26, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            ]
+            
+            created_rooms = []
+            for room_data in rooms_data:
+                # Make rooms 25 and 26 occupied
+                status = 'occupied' if room_data['room'] in [25, 26] else 'vacant'
+                
+                new_room = Property(
+                    name=f"Room {room_data['room']}",
+                    property_type=room_data['type'],
+                    rent_amount=room_data['rent'],
+                    deposit_amount=room_data['deposit'],
+                    description=f"{room_data['type'].replace('_', ' ').title()} - KSh {room_data['rent']}/month (Deposit: KSh {room_data['deposit']})",
+                    landlord_id=room_data['landlord'].id,
+                    status=status,
+                    paybill_number=room_data['paybill'],
+                    account_number=room_data['account']
+                )
+                db.session.add(new_room)
+                created_rooms.append(new_room)
+            
+            db.session.commit()
+            
+            # Create leases for tenants
+            vacant_properties = [p for p in created_rooms if p.status == 'vacant']
+            created_leases = 0
+            created_rent_records = []
+            created_deposit_records = []
+            
+            for i, tenant in enumerate(tenants):
+                if i < len(vacant_properties):
+                    property = vacant_properties[i]
+                    
+                    # Create lease
+                    lease = Lease(
+                        tenant_id=tenant.id,
+                        property_id=property.id,
+                        start_date=datetime.now(),
+                        end_date=datetime.now().replace(year=datetime.now().year + 1),
+                        rent_amount=property.rent_amount,
+                        deposit_amount=property.deposit_amount,
+                        status='active'
+                    )
+                    db.session.add(lease)
+                    db.session.flush()  # Get the lease ID
+                    
+                    # Update property status
+                    property.status = 'occupied'
+                    created_leases += 1
+                    
+                    # Create rent record for current month
+                    current_month = datetime.now().month
+                    current_year = datetime.now().year
+                    
+                    rent_record = RentRecord(
+                        tenant_id=tenant.id,
+                        property_id=property.id,
+                        lease_id=lease.id,
+                        due_date=datetime.now().replace(day=5),
+                        amount_due=property.rent_amount,
+                        amount_paid=0,
+                        balance=property.rent_amount,
+                        status=RentStatus.UNPAID.value,
+                        month=current_month,
+                        year=current_year,
+                        is_auto_calculated=True,
+                        last_calculated=datetime.now()
+                    )
+                    db.session.add(rent_record)
+                    created_rent_records.append(rent_record)
+                    
+                    # Create deposit record
+                    deposit_record = DepositRecord(
+                        tenant_id=tenant.id,
+                        property_id=property.id,
+                        lease_id=lease.id,
+                        amount_required=property.deposit_amount,
+                        amount_paid=0,
+                        balance=property.deposit_amount,
+                        status=DepositStatus.UNPAID.value,
+                        due_date=datetime.now().replace(day=1),
+                        is_auto_calculated=True,
+                        last_calculated=datetime.now()
+                    )
+                    db.session.add(deposit_record)
+                    created_deposit_records.append(deposit_record)
+            
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Comprehensive setup completed successfully!',
+                'data': {
+                    'rooms_created': len(created_rooms),
+                    'leases_created': created_leases,
+                    'rent_records_created': len(created_rent_records),
+                    'deposit_records_created': len(created_deposit_records),
+                    'vacant_rooms': len([p for p in created_rooms if p.status == 'vacant']),
+                    'occupied_rooms': len([p for p in created_rooms if p.status == 'occupied']),
+                    'note': 'All financial data is now available for dashboard'
+                }
+            }), 200
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
     return app
 
 
