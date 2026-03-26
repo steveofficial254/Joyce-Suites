@@ -1704,10 +1704,14 @@ def export_deposits():
         current_app.logger.error(f"Error exporting deposits: {str(e)}")
         return jsonify({'success': False, 'error': f'Failed to export deposits: {str(e)}'}), 500
 
-@admin_bp.route('/seed-database', methods=['POST'])
+@admin_bp.route('/seed-database', methods=['OPTIONS', 'POST'])
 @admin_required
 def seed_database():
     """Seed database with initial users and properties"""
+    # Handle OPTIONS request
+    if request.method == 'OPTIONS':
+        return '', 200
+        
     try:
         from flask import current_app
         import os
