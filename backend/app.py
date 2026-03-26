@@ -272,6 +272,65 @@ def create_app():
                 'error': str(e)
             }), 500
 
+    # Add endpoint to create leases for tenants
+    @app.route('/api/setup-leases', methods=['POST'])
+    def setup_leases():
+        """Create leases for existing tenants"""
+        try:
+            from datetime import datetime
+            from models.base import db
+            from models.user import User
+            from models.property import Property
+            from models.lease import Lease
+            
+            # Get tenants and properties
+            tenants = User.query.filter_by(role='tenant').all()
+            properties = Property.query.filter_by(status='vacant').all()
+            
+            if not tenants or not properties:
+                return jsonify({
+                    'success': False,
+                    'error': 'No tenants or vacant properties found'
+                }), 400
+            
+            created_leases = 0
+            for i, tenant in enumerate(tenants):
+                if i < len(properties):
+                    property = properties[i]
+                    
+                    # Create lease
+                    lease = Lease(
+                        tenant_id=tenant.id,
+                        property_id=property.id,
+                        start_date=datetime.now(),
+                        end_date=datetime.now().replace(year=datetime.now().year + 1),
+                        rent_amount=property.rent_amount,
+                        deposit_amount=property.deposit_amount,
+                        status='active'
+                    )
+                    db.session.add(lease)
+                    
+                    # Update property status
+                    property.status = 'occupied'
+                    created_leases += 1
+            
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Created {created_leases} leases successfully',
+                'data': {
+                    'leases_created': created_leases,
+                    'tenants_with_leases': created_leases
+                }
+            }), 200
+            
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
     return app
 
 
