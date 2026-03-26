@@ -1860,3 +1860,45 @@ def seed_database():
             'success': False,
             'error': f'Failed to seed database: {str(e)}'
         }), 500
+
+@admin_bp.route('/run-actual-seed', methods=['OPTIONS', 'POST'])
+@admin_required
+def run_actual_seed():
+    """Run the actual seed_rooms.py script"""
+    # Handle OPTIONS request
+    if request.method == 'OPTIONS':
+        return '', 200
+        
+    try:
+        from flask import current_app
+        current_app.logger.info("Running actual seed_rooms.py script...")
+        
+        # Import and run the actual seed_rooms function
+        from seed_rooms import seed_rooms
+        seed_rooms()
+        
+        # Verify results
+        from models.user import User
+        from models.property import Property
+        
+        user_count = User.query.count()
+        property_count = Property.query.count()
+        
+        current_app.logger.info(f"Actual seeding complete: {user_count} users, {property_count} properties")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Actual seed_rooms.py script executed successfully!',
+            'data': {
+                'users_created': user_count,
+                'properties_created': property_count,
+                'note': 'This used your real seed_rooms.py file with correct pricing and room data'
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error running actual seed_rooms: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to run seed_rooms.py: {str(e)}'
+        }), 500
