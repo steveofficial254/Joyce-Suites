@@ -175,9 +175,9 @@ def create_app():
 
     app.logger.info("Application initialized")
 
-    # Add simple room creation endpoint for setup
-    @app.route('/api/create-rooms-now', methods=['POST'])
-    def create_rooms_now():
+    # Add simple room creation endpoint for setup (no CSRF)
+    @app.route('/api/setup-rooms', methods=['POST'])
+    def setup_rooms():
         """Create rooms with correct pricing - no auth required for setup"""
         try:
             from models.base import db

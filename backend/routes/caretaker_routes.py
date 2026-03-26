@@ -876,97 +876,138 @@ def mark_payment_status():
 def get_financial_summary():
     """Get comprehensive financial summary for caretaker dashboard"""
     try:
-        from models.rent_deposit import RentRecord, DepositRecord, RentStatus, DepositStatus
-        from models.water_bill import WaterBill, WaterBillStatus
         from datetime import datetime, timedelta
+        
+        # Try to import models, handle if they don't exist yet
+        try:
+            from models.rent_deposit import RentRecord, DepositRecord, RentStatus, DepositStatus
+            from models.water_bill import WaterBill, WaterBillStatus
+            rent_models_exist = True
+        except ImportError:
+            rent_models_exist = False
         
         current_month = datetime.now().month
         current_year = datetime.now().year
         
-        # Rent Statistics
-        total_rent_records = RentRecord.query.count()
-        paid_rent = RentRecord.query.filter_by(status=RentStatus.PAID.value).count()
-        unpaid_rent = RentRecord.query.filter_by(status=RentStatus.UNPAID.value).count()
-        overdue_rent = RentRecord.query.filter_by(status=RentStatus.OVERDUE.value).count()
+        # Initialize default values
+        financial_data = {
+            'rent_stats': {
+                'total_records': 0,
+                'paid': 0,
+                'unpaid': 0,
+                'overdue': 0,
+                'current_month_paid': 0.0,
+                'current_month_due': 0.0,
+                'current_month_balance': 0.0
+            },
+            'deposit_stats': {
+                'total_deposits': 0,
+                'paid': 0,
+                'pending': 0,
+                'refunded': 0,
+                'total_amount': 0.0,
+                'total_paid': 0.0
+            },
+            'water_bill_stats': {
+                'total_bills': 0,
+                'paid': 0,
+                'unpaid': 0,
+                'overdue': 0,
+                'total_amount': 0.0,
+                'total_paid': 0.0
+            },
+            'overall': {
+                'total_expected_revenue': 0.0,
+                'total_actual_revenue': 0.0,
+                'total_outstanding': 0.0
+            }
+        }
         
-        # Current month rent
-        current_month_rent = RentRecord.query.filter(
-            RentRecord.month == current_month,
-            RentRecord.year == current_year
-        ).all()
-        
-        current_month_paid = sum(float(r.amount_paid or 0) for r in current_month_rent)
-        current_month_due = sum(float(r.amount_due or 0) for r in current_month_rent)
-        current_month_balance = sum(float(r.balance or 0) for r in current_month_rent)
-        
-        # Deposit Statistics
-        total_deposits = DepositRecord.query.count()
-        paid_deposits = DepositRecord.query.filter_by(status=DepositStatus.PAID.value).count()
-        pending_deposits = DepositRecord.query.filter_by(status=DepositStatus.UNPAID.value).count()
-        refunded_deposits = DepositRecord.query.filter_by(status=DepositStatus.REFUNDED.value).count()
-        
-        total_deposit_amount = sum(float(d.amount_required or 0) for d in DepositRecord.query.all())
-        total_deposit_paid = sum(float(d.amount_paid or 0) for d in DepositRecord.query.all())
-        
-        # Water Bill Statistics
-        total_water_bills = WaterBill.query.count()
-        paid_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.PAID.value).count()
-        unpaid_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.UNPAID.value).count()
-        overdue_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.OVERDUE.value).count()
-        
-        total_water_amount = sum(float(w.amount_due or 0) for w in WaterBill.query.all())
-        total_water_paid = sum(float(w.amount_paid or 0) for w in WaterBill.query.all())
-        
-        # Overall Financial Summary
-        total_expected_revenue = current_month_due + total_deposit_amount + total_water_amount
-        total_actual_revenue = current_month_paid + total_deposit_paid + total_water_paid
-        total_outstanding = total_expected_revenue - total_actual_revenue
+        if rent_models_exist:
+            # Rent Statistics
+            total_rent_records = RentRecord.query.count()
+            paid_rent = RentRecord.query.filter_by(status=RentStatus.PAID.value).count()
+            unpaid_rent = RentRecord.query.filter_by(status=RentStatus.UNPAID.value).count()
+            overdue_rent = RentRecord.query.filter_by(status=RentStatus.OVERDUE.value).count()
+            
+            # Current month rent
+            current_month_rent = RentRecord.query.filter(
+                RentRecord.month == current_month,
+                RentRecord.year == current_year
+            ).all()
+            
+            current_month_paid = sum(float(r.amount_paid or 0) for r in current_month_rent)
+            current_month_due = sum(float(r.amount_due or 0) for r in current_month_rent)
+            current_month_balance = sum(float(r.balance or 0) for r in current_month_rent)
+            
+            financial_data['rent_stats'] = {
+                'total_records': total_rent_records,
+                'paid': paid_rent,
+                'unpaid': unpaid_rent,
+                'overdue': overdue_rent,
+                'current_month_paid': current_month_paid,
+                'current_month_due': current_month_due,
+                'current_month_balance': current_month_balance
+            }
+            
+            # Deposit Statistics
+            total_deposits = DepositRecord.query.count()
+            paid_deposits = DepositRecord.query.filter_by(status=DepositStatus.PAID.value).count()
+            pending_deposits = DepositRecord.query.filter_by(status=DepositStatus.UNPAID.value).count()
+            refunded_deposits = DepositRecord.query.filter_by(status=DepositStatus.REFUNDED.value).count()
+            
+            total_deposit_amount = sum(float(d.amount_required or 0) for d in DepositRecord.query.all())
+            total_deposit_paid = sum(float(d.amount_paid or 0) for d in DepositRecord.query.all())
+            
+            financial_data['deposit_stats'] = {
+                'total_deposits': total_deposits,
+                'paid': paid_deposits,
+                'pending': pending_deposits,
+                'refunded': refunded_deposits,
+                'total_amount': total_deposit_amount,
+                'total_paid': total_deposit_paid
+            }
+            
+            # Water Bill Statistics
+            total_water_bills = WaterBill.query.count()
+            paid_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.PAID.value).count()
+            unpaid_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.UNPAID.value).count()
+            overdue_water_bills = WaterBill.query.filter_by(status=WaterBillStatus.OVERDUE.value).count()
+            
+            total_water_amount = sum(float(w.amount_due or 0) for w in WaterBill.query.all())
+            total_water_paid = sum(float(w.amount_paid or 0) for w in WaterBill.query.all())
+            
+            financial_data['water_bill_stats'] = {
+                'total_bills': total_water_bills,
+                'paid': paid_water_bills,
+                'unpaid': unpaid_water_bills,
+                'overdue': overdue_water_bills,
+                'total_amount': total_water_amount,
+                'total_paid': total_water_paid
+            }
+            
+            # Overall Financial Summary
+            total_expected_revenue = current_month_due + total_deposit_amount + total_water_amount
+            total_actual_revenue = current_month_paid + total_deposit_paid + total_water_paid
+            total_outstanding = total_expected_revenue - total_actual_revenue
+            
+            financial_data['overall'] = {
+                'total_expected_revenue': total_expected_revenue,
+                'total_actual_revenue': total_actual_revenue,
+                'total_outstanding': total_outstanding
+            }
         
         return jsonify({
-            "success": True,
-            "summary": {
-                "rent": {
-                    "total_records": total_rent_records,
-                    "paid": paid_rent,
-                    "unpaid": unpaid_rent,
-                    "overdue": overdue_rent,
-                    "current_month": {
-                        "paid": current_month_paid,
-                        "due": current_month_due,
-                        "balance": current_month_balance
-                    }
-                },
-                "deposits": {
-                    "total_records": total_deposits,
-                    "paid": paid_deposits,
-                    "pending": pending_deposits,
-                    "refunded": refunded_deposits,
-                    "total_amount": total_deposit_amount,
-                    "total_paid": total_deposit_paid
-                },
-                "water_bills": {
-                    "total_records": total_water_bills,
-                    "paid": paid_water_bills,
-                    "unpaid": unpaid_water_bills,
-                    "overdue": overdue_water_bills,
-                    "total_amount": total_water_amount,
-                    "total_paid": total_water_paid
-                },
-                "overall": {
-                    "total_expected_revenue": total_expected_revenue,
-                    "total_actual_revenue": total_actual_revenue,
-                    "total_outstanding": total_outstanding,
-                    "collection_rate": (total_actual_revenue / total_expected_revenue * 100) if total_expected_revenue > 0 else 0
-                }
-            }
+            'success': True,
+            'data': financial_data,
+            'message': 'Financial summary retrieved successfully'
         }), 200
         
     except Exception as e:
-        current_app.logger.error(f"❌ Financial summary error: {str(e)}")
+        current_app.logger.error(f"Error getting financial summary: {str(e)}")
         return jsonify({
-            "success": False,
-            "error": "Failed to fetch financial summary",
-            "message": str(e)
+            'success': False,
+            'error': f'Failed to get financial summary: {str(e)}'
         }), 500
 
 
