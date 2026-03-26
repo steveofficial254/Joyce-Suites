@@ -1703,3 +1703,156 @@ def export_deposits():
     except Exception as e:
         current_app.logger.error(f"Error exporting deposits: {str(e)}")
         return jsonify({'success': False, 'error': f'Failed to export deposits: {str(e)}'}), 500
+
+@admin_bp.route('/seed-database', methods=['POST'])
+@admin_required
+def seed_database():
+    """Seed database with initial users and properties"""
+    try:
+        from flask import current_app
+        import os
+        
+        current_app.logger.info("Starting database seeding...")
+        
+        # Clear existing data
+        Property.query.delete()
+        User.query.delete()
+        db.session.commit()
+        current_app.logger.info("Cleared existing data")
+        
+        # Create users
+        admin = User(
+            email='admin@joycesuites.com',
+            username='admin',
+            first_name='System',
+            last_name='Administrator',
+            phone_number='+254700000001',
+            role='admin',
+            national_id=99999999,
+            is_active=True
+        )
+        admin.password = os.getenv('DEFAULT_ADMIN_PASSWORD', 'Admin@123456')
+        db.session.add(admin)
+        
+        joyce = User(
+            email='joyce@joycesuites.com',
+            username='joyce_muthoni',
+            first_name='Joyce',
+            last_name='Muthoni',
+            phone_number='0729175330',
+            role='landlord',
+            national_id=66183870,
+            is_active=True
+        )
+        joyce.password = os.getenv('DEFAULT_LANDLORD_PASSWORD', 'Password@123')
+        db.session.add(joyce)
+        
+        lawrence = User(
+            email='lawrence@joycesuites.com',
+            username='lawrence_mathea',
+            first_name='Lawrence',
+            last_name='Mathea',
+            phone_number='+254722870077',
+            role='landlord',
+            national_id=10000011,
+            is_active=True
+        )
+        lawrence.password = os.getenv('DEFAULT_LANDLORD_PASSWORD', 'Password@123')
+        db.session.add(lawrence)
+        
+        caretaker = User(
+            email='caretaker@joycesuites.com',
+            username='caretaker',
+            first_name='Caretaker',
+            last_name='User',
+            phone_number='+254700000002',
+            role='caretaker',
+            national_id=88888888,
+            is_active=True
+        )
+        caretaker.password = os.getenv('DEFAULT_CARETAKER_PASSWORD', 'Caretaker123!')
+        db.session.add(caretaker)
+        
+        db.session.commit()
+        current_app.logger.info("Created users")
+        
+        # Create rooms
+        rooms_data = [
+            # Joyce Muthoni's rooms
+            {'room': 1, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 2, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 3, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 4, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 5, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 6, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 7, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 8, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 9, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            {'room': 10, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': joyce, 'paybill': '222111', 'account': '2536316'},
+            
+            # Lawrence Mathea's rooms
+            {'room': 11, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 12, 'type': 'bedsitter', 'rent': 5500, 'deposit': 5900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 13, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 14, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 15, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 16, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 17, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 18, 'type': 'one_bedroom', 'rent': 7000, 'deposit': 7400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 19, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 20, 'type': 'one_bedroom', 'rent': 7500, 'deposit': 7900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 21, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 22, 'type': 'bedsitter', 'rent': 5500, 'deposit': 5900, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 23, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 24, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 25, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+            {'room': 26, 'type': 'bedsitter', 'rent': 5000, 'deposit': 5400, 'landlord': lawrence, 'paybill': '222222', 'account': '54544'},
+        ]
+        
+        for room_data in rooms_data:
+            status = 'occupied' if room_data['room'] in [25, 26] else 'vacant'
+            
+            new_room = Property(
+                name=f"Room {room_data['room']}",
+                property_type=room_data['type'],
+                rent_amount=room_data['rent'],
+                deposit_amount=room_data['deposit'],
+                description=f"{room_data['type'].replace('_', ' ').title()} - KSh {room_data['rent']}/month",
+                landlord_id=room_data['landlord'].id,
+                status=status,
+                paybill_number=room_data['paybill'],
+                account_number=room_data['account']
+            )
+            db.session.add(new_room)
+        
+        db.session.commit()
+        current_app.logger.info("Created rooms")
+        
+        # Verify results
+        user_count = User.query.count()
+        property_count = Property.query.count()
+        
+        current_app.logger.info(f"Seeding complete: {user_count} users, {property_count} properties")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Database seeded successfully!',
+            'data': {
+                'users_created': user_count,
+                'properties_created': property_count,
+                'login_credentials': {
+                    'admin': 'admin@joycesuites.com / Admin@123456',
+                    'caretaker': 'caretaker@joycesuites.com / Caretaker123!',
+                    'landlord_joyce': 'joyce@joycesuites.com / Password@123',
+                    'landlord_lawrence': 'lawrence@joycesuites.com / Password@123'
+                }
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error seeding database: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Failed to seed database: {str(e)}'
+        }), 500
