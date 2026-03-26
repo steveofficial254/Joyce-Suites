@@ -1,8 +1,22 @@
 import os
 import sys
+import time
 from app import app, db
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+def retry_database_operation(operation, max_retries=3, delay=2):
+    """Retry database operations with exponential backoff"""
+    for attempt in range(max_retries):
+        try:
+            return operation()
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise
+            print(f"⚠️ Database operation failed (attempt {attempt + 1}/{max_retries}): {e}")
+            print(f"🔄 Retrying in {delay} seconds...")
+            time.sleep(delay)
+            delay *= 2  # Exponential backoff
 
 def update_schema():
     """Update database schema with all model changes"""
@@ -37,18 +51,25 @@ def update_schema():
                     if not os.access(db_dir, os.W_OK):
                         print(f"⚠️ Warning: Directory {db_dir} is NOT writable!", flush=True)
             
-            # Create all tables first (this doesn't delete existing data)
-            db.create_all()
-            print("✅ Database tables created successfully!", flush=True)
+            # Create all tables with retry logic
+            def create_tables():
+                db.create_all()
+                print("✅ Database tables created successfully!", flush=True)
+            
+            retry_database_operation(create_tables)
             
             # Now check if database exists and has data
             from models.property import Property
             from models.user import User
             
-            try:
+            def check_existing_data():
                 existing_properties = Property.query.count()
                 existing_users = User.query.count()
                 print(f"📊 Existing data - Properties: {existing_properties}, Users: {existing_users}", flush=True)
+                return existing_properties, existing_users
+            
+            try:
+                existing_properties, existing_users = retry_database_operation(check_existing_data)
             except Exception as e:
                 print(f"⚠️ Could not query existing data: {e}", flush=True)
                 existing_properties = 0
@@ -64,6 +85,7 @@ def update_schema():
             
         except Exception as e:
             print(f"❌ Error updating schema: {e}")
+            print("💡 This might be a temporary database connection issue. Please try again.")
             raise
 
 if __name__ == '__main__':

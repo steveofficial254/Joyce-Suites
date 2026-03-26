@@ -1,5 +1,3 @@
-# Joyce Suites Backend Application
-# Updated deployment structure - backend now in subdirectory
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_migrate import Migrate
@@ -172,7 +170,8 @@ def create_app():
     register_request_logging(app)
     
     # Auto-seed database in production if empty (fixed version)
-    auto_seed_if_needed(app)
+    # Auto-seeding disabled - use manual setup scripts
+    # auto_seed_if_needed(app)
 
     app.logger.info("Application initialized")
 
@@ -452,32 +451,8 @@ def auto_seed_if_needed(app: Flask) -> None:
             db.create_all()
             app.logger.info("✅ Database tables created/verified")
             
-            from models.property import Property
-            from models.user import User
-            
-            # Check if database is empty
-            try:
-                property_count = Property.query.count()
-                user_count = User.query.count()
-                app.logger.info(f"Database check - Properties: {property_count}, Users: {user_count}")
-            except Exception as e:
-                app.logger.warning(f"Could not query database: {e}")
-                property_count = 0
-                user_count = 0
-            
-            if property_count == 0 and user_count == 0:
-                app.logger.info("🌱 Database is empty. Auto-seeding...")
-                
-                # Import and run seed_rooms function
-                from seed_rooms import seed_rooms
-                seed_rooms()
-                
-                app.logger.info("✅ Database auto-seeded successfully!")
-            else:
-                app.logger.info("✅ Database already has data - skipping auto-seed")
-                
     except Exception as e:
-        app.logger.error(f"❌ Auto-seed failed: {e}")
+        app.logger.error(f"❌ Database initialization failed: {e}")
         # Don't raise the error to prevent app startup failure
 
 

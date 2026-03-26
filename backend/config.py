@@ -2,14 +2,7 @@ import os
 from datetime import timedelta
 from dotenv import load_dotenv
 
-print("🔍 DEBUG: Loading environment variables...", flush=True)
 load_dotenv()
-print("🔍 DEBUG: Environment variables loaded", flush=True)
-
-print("🔍 DEBUG: All environment variables starting with SQL or DB:", flush=True)
-for key, value in os.environ.items():
-    if key.startswith(('SQL', 'DB', 'FLASK')):
-        print(f"🔍 {key} = {value}", flush=True)
 
 class BaseConfig:
     """Base configuration"""
@@ -18,12 +11,7 @@ class BaseConfig:
     PORT = int(os.getenv("PORT", 5000))
 
     if os.getenv("FLASK_ENV") == "production":
-        print(f"🔍 DEBUG: FLASK_ENV = {os.getenv('FLASK_ENV')}", flush=True)
-        print(f"🔍 DEBUG: SQLALCHEMY_DATABASE_URI = {os.getenv('SQLALCHEMY_DATABASE_URI')}", flush=True)
-        print(f"🔍 DEBUG: DATABASE_URL = {os.getenv('DATABASE_URL')}", flush=True)
-        
         SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI") or os.getenv("DATABASE_URL")
-        print(f"🔍 DEBUG: Final SQLALCHEMY_DATABASE_URI = {SQLALCHEMY_DATABASE_URI}", flush=True)
         # SQLAlchemy 1.4+ requires postgresql:// instead of postgres://
         if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
             SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
@@ -38,13 +26,23 @@ class BaseConfig:
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    SQLALCHEMY_ENGINE_OPTIONS = {
+    # Database engine options
+    engine_options = {
         "pool_pre_ping": True,      # Verify connections before using
         "pool_recycle": 3600,        # Recycle connections after 1 hour
         "pool_size": 10,             # Number of connections to maintain
         "max_overflow": 20,          # Max connections beyond pool_size
-        "pool_timeout": 30           # Timeout for getting connection
+        "pool_timeout": 30,          # Timeout for getting connection
     }
+    
+    # Add PostgreSQL-specific connection args
+    if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith("postgresql://"):
+        engine_options["connect_args"] = {
+            "connect_timeout": 10,   # Connection timeout in seconds
+            "application_name": "joyce_suites"
+        }
+    
+    SQLALCHEMY_ENGINE_OPTIONS = engine_options
 
     if os.getenv("FLASK_ENV") == "production":
         SECRET_KEY = os.getenv("SECRET_KEY")
