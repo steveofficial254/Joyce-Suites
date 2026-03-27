@@ -9,16 +9,14 @@ import SignatureCanvas from 'react-signature-canvas';
 import { useAuth } from '../../context/AuthContext';
 import './TenantDashboard.css';
 import logo from '../../assets/image1.png';
-import quickActionsBg from '../../assets/image1.png';
-import config from '../../config';
-
-import apartment1 from '../../assets/image12.jpg';
-import apartment2 from '../../assets/image21.jpg';
-import apartment3 from '../../assets/image22.jpg';
-import apartment4 from '../../assets/image10.jpg';
-import apartment5 from '../../assets/image8.jpg';
-import apartment6 from '../../assets/image11.jpg';
-
+const apartmentImages = [
+  require('../../assets/image1.png'),
+  require('../../assets/image12.jpg'),
+  require('../../assets/image22.jpg'),
+  require('../../assets/image10.jpg'),
+  require('../../assets/image8.jpg'),
+  require('../../assets/image11.jpg')
+];
 const TenantDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
