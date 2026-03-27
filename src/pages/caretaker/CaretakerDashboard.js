@@ -1359,11 +1359,9 @@ const CaretakerDashboard = () => {
       }}>
         <header style={styles.header}>
           <div style={styles.headerLeft}>
-            {!isMobile && (
-              <button style={styles.menuBtn} onClick={() => setSidebarOpen(true)}>
-                <Menu size={24} />
-              </button>
-            )}
+            <button style={styles.menuBtn} onClick={() => setSidebarOpen(!sidebarOpen)}>
+              <Menu size={24} />
+            </button>
             <button
               style={{
                 background: 'none',
@@ -1491,7 +1489,7 @@ const CaretakerDashboard = () => {
       )}
 
       {showPropertyDetailsModal && selectedProperty && (
-        <PropertyDetailsModal
+        <TenantDetailsModal
           tenant={selectedProperty}
           onClose={() => {
             setShowPropertyDetailsModal(false);
