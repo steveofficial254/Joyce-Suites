@@ -1,6 +1,6 @@
 {
   "name": "joyce-suites",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Property Management System for Joyce Suites",
   "homepage": "https://joyce-suites.vercel.app",
   "main": "src/index.js",
