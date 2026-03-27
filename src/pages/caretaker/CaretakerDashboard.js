@@ -1492,7 +1492,7 @@ const CaretakerDashboard = () => {
 
       {showPropertyDetailsModal && selectedProperty && (
         <PropertyDetailsModal
-          property={selectedProperty}
+          tenant={selectedProperty}
           onClose={() => {
             setShowPropertyDetailsModal(false);
             setSelectedProperty(null);
