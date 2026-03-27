@@ -194,6 +194,9 @@ def register():
         if User.query.filter_by(email=email).first():
             return jsonify({"success": False, "error": "Email already registered"}), 409
         
+        if User.query.filter_by(national_id=id_number).first():
+            return jsonify({"success": False, "error": "National ID already registered"}), 409
+        
         is_valid, error_msg = validate_password(password)
         if not is_valid:
             return jsonify({"success": False, "error": error_msg}), 400
