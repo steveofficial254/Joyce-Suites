@@ -131,8 +131,18 @@ def dashboard():
             if hasattr(active_lease, 'property') and active_lease.property:
                 property_name = active_lease.property.name
                 rent_amount = active_lease.rent_amount or 0
-                # Use the lease property name to get correct room number
-                unit_number = active_lease.property.name.replace('Room ', '')
+                # Extract room number from property name (handle both "Room X" and descriptive names)
+                import re
+                room_match = re.search(r'Room\s*(\d+)', property_name)
+                if room_match:
+                    unit_number = room_match.group(1)
+                else:
+                    unit_number = property_name.replace('Room ', '') if 'Room ' in property_name else property_name
+                # Override user room_number if it has descriptive text
+                if user.room_number and user.room_number != unit_number:
+                    user.room_number = unit_number
+                    db.session.commit()
+                    current_app.logger.info(f"Updated user room_number from '{user.room_number}' to '{unit_number}'")
             else:
                 property_name = "Unknown Property"
 
