@@ -1322,47 +1322,38 @@ const TenantDashboard = () => {
               </div>
             </div>
 
-            <div className="footer-sections">
-              <div className="footer-section">
-                <h4 className="footer-title">Joyce Suites</h4>
-                <ul className="footer-links">
-                  <li><a href="#about">About Us</a></li>
-                  <li><a href="#contact">Contact</a></li>
-                  <li><a href="#careers">Careers</a></li>
-                </ul>
-              </div>
-              
-              <div className="footer-section">
-                <h4 className="footer-title">Quick Links</h4>
-                <ul className="footer-links">
-                  <li><a href="#dashboard">Dashboard</a></li>
-                  <li><a href="#payments">Payments</a></li>
-                  <li><a href="#maintenance">Maintenance</a></li>
-                </ul>
-              </div>
-              
-              <div className="footer-section">
-                <h4 className="footer-title">Support</h4>
-                <ul className="footer-links">
-                  <li><a href="#help">Help Center</a></li>
-                  <li><a href="#faq">FAQ</a></li>
-                  <li><a href="#terms">Terms of Service</a></li>
-                </ul>
-              </div>
-              
-              <div className="footer-section">
-                <h4 className="footer-title">Contact Info</h4>
-                <ul className="footer-links">
-                  <li>Email: info@joycesuites.com</li>
-                  <li>Phone: +254 729 175 330</li>
-                  <li>Location: Nairobi, Kenya</li>
-                </ul>
-              </div>
-            </div>
-            
+            {/* Footer Bottom - Horizontal Alignment */}
             <div className="footer-bottom">
-              <p>&copy; 2024 Joyce Suites Apartments. All rights reserved.</p>
-              <p>Designed with ❤️ for comfortable living</p>
+              <div className="footer-bottom-content">
+                <div className="footer-section">
+                  <h4 className="footer-title">Joyce Suites</h4>
+                  <p>Providing quality apartments for comfortable living</p>
+                </div>
+                
+                <div className="footer-section">
+                  <h4 className="footer-title">Quick Links</h4>
+                  <div className="footer-links-horizontal">
+                    <a href="#dashboard">Dashboard</a>
+                    <a href="#payments">Payments</a>
+                    <a href="#maintenance">Maintenance</a>
+                    <a href="#profile">Profile</a>
+                  </div>
+                </div>
+                
+                <div className="footer-section">
+                  <h4 className="footer-title">Contact</h4>
+                  <div className="footer-links-horizontal">
+                    <a href="mailto:info@joycesuites.com">info@joycesuites.com</a>
+                    <a href="tel:+254729175330">+254 729 175 330</a>
+                    <a href="#location">Nairobi, Kenya</a>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="footer-copyright">
+                <p>&copy; 2024 Joyce Suites Apartments. All rights reserved.</p>
+                <p>Designed with ❤️ for comfortable living</p>
+              </div>
             </div>
           </div>
         </footer>
