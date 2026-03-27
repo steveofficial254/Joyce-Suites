@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { useAuth } from '../../context/AuthContext';
+import config from '../../config';
 import './TenantDashboard.css';
 import logo from '../../assets/image1.png';
 const apartmentImages = [

@@ -178,6 +178,7 @@ def create_app():
     csrf.exempt(admin_bp)
     csrf.exempt(caretaker_bp)
     csrf.exempt(payment_bp)
+    csrf.exempt(rent_deposit_bp)
 
     configure_logging(app)
     register_blueprints(app)
