@@ -1028,7 +1028,8 @@ const CaretakerDashboard = () => {
               fetchVacateNotices().catch(() => { }),
               fetchNotifications().catch(() => { }),
               fetchUserProfile().catch(() => { }),
-              fetchFinancialSummary().catch(() => { })
+              fetchFinancialSummary().catch(() => { }),
+              fetchOverview().catch(() => { });
             break;
           case 'maintenance':
             await fetchMaintenanceRequests();
