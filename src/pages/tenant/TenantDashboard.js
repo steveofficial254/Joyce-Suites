@@ -1297,6 +1297,25 @@ const TenantDashboard = () => {
         {/* Footer */}
         <footer className="footer">
           <div className="footer-content">
+            {/* More Actions Section */}
+            <div className="footer-actions">
+              <h3 className="footer-actions-title">More Actions</h3>
+              <div className="footer-actions-buttons">
+                <button onClick={handleOpenPaymentModal} className="footer-action-btn">
+                  <CreditCard size={18} /> Make Payment
+                </button>
+                <button onClick={() => setShowMaintenanceModal(true)} className="footer-action-btn">
+                  <Wrench size={18} /> Maintenance
+                </button>
+                <button onClick={handleOpenLeaseModal} className="footer-action-btn">
+                  <FileText size={18} /> Sign Lease
+                </button>
+                <button onClick={() => setActiveTab('profile')} className="footer-action-btn">
+                  <UserIcon size={18} /> Update Profile
+                </button>
+              </div>
+            </div>
+
             <div className="footer-sections">
               <div className="footer-section">
                 <h4 className="footer-title">Joyce Suites</h4>
