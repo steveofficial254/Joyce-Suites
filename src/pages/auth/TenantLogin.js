@@ -15,6 +15,23 @@ const TenantLogin = () => {
     email: '',
     password: ''
   });
+  const showcaseCredentials = [
+    {
+      label: 'Ghost Tenant 1',
+      email: process.env.REACT_APP_GHOST_TENANT_1_EMAIL || '',
+      password: process.env.REACT_APP_GHOST_TENANT_1_PASSWORD || ''
+    },
+    {
+      label: 'Ghost Tenant 2',
+      email: process.env.REACT_APP_GHOST_TENANT_2_EMAIL || '',
+      password: process.env.REACT_APP_GHOST_TENANT_2_PASSWORD || ''
+    },
+    {
+      label: 'Default Tenant',
+      email: process.env.REACT_APP_DEFAULT_TENANT_EMAIL || 'tenant@joycesuites.com',
+      password: process.env.REACT_APP_DEFAULT_TENANT_PASSWORD || 'Tenant123!'
+    }
+  ].filter((entry) => entry.email && entry.password);
 
   const handleInputChange = (e) => {
     setFormData({
@@ -98,6 +115,11 @@ const TenantLogin = () => {
     }
   };
 
+  const applyShowcaseCredentials = (email, password) => {
+    setFormData({ email, password });
+    setError('');
+  };
+
   return (
     <div
       className="login-container"
@@ -152,6 +174,26 @@ const TenantLogin = () => {
               {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
+
+          {showcaseCredentials.length > 0 && (
+            <div className="login-info" style={{ marginTop: '14px' }}>
+              <p style={{ fontWeight: 600, marginBottom: '10px' }}>Showcase quick-fill:</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {showcaseCredentials.map((cred) => (
+                  <button
+                    key={cred.label}
+                    type="button"
+                    className="btn-link"
+                    onClick={() => applyShowcaseCredentials(cred.email, cred.password)}
+                    disabled={loading}
+                    style={{ justifyContent: 'center' }}
+                  >
+                    Use {cred.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="auth-links">
             <p>

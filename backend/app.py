@@ -7,6 +7,7 @@ from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 import os
 import logging
+import re
 from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 
@@ -58,7 +59,7 @@ def create_app():
     Migrate(app, db)
     
     # CORS origins - comprehensive list with fallback
-    cors_origins = app.config.get('CORS_ORIGINS', [
+    configured_origins = app.config.get('CORS_ORIGINS', [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
@@ -76,6 +77,8 @@ def create_app():
         "https://joyce-suites.onrender.com"
     ]
     
+    cors_origins = [origin.strip() for origin in configured_origins if origin and origin.strip()]
+
     for origin in required_origins:
         if origin not in cors_origins:
             cors_origins.append(origin)
@@ -86,13 +89,26 @@ def create_app():
     for url in render_urls:
         if url not in cors_origins:
             cors_origins.append(url)
+
+    # Allow deploy-preview style domains without redeploying backend config each time.
+    dynamic_origin_patterns = [
+        r"^https://joyce-suites(?:-[a-z0-9-]+)?\.onrender\.com$",
+        r"^https://joyce-suites(?:-[a-z0-9-]+)?\.vercel\.app$"
+    ]
+
+    def is_allowed_origin(origin: str) -> bool:
+        if not origin:
+            return False
+        if origin in cors_origins:
+            return True
+        return any(re.match(pattern, origin) for pattern in dynamic_origin_patterns)
     
     app.logger.info(f"CORS origins: {cors_origins}")
     app.logger.info("CORS fix deployed - v4.0 - Comprehensive solution")
     
     # Configure Flask-CORS with explicit settings
     CORS(app, 
-         origins=cors_origins, 
+         origins=cors_origins + dynamic_origin_patterns,
          supports_credentials=True,
          methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
          allow_headers=['content-type', 'Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
@@ -108,7 +124,7 @@ def create_app():
         app.logger.info(f"After request - Method: {request.method}, Origin: {origin}, Path: {request.path}")
         
         # Force CORS headers for all responses
-        if origin and origin in cors_origins:
+        if origin and is_allowed_origin(origin):
             response.headers['Access-Control-Allow-Origin'] = origin
             response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
             response.headers['Access-Control-Allow-Headers'] = 'content-type, Content-Type, Authorization, X-Requested-With, Accept, Origin'
@@ -142,7 +158,7 @@ def create_app():
             'message': 'CORS test endpoint',
             'origin': origin,
             'cors_origins': cors_origins,
-            'origin_allowed': origin in cors_origins if origin else True
+            'origin_allowed': is_allowed_origin(origin) if origin else True
         })
     
     is_development = os.getenv("FLASK_ENV", "development") == "development"

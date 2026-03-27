@@ -76,7 +76,7 @@ const MenuPage = () => {
 
     const handleBookingAction = () => {
         if (isAuthenticated()) {
-            navigate('/tenant-dashboard');
+            navigate('/tenant/dashboard');
         } else {
             setShowBookingModal(true);
         }
@@ -736,7 +736,7 @@ const MenuPage = () => {
                         {availableRooms.map(room => (
                             <div key={room.id} style={styles.sliderCard} className="slider-card" onClick={() => {
                                 if (isAuthenticated()) {
-                                    navigate('/tenant-dashboard');
+                                    navigate('/tenant/dashboard');
                                 } else {
                                     setBookingForm(prev => ({ ...prev, houseType: room.type || 'one_bedroom' }));
                                     setShowBookingModal(true);
@@ -770,7 +770,7 @@ const MenuPage = () => {
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 if (isAuthenticated()) {
-                                                    navigate('/tenant-dashboard');
+                                                    navigate('/tenant/dashboard');
                                                 } else {
                                                     setBookingForm(prev => ({ ...prev, houseType: room.type || 'one_bedroom' }));
                                                     setShowBookingModal(true);

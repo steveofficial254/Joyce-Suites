@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera } from 'lucide-react';
+import { Camera, FileText } from 'lucide-react';
 import TermsAndConditionsModal from './TermsAndConditionsModal';
 import './TenantRegister.css';
 import logo from '../../assets/image1.png';

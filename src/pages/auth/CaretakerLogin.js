@@ -242,7 +242,7 @@ const CaretakerLogin = () => {
             <ArrowLeft size={16} /> Tenant Login
           </button>
           <button
-            onClick={() => navigate('/login-admin')}
+            onClick={() => navigate('/admin-login')}
             className="btn-link"
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             disabled={loading || authLoading}
