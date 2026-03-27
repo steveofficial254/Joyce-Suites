@@ -175,7 +175,7 @@ def seed_rooms():
         
         print(f"\n💰 PAYMENT INFORMATION:")
         print(f"  • Joyce Muthoni:   Paybill 222111 (Account: 2536316)")
-        print(f"  • Lawrence Mathea: Paybill 222111 (Account: 54544)")
+        print(f"  • Lawrence Mathea: Paybill 222222 (Account: 54544)")
         
         print("\n🔑 DEFAULT CREDENTIALS:")
         print(f"  • Admin:     admin@joycesuites.com / {os.getenv('DEFAULT_ADMIN_PASSWORD', 'Admin@123456')}")

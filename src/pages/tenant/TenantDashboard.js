@@ -78,47 +78,6 @@ const TenantDashboard = () => {
 
   const apartmentImages = [apartment1, apartment2, apartment3, apartment4, apartment5, apartment6];
 
-  // Duplicate state declarations removed
-
-  const styles = {
-    container: { display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc' },
-    sidebar: {
-      width: '260px',
-      backgroundColor: '#1f2937',
-      color: 'white',
-      position: 'fixed',
-      height: '100vh',
-      overflowY: 'auto',
-      transition: 'all 0.3s ease',
-      zIndex: 1000,
-      display: isMobile && !sidebarOpen ? 'none' : 'block'
-    },
-    sidebarHeader: { padding: '24px', borderBottom: '1px solid #374151', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-    sidebarTitle: { fontSize: '20px', fontWeight: '700', margin: 0, color: '#fbbf24' },
-    nav: { padding: '24px 0' },
-    navItem: {
-      display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 24px', color: '#d1d5db',
-      textDecoration: 'none', cursor: 'pointer', border: 'none', background: 'none', width: '100%',
-      textAlign: 'left', transition: 'all 0.2s', fontSize: '14px', fontWeight: '500'
-    },
-    navItemActive: { backgroundColor: '#374151', color: 'white', borderLeft: '4px solid #3b82f6' },
-    main: {
-      flex: 1, marginLeft: !isMobile && sidebarOpen ? '260px' : '0',
-      transition: 'all 0.3s ease', minHeight: '100vh', display: 'flex', flexDirection: 'column'
-    },
-    header: {
-      backgroundColor: 'white', height: '64px', padding: '0 24px', borderBottom: '1px solid #e5e7eb',
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10
-    },
-    content: { padding: '32px', flex: 1 },
-    card: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' },
-    statGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px', marginBottom: '32px' },
-    statCard: {
-      padding: '24px', borderRadius: '12px', color: 'white', display: 'flex', flexDirection: 'column', gap: '8px',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-    }
-  };
-
 
   useEffect(() => {
     const validateToken = () => {
@@ -1007,150 +966,155 @@ const TenantDashboard = () => {
   const profilePhotoUrl = getProfilePhotoUrl();
 
   return (
-    <div style={styles.container}>
+    <div className="tenant-dashboard">
       {/* Sidebar */}
-      <aside style={{
-        ...styles.sidebar,
-        transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-        display: isMobile && !sidebarOpen ? 'none' : 'block'
-      }}>
-        <div style={styles.sidebarHeader}>
-          <h2 style={styles.sidebarTitle}>Joyce Suites</h2>
-          {isMobile && <button onClick={() => setSidebarOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>}
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-header">
+          <h2 className="sidebar-title">Joyce Suites</h2>
+          {isMobile && <button onClick={() => setSidebarOpen(false)} className="menu-toggle"><X size={20} /></button>}
         </div>
-        <nav style={styles.nav}>
-          <button style={{ ...styles.navItem, ...(activeTab === 'dashboard' ? styles.navItemActive : {}) }} onClick={() => { setActiveTab('dashboard'); if (isMobile) setSidebarOpen(false); }}><Home size={18} /> Dashboard</button>
-          <button style={{ ...styles.navItem, ...(activeTab === 'payments' ? styles.navItemActive : {}) }} onClick={() => { setActiveTab('payments'); if (isMobile) setSidebarOpen(false); }}><CreditCard size={18} /> Payments</button>
-          <button style={{ ...styles.navItem, ...(activeTab === 'lease' ? styles.navItemActive : {}) }} onClick={() => { setActiveTab('lease'); if (isMobile) setSidebarOpen(false); }}><FileText size={18} /> Lease Agreement</button>
-          <button style={{ ...styles.navItem, ...(activeTab === 'profile' ? styles.navItemActive : {}) }} onClick={() => { setActiveTab('profile'); if (isMobile) setSidebarOpen(false); }}><UserIcon size={18} /> Profile</button>
-          <button style={{ ...styles.navItem, ...(activeTab === 'vacate' ? styles.navItemActive : {}) }} onClick={() => { setActiveTab('vacate'); if (isMobile) setSidebarOpen(false); }}><DoorOpen size={18} /> Vacate Notice</button>
+        <nav className="sidebar-nav">
+          <button className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => { setActiveTab('dashboard'); if (isMobile) setSidebarOpen(false); }}><Home size={18} /> Dashboard</button>
+          <button className={`nav-item ${activeTab === 'payments' ? 'active' : ''}`} onClick={() => { setActiveTab('payments'); if (isMobile) setSidebarOpen(false); }}><CreditCard size={18} /> Payments</button>
+          <button className={`nav-item ${activeTab === 'lease' ? 'active' : ''}`} onClick={() => { setActiveTab('lease'); if (isMobile) setSidebarOpen(false); }}><FileText size={18} /> Lease Agreement</button>
+          <button className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => { setActiveTab('profile'); if (isMobile) setSidebarOpen(false); }}><UserIcon size={18} /> Profile</button>
+          <button className={`nav-item ${activeTab === 'vacate' ? 'active' : ''}`} onClick={() => { setActiveTab('vacate'); if (isMobile) setSidebarOpen(false); }}><DoorOpen size={18} /> Vacate Notice</button>
         </nav>
         <div style={{ padding: '24px', borderTop: '1px solid #374151', marginTop: 'auto' }}>
-          <button onClick={handleLogout} style={{ ...styles.navItem, color: '#ef4444' }}><LogOut size={18} /> Logout</button>
+          <button onClick={handleLogout} className="nav-item" style={{ color: '#ef4444' }}><LogOut size={18} /> Logout</button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main style={styles.main}>
-        <header style={styles.header}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><Menu size={24} /></button>
+      <main className={`main-content ${!sidebarOpen ? 'full-width' : ''}`}>
+        <header className="header">
+          <div className="header-left">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="menu-toggle"><Menu size={24} /></button>
             <h1 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>Joyce Suites Apartments</h1>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '14px', fontWeight: '600' }}>Welcome, {profileData?.full_name || 'Tenant'}!</div>
+          <div className="header-right">
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '14px', fontWeight: '600' }}>Welcome, {profileData?.full_name || 'Tenant'}!</div>
+            </div>
           </div>
         </header>
 
         {/* Navigation Bar */}
-        <div style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '0 32px' }}>
-          <div style={{ display: 'flex', gap: '2px' }}>
+        <nav className="nav-bar">
+          <div className="nav-tabs">
             {['dashboard', 'payments', 'lease', 'profile', 'vacate'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                style={{
-                  padding: '16px 24px',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: activeTab === tab ? '#3b82f6' : '#6b7280',
-                  borderBottom: activeTab === tab ? '2px solid #3b82f6' : '2px solid transparent',
-                  textTransform: 'capitalize'
-                }}
+                className={`nav-tab ${activeTab === tab ? 'active' : ''}`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
           </div>
-        </div>
+        </nav>
 
-        <section style={styles.content}>
-          {error && <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px' }}>{error}</div>}
-          {success && <div style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px' }}>{success}</div>}
+        <section className="content">
+          {error && <div className="alert alert-error">{error}</div>}
+          {success && <div className="alert alert-success">{success}</div>}
 
           {activeTab === 'dashboard' && (
             <div>
-              <div style={styles.statGrid}>
-                <div style={{ ...styles.statCard, backgroundColor: '#3b82f6' }}>
+              <div className="stat-grid">
+                <div className="stat-card" style={{ backgroundColor: '#3b82f6' }}>
                   <span style={{ fontSize: '14px', opacity: 0.9 }}>Room Details</span>
                   <span style={{ fontSize: '24px', fontWeight: '700' }}>Room {roomNumber}</span>
                   <span style={{ fontSize: '12px', opacity: 0.8 }}>{roomTypeDisplay}</span>
                 </div>
-                <div style={{ ...styles.statCard, backgroundColor: '#f59e0b' }}>
+                <div className="stat-card" style={{ backgroundColor: '#f59e0b' }}>
                   <span style={{ fontSize: '14px', opacity: 0.9 }}>Outstanding Balance</span>
                   <span style={{ fontSize: '24px', fontWeight: '700' }}>
                     {outstandingBalance <= 0 ? 'CLEARED' : `KSh ${outstandingBalance.toLocaleString()}`}
                   </span>
                   <span style={{ fontSize: '12px', opacity: 0.8 }}>Rent & Water</span>
                 </div>
-                <div style={{ ...styles.statCard, backgroundColor: '#10b981' }}>
+                <div className="stat-card" style={{ backgroundColor: '#10b981' }}>
                   <span style={{ fontSize: '14px', opacity: 0.9 }}>Lease Status</span>
                   <span style={{ fontSize: '24px', fontWeight: '700' }}>{fullLeaseDetails?.status || 'Active'}</span>
                   <span style={{ fontSize: '12px', opacity: 0.8 }}>{fullLeaseDetails?.signed_at ? 'Signed' : 'Pending Signature'}</span>
                 </div>
               </div>
 
-              <div style={styles.card}>
-                <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Common Actions</h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
-                  <button onClick={handleOpenPaymentModal} style={{ padding: '12px 24px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className="card">
+                <h3 className="card-title">Common Actions</h3>
+                <div className="action-buttons">
+                  <button onClick={handleOpenPaymentModal} className="btn btn-primary">
                     <CreditCard size={18} /> Make Payment
                   </button>
-                  <button onClick={() => setShowMaintenanceModal(true)} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button onClick={() => setShowMaintenanceModal(true)} className="btn btn-secondary">
                     <Wrench size={18} /> Request Maintenance
                   </button>
-                  <button onClick={handleOpenLeaseModal} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button onClick={handleOpenLeaseModal} className="btn btn-secondary">
                     <FileText size={18} /> Lease Information
                   </button>
                 </div>
               </div>
 
-              <div style={styles.card}>
-                <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>Recent Notifications</h3>
+              <div className="card">
+                <h3 className="card-title">Recent Notifications</h3>
                 {notifications.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div className="notification-list">
                     {notifications.slice(0, 3).map(n => (
-                      <div key={n.id} style={{ padding: '12px', borderRadius: '8px', backgroundColor: n.is_read ? 'transparent' : '#f0f9ff', border: '1px solid #e5e7eb' }}>
-                        <div style={{ fontWeight: '600', fontSize: '14px' }}>{n.title || 'Notification'}</div>
-                        <div style={{ fontSize: '13px', color: '#4b5563', marginTop: '4px' }}>{n.message}</div>
-                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '8px' }}>{new Date(n.created_at).toLocaleDateString()}</div>
+                      <div key={n.id} className={`notification-item ${!n.is_read ? 'unread' : ''}`}>
+                        <div className="notification-title">{n.title || 'Notification'}</div>
+                        <div className="notification-message">{n.message}</div>
+                        <div className="notification-date">{new Date(n.created_at).toLocaleDateString()}</div>
                       </div>
                     ))}
                   </div>
                 ) : <p style={{ color: '#64748b' }}>No recent notifications</p>}
               </div>
+
+              {/* Apartment Gallery */}
+              <div className="card">
+                <h3 className="card-title">Apartment Gallery</h3>
+                <div className="apartment-gallery">
+                  {apartmentImages.map((image, index) => (
+                    <img 
+                      key={index}
+                      src={image} 
+                      alt={`Apartment ${index + 1}`}
+                      className="apartment-image"
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
           {activeTab === 'payments' && (
-            <div style={styles.card}>
+            <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h3 style={{ margin: 0 }}>Payment History</h3>
-                <button onClick={handleOpenPaymentModal} style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>New Payment</button>
+                <h3 className="card-title" style={{ margin: 0 }}>Payment History</h3>
+                <button onClick={handleOpenPaymentModal} className="btn btn-primary">New Payment</button>
               </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div className="table-container">
+                <table className="table">
                   <thead>
-                    <tr style={{ borderBottom: '1px solid #e5e7eb', textAlign: 'left' }}>
-                      <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Date</th>
-                      <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Reference</th>
-                      <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Amount</th>
-                      <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Type</th>
-                      <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Status</th>
+                    <tr>
+                      <th>Date</th>
+                      <th>Reference</th>
+                      <th>Amount</th>
+                      <th>Type</th>
+                      <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paymentsData.length > 0 ? paymentsData.map(p => (
-                      <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '12px', fontSize: '14px' }}>{new Date(p.created_at).toLocaleDateString()}</td>
-                        <td style={{ padding: '12px', fontSize: '14px' }}>{p.transaction_id || p.merchant_request_id}</td>
-                        <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600' }}>KSh {p.amount.toLocaleString()}</td>
-                        <td style={{ padding: '12px', fontSize: '14px' }}>{p.payment_type}</td>
-                        <td style={{ padding: '12px' }}>
-                          <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '12px', backgroundColor: p.status === 'completed' ? '#dcfce7' : '#fee2e2', color: p.status === 'completed' ? '#166534' : '#991b1b' }}>{p.status}</span>
+                      <tr key={p.id}>
+                        <td>{new Date(p.created_at).toLocaleDateString()}</td>
+                        <td>{p.transaction_id || p.merchant_request_id}</td>
+                        <td style={{ fontWeight: '600' }}>KSh {p.amount.toLocaleString()}</td>
+                        <td>{p.payment_type}</td>
+                        <td>
+                          <span className={`status-badge status-${p.status === 'completed' ? 'paid' : p.status === 'pending' ? 'pending' : 'overdue'}`}>
+                            {p.status}
+                          </span>
                         </td>
                       </tr>
                     )) : <tr><td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>No payment records found</td></tr>}
@@ -1183,30 +1147,30 @@ const TenantDashboard = () => {
           {activeTab === 'profile' && (
             <div>
               {/* Profile Information Section */}
-              <div style={styles.card}>
-                <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px', color: '#1f2937' }}>Profile Information</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '6px' }}>
-                    <span style={{ fontWeight: '600', color: '#374151' }}>Photo Path:</span>
-                    <span style={{ color: '#6b7280', fontSize: '14px' }}>
+              <div className="card">
+                <h3 className="card-title">Profile Information</h3>
+                <div className="profile-info">
+                  <div className="info-row">
+                    <span className="info-label">Photo Path:</span>
+                    <span className="info-value">
                       {profileData?.photo_path || 'Not set'}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '6px' }}>
-                    <span style={{ fontWeight: '600', color: '#374151' }}>ID Document Path:</span>
-                    <span style={{ color: '#6b7280', fontSize: '14px' }}>
+                  <div className="info-row">
+                    <span className="info-label">ID Document Path:</span>
+                    <span className="info-value">
                       {profileData?.id_document_path || 'Not set'}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '6px' }}>
-                    <span style={{ fontWeight: '600', color: '#374151' }}>Full Name:</span>
-                    <span style={{ color: '#6b7280', fontSize: '14px' }}>
+                  <div className="info-row">
+                    <span className="info-label">Full Name:</span>
+                    <span className="info-value">
                       {profileData?.full_name || 'N/A'}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '6px' }}>
-                    <span style={{ fontWeight: '600', color: '#374151' }}>Email:</span>
-                    <span style={{ color: '#6b7280', fontSize: '14px' }}>
+                  <div className="info-row">
+                    <span className="info-label">Email:</span>
+                    <span className="info-value">
                       {profileData?.email || 'N/A'}
                     </span>
                   </div>
@@ -1214,31 +1178,20 @@ const TenantDashboard = () => {
               </div>
 
               {/* My Profile Section */}
-              <div style={styles.card}>
-                <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px', color: '#1f2937' }}>My Profile</h3>
-                <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
+              <div className="card">
+                <h3 className="card-title">My Profile</h3>
+                <div className="profile-section">
                   {/* Profile Photo Section */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ 
-                      width: '120px', 
-                      height: '120px', 
-                      borderRadius: '50%', 
-                      border: '2px dashed #dc2626',
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      backgroundColor: '#f8fafc',
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}>
+                  <div className="profile-photo-section">
+                    <div className="profile-photo-container">
                       {profilePhotoUrl ? (
                         <img 
                           src={profilePhotoUrl} 
                           alt="Profile" 
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                          className="profile-photo"
                         />
                       ) : (
-                        <div style={{ textAlign: 'center', color: '#9ca3af' }}>
+                        <div className="profile-photo-placeholder">
                           <UserIcon size={40} />
                           <div style={{ fontSize: '12px', marginTop: '4px' }}>Profile Photo</div>
                         </div>
@@ -1254,18 +1207,7 @@ const TenantDashboard = () => {
                       />
                       <label
                         htmlFor="photo-upload"
-                        style={{
-                          padding: '8px 16px',
-                          backgroundColor: '#3b82f6',
-                          color: 'white',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          display: 'inline-block',
-                          transition: 'background-color 0.2s'
-                        }}
-                        onMouseOver={(e) => e.target.style.backgroundColor = '#2563eb'}
-                        onMouseOut={(e) => e.target.style.backgroundColor = '#3b82f6'}
+                        className="upload-button"
                       >
                         Upload New Photo
                       </label>
@@ -1273,56 +1215,40 @@ const TenantDashboard = () => {
                   </div>
 
                   {/* Profile Details Section */}
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div className="profile-details">
                     <div>
-                      <h2 style={{ margin: 0, marginBottom: '8px', fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
+                      <h2 className="user-name">
                         {profileData?.full_name || 'Loading...'}
                       </h2>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                        <span style={{ fontSize: '16px', color: '#6b7280' }}>Tenant</span>
-                        <span style={{ fontSize: '16px', color: '#6b7280' }}>|</span>
-                        <span style={{ fontSize: '16px', color: '#6b7280' }}>Room {roomNumber}</span>
+                      <div className="user-meta">
+                        <span>Tenant</span>
+                        <span>|</span>
+                        <span>Room {roomNumber}</span>
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                      <div className="form-group">
+                        <label className="form-label">
                           Email Address:
                         </label>
                         <input
                           type="email"
                           value={profileData?.email || ''}
                           readOnly
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '6px',
-                            fontSize: '14px',
-                            backgroundColor: '#f8fafc',
-                            color: '#374151'
-                          }}
+                          className="form-input"
                         />
                       </div>
 
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                      <div className="form-group">
+                        <label className="form-label">
                           Phone Number:
                         </label>
                         <input
                           type="tel"
                           value={profileData?.phone_number || ''}
                           readOnly
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '6px',
-                            fontSize: '14px',
-                            backgroundColor: '#f8fafc',
-                            color: '#374151'
-                          }}
+                          className="form-input"
                         />
                       </div>
                     </div>
@@ -1333,28 +1259,30 @@ const TenantDashboard = () => {
           )}
 
           {activeTab === 'vacate' && (
-            <div style={styles.card}>
+            <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h3 style={{ margin: 0 }}>Vacate Notices</h3>
-                <button onClick={() => setShowVacateModal(true)} style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Submit New Notice</button>
+                <h3 className="card-title" style={{ margin: 0 }}>Vacate Notices</h3>
+                <button onClick={() => setShowVacateModal(true)} className="btn btn-primary">Submit New Notice</button>
               </div>
               {vacateNotices.length > 0 ? (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <div className="table-container">
+                  <table className="table">
                     <thead>
-                      <tr style={{ borderBottom: '1px solid #e5e7eb', textAlign: 'left' }}>
-                        <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Submission Date</th>
-                        <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Vacate Date</th>
-                        <th style={{ padding: '12px', fontSize: '14px', color: '#64748b' }}>Status</th>
+                      <tr>
+                        <th>Submission Date</th>
+                        <th>Vacate Date</th>
+                        <th>Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {vacateNotices.map(v => (
-                        <tr key={v.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '12px' }}>{new Date(v.created_at).toLocaleDateString()}</td>
-                          <td style={{ padding: '12px' }}>{new Date(v.vacate_date).toLocaleDateString()}</td>
-                          <td style={{ padding: '12px' }}>
-                            <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '12px', backgroundColor: v.status === 'pending' ? '#fef3c7' : '#dcfce7', color: v.status === 'pending' ? '#92400e' : '#166534' }}>{v.status}</span>
+                        <tr key={v.id}>
+                          <td>{new Date(v.created_at).toLocaleDateString()}</td>
+                          <td>{new Date(v.vacate_date).toLocaleDateString()}</td>
+                          <td>
+                            <span className={`status-badge status-${v.status === 'pending' ? 'pending' : v.status === 'approved' ? 'paid' : 'overdue'}`}>
+                              {v.status}
+                            </span>
                           </td>
                         </tr>
                       ))}
