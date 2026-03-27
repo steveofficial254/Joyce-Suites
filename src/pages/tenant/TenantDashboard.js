@@ -539,6 +539,12 @@ const TenantDashboard = () => {
     setTermsAccepted(false);
     setSignatureEmpty(true);
 
+    // Check if lease is already signed
+    if (fullLeaseDetails?.signed_by_tenant) {
+      setError('Lease agreement is already signed. You cannot sign it again.');
+      return;
+    }
+
     if (signatureRef.current) {
       signatureRef.current.clear();
     }
@@ -1131,7 +1137,7 @@ const TenantDashboard = () => {
                 {fullLeaseDetails?.signed_by_tenant ? (
                   <span style={{ color: '#10b981', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>Signed <FileText size={18} /></span>
                 ) : (
-                  <button onClick={handleOpenLeaseModal} style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Sign Lease Now</button>
+                  <button onClick={handleOpenLeaseModal} style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>{fullLeaseDetails?.signed_by_tenant ? 'View Signed Lease' : 'Sign Lease Now'}</button>
                 )}
               </div>
               <div style={{ lineHeight: '1.6', color: '#374151' }}>
@@ -1308,7 +1314,7 @@ const TenantDashboard = () => {
                   <Wrench size={18} /> Maintenance
                 </button>
                 <button onClick={handleOpenLeaseModal} className="footer-action-btn">
-                  <FileText size={18} /> Sign Lease
+                  <FileText size={18} /> {fullLeaseDetails?.signed_by_tenant ? 'View Lease' : 'Sign Lease'}
                 </button>
                 <button onClick={() => setActiveTab('profile')} className="footer-action-btn">
                   <UserIcon size={18} /> Update Profile
