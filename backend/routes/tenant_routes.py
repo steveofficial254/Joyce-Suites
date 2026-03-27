@@ -131,8 +131,8 @@ def dashboard():
             if hasattr(active_lease, 'property') and active_lease.property:
                 property_name = active_lease.property.name
                 rent_amount = active_lease.rent_amount or 0
-                if not user.room_number:
-                    unit_number = property_name.replace('Room ', '')
+                # Use the lease property name to get correct room number
+                unit_number = active_lease.property.name.replace('Room ', '')
             else:
                 property_name = "Unknown Property"
 
