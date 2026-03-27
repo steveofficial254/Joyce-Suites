@@ -1293,9 +1293,57 @@ const TenantDashboard = () => {
             </div>
           )}
         </section>
+
+        {/* Footer */}
+        <footer className="footer">
+          <div className="footer-content">
+            <div className="footer-sections">
+              <div className="footer-section">
+                <h4 className="footer-title">Joyce Suites</h4>
+                <ul className="footer-links">
+                  <li><a href="#about">About Us</a></li>
+                  <li><a href="#contact">Contact</a></li>
+                  <li><a href="#careers">Careers</a></li>
+                </ul>
+              </div>
+              
+              <div className="footer-section">
+                <h4 className="footer-title">Quick Links</h4>
+                <ul className="footer-links">
+                  <li><a href="#dashboard">Dashboard</a></li>
+                  <li><a href="#payments">Payments</a></li>
+                  <li><a href="#maintenance">Maintenance</a></li>
+                </ul>
+              </div>
+              
+              <div className="footer-section">
+                <h4 className="footer-title">Support</h4>
+                <ul className="footer-links">
+                  <li><a href="#help">Help Center</a></li>
+                  <li><a href="#faq">FAQ</a></li>
+                  <li><a href="#terms">Terms of Service</a></li>
+                </ul>
+              </div>
+              
+              <div className="footer-section">
+                <h4 className="footer-title">Contact Info</h4>
+                <ul className="footer-links">
+                  <li>Email: info@joycesuites.com</li>
+                  <li>Phone: +254 729 175 330</li>
+                  <li>Location: Nairobi, Kenya</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div className="footer-bottom">
+              <p>&copy; 2024 Joyce Suites Apartments. All rights reserved.</p>
+              <p>Designed with ❤️ for comfortable living</p>
+            </div>
+          </div>
+        </footer>
       </main>
 
-      {/* Modals go here... (Simplified for now, focusing on layout) */}
+      {/* Modals */}
       {showLeaseModal && leaseData && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 }}>
           <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', width: '90%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -1343,7 +1391,6 @@ const TenantDashboard = () => {
             <button onClick={handleInitiateMpesa} disabled={loading} style={{ width: '100%', padding: '12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600' }}>
               {loading ? 'Processing...' : 'Pay with M-Pesa'}
             </button>
-            <button onClick={() => setShowPaymentModal(false)} style={{ width: '100%', padding: '12px', background: 'none', border: 'none', color: '#64748b', marginTop: '8px' }}>Cancel</button>
           </div>
         </div>
       )}
