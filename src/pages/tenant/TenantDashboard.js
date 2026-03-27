@@ -76,8 +76,6 @@ const TenantDashboard = () => {
     reason: ''
   });
 
-  const apartmentImages = [apartment1, apartment2, apartment3, apartment4, apartment5, apartment6];
-
 
   useEffect(() => {
     const validateToken = () => {
