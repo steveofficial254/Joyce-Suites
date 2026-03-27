@@ -2785,6 +2785,13 @@ const WaterBillPage = () => {
 
       const amount = units_consumed * parseFloat(readingForm.unit_rate);
 
+      // Debug: Check token and user role
+      const token = localStorage.getItem('joyce-suites-token');
+      const userRole = localStorage.getItem('userRole');
+      console.log('Debug - Token exists:', !!token);
+      console.log('Debug - User role:', userRole);
+      console.log('Debug - Token:', token?.substring(0, 20) + '...');
+
       const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/water-bill/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2809,7 +2816,14 @@ const WaterBillPage = () => {
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
         const errData = await response.json();
-        throw new Error(errData.message || 'Failed to create bill');
+        console.error('Water bill creation error:', errData);
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please log in again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. You do not have permission to create water bills.');
+        } else {
+          throw new Error(errData.error || errData.message || 'Failed to create bill');
+        }
       }
     } catch (err) {
       alert(err.message);
