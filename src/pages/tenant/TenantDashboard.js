@@ -15,7 +15,9 @@ const apartmentImages = [
   require('../../assets/image22.jpg'),
   require('../../assets/image10.jpg'),
   require('../../assets/image8.jpg'),
-  require('../../assets/image11.jpg')
+  require('../../assets/image11.jpg'),
+  require('../../assets/image13.jpg'),
+  require('../../assets/image14.jpg')
 ];
 const TenantDashboard = () => {
   const navigate = useNavigate();
@@ -1079,12 +1081,17 @@ const TenantDashboard = () => {
                 <h3 className="card-title">Apartment Gallery</h3>
                 <div className="apartment-gallery">
                   {apartmentImages.map((image, index) => (
-                    <img 
-                      key={index}
-                      src={image} 
-                      alt={`Apartment ${index + 1}`}
-                      className="apartment-image"
-                    />
+                    <div key={index} className="apartment-image-container">
+                      <img 
+                        src={image} 
+                        alt={`Apartment ${index + 1}`}
+                        className="apartment-image"
+                        loading="lazy"
+                      />
+                      <div className="apartment-image-overlay">
+                        <span className="apartment-image-number">View {index + 1}</span>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
