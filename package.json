@@ -1,6 +1,6 @@
 {
   "name": "joyce-suites",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Property Management System for Joyce Suites",
   "main": "src/index.js",
   "proxy": "http://localhost:5000",
