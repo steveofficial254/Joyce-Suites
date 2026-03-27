@@ -1318,3 +1318,51 @@ def get_tenant_deposit_payment_history():
     except Exception as e:
         current_app.logger.error(f"Error fetching tenant deposit payment history: {str(e)}")
         return jsonify({'success': False, 'error': f'Failed to fetch payment history: {str(e)}'}), 500
+
+
+@tenant_bp.route("/upload-photo", methods=["POST"])
+@tenant_required
+def upload_photo():
+    """Upload tenant profile photo."""
+    try:
+        current_user = db.session.get(User, request.user_id)
+        if not current_user:
+            return jsonify({"success": False, "error": "User not found"}), 404
+
+        if 'photo' not in request.files:
+            return jsonify({"success": False, "error": "No photo file provided"}), 400
+
+        file = request.files['photo']
+        if file.filename == '':
+            return jsonify({"success": False, "error": "No photo file selected"}), 400
+
+        # Validate file type
+        if not file.content_type.startswith('image/'):
+            return jsonify({"success": False, "error": "File must be an image"}), 400
+
+        # Create uploads directory if it doesn't exist
+        upload_folder = 'uploads/photos'
+        os.makedirs(upload_folder, exist_ok=True)
+
+        # Generate unique filename
+        filename = f"{current_user.email}_photo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+        filepath = os.path.join(upload_folder, filename)
+
+        # Save file
+        file.save(filepath)
+
+        # Update user's photo path in database
+        current_user.photo_path = filepath
+        db.session.commit()
+
+        current_app.logger.info(f"Photo uploaded for user {current_user.email}: {filepath}")
+
+        return jsonify({
+            "success": True,
+            "message": "Photo uploaded successfully",
+            "photo_path": filepath
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error uploading photo: {str(e)}")
+        return jsonify({"success": False, "error": f"Failed to upload photo: {str(e)}"}), 500

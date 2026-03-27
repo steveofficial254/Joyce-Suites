@@ -15,6 +15,7 @@ import {
 
 
 import config from '../../config';
+import TenantDetailsModal from '../../components/TenantDetailsModal';
 
 const API_BASE_URL = config.apiBaseUrl;
 
@@ -2748,13 +2749,19 @@ const WaterBillPage = () => {
 
   const fetchTenantsForWater = async () => {
     try {
-      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/tenants-with-leases`);
+      const currentDate = new Date();
+      const month = currentDate.getMonth() + 1;
+      const year = currentDate.getFullYear();
+      
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/rent-deposit/water-bill/tenants-with-readings?month=${month}&year=${year}`);
       if (response.ok) {
         const data = await response.json();
-        setTenants(data.tenants || []);
+        if (data.success) {
+          setTenants(data.tenants || []);
+        }
       }
     } catch (err) {
-      console.error('Failed to fetch residents for billing:', err);
+      console.error('Error fetching tenants for water readings:', err);
     }
   };
 

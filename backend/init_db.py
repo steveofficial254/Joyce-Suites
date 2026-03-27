@@ -14,6 +14,7 @@ from models.water_bill import WaterBill
 from models.rent_deposit import RentRecord, DepositRecord
 from models.lease import Lease
 from models.vacate_notice import VacateNotice
+from seed_rooms import seed_rooms
 
 def init_database():
     """Initialize the database with all tables"""
@@ -79,51 +80,13 @@ def init_database():
             print(f"Error creating users: {e}")
             db.session.rollback()
         
-        # Create some sample properties
-        print("Creating sample properties...")
-        properties = [
-            Property(
-                name='Room 101',
-                property_type='bedsitter',
-                rent_amount=8000.0,
-                deposit_amount=8000.0,
-                status='vacant',
-                description='Cozy bedsitter room on ground floor',
-                paybill_number='123456',
-                account_number='ACC101',
-                landlord_id=admin.id  # Use the created admin user as landlord
-            ),
-            Property(
-                name='Room 102',
-                property_type='bedsitter',
-                rent_amount=8500.0,
-                deposit_amount=8500.0,
-                status='vacant',
-                description='Spacious bedsitter room on first floor',
-                paybill_number='123456',
-                account_number='ACC102',
-                landlord_id=admin.id
-            ),
-            Property(
-                name='Room 201',
-                property_type='one_bedroom',
-                rent_amount=12000.0,
-                deposit_amount=12000.0,
-                status='vacant',
-                description='One bedroom apartment on second floor',
-                paybill_number='123456',
-                account_number='ACC201',
-                landlord_id=admin.id
-            )
-        ]
-        
+        # Use canonical seed file to avoid sample 3-room deployment state.
+        print("Seeding canonical rooms from seed_rooms.py...")
         try:
-            for prop in properties:
-                db.session.add(prop)
-            db.session.commit()
-            print("Sample properties created successfully!")
+            seed_rooms()
+            print("Canonical rooms seeded successfully.")
         except Exception as e:
-            print(f"Error creating properties: {e}")
+            print(f"Error seeding canonical rooms: {e}")
             db.session.rollback()
 
 if __name__ == '__main__':

@@ -867,6 +867,53 @@ const TenantDashboard = () => {
     setMaintenanceForm({ ...maintenanceForm, file });
   };
 
+  const handleProfilePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Photo size must be less than 5MB');
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      
+      const formData = new FormData();
+      formData.append('photo', file);
+
+      const response = await fetchWithAuth(`${config.apiBaseUrl}/api/tenant/upload-photo`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          // Don't set Content-Type when using FormData
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess('Profile photo uploaded successfully!');
+        await fetchUserProfile(); // Refresh profile data
+      } else {
+        setError(data.error || 'Failed to upload photo');
+      }
+    } catch (err) {
+      console.error('Photo upload error:', err);
+      setError('Error uploading photo: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCancelVacateNotice = async (noticeId) => {
     if (!window.confirm('Are you sure you want to cancel this vacate notice?')) {
       return;
@@ -988,18 +1035,37 @@ const TenantDashboard = () => {
         <header style={styles.header}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><Menu size={24} /></button>
-            <h1 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
+            <h1 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>Joyce Suites Apartments</h1>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ textAlign: 'right', display: isMobile ? 'none' : 'block' }}>
-              <div style={{ fontSize: '14px', fontWeight: '600' }}>{profileData?.full_name || 'Tenant'}</div>
-              <div style={{ fontSize: '11px', color: '#64748b' }}>Room {roomNumber}</div>
-            </div>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '600' }}>
-              {(profileData?.full_name?.charAt(0) || 'T').toUpperCase()}
-            </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '14px', fontWeight: '600' }}>Welcome, {profileData?.full_name || 'Tenant'}!</div>
           </div>
         </header>
+
+        {/* Navigation Bar */}
+        <div style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '0 32px' }}>
+          <div style={{ display: 'flex', gap: '2px' }}>
+            {['dashboard', 'payments', 'lease', 'profile', 'vacate'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                style={{
+                  padding: '16px 24px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: activeTab === tab ? '#3b82f6' : '#6b7280',
+                  borderBottom: activeTab === tab ? '2px solid #3b82f6' : '2px solid transparent',
+                  textTransform: 'capitalize'
+                }}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <section style={styles.content}>
           {error && <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px' }}>{error}</div>}
@@ -1115,20 +1181,152 @@ const TenantDashboard = () => {
           )}
 
           {activeTab === 'profile' && (
-            <div style={styles.card}>
-              <h3>Profile Settings</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '400px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#64748b' }}>Full Name</label>
-                  <div style={{ padding: '10px', backgroundColor: '#f1f5f9', borderRadius: '6px' }}>{profileData?.full_name}</div>
+            <div>
+              {/* Profile Information Section */}
+              <div style={styles.card}>
+                <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px', color: '#1f2937' }}>Profile Information</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '6px' }}>
+                    <span style={{ fontWeight: '600', color: '#374151' }}>Photo Path:</span>
+                    <span style={{ color: '#6b7280', fontSize: '14px' }}>
+                      {profileData?.photo_path || 'Not set'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '6px' }}>
+                    <span style={{ fontWeight: '600', color: '#374151' }}>ID Document Path:</span>
+                    <span style={{ color: '#6b7280', fontSize: '14px' }}>
+                      {profileData?.id_document_path || 'Not set'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '6px' }}>
+                    <span style={{ fontWeight: '600', color: '#374151' }}>Full Name:</span>
+                    <span style={{ color: '#6b7280', fontSize: '14px' }}>
+                      {profileData?.full_name || 'N/A'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '6px' }}>
+                    <span style={{ fontWeight: '600', color: '#374151' }}>Email:</span>
+                    <span style={{ color: '#6b7280', fontSize: '14px' }}>
+                      {profileData?.email || 'N/A'}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#64748b' }}>Email Address</label>
-                  <div style={{ padding: '10px', backgroundColor: '#f1f5f9', borderRadius: '6px' }}>{profileData?.email}</div>
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#64748b' }}>Phone Number</label>
-                  <div style={{ padding: '10px', backgroundColor: '#f1f5f9', borderRadius: '6px' }}>{profileData?.phone_number}</div>
+              </div>
+
+              {/* My Profile Section */}
+              <div style={styles.card}>
+                <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px', color: '#1f2937' }}>My Profile</h3>
+                <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
+                  {/* Profile Photo Section */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ 
+                      width: '120px', 
+                      height: '120px', 
+                      borderRadius: '50%', 
+                      border: '2px dashed #dc2626',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      backgroundColor: '#f8fafc',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}>
+                      {profilePhotoUrl ? (
+                        <img 
+                          src={profilePhotoUrl} 
+                          alt="Profile" 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                        />
+                      ) : (
+                        <div style={{ textAlign: 'center', color: '#9ca3af' }}>
+                          <UserIcon size={40} />
+                          <div style={{ fontSize: '12px', marginTop: '4px' }}>Profile Photo</div>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <input
+                        type="file"
+                        id="photo-upload"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={handleProfilePhotoUpload}
+                      />
+                      <label
+                        htmlFor="photo-upload"
+                        style={{
+                          padding: '8px 16px',
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          display: 'inline-block',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseOver={(e) => e.target.style.backgroundColor = '#2563eb'}
+                        onMouseOut={(e) => e.target.style.backgroundColor = '#3b82f6'}
+                      >
+                        Upload New Photo
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Profile Details Section */}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div>
+                      <h2 style={{ margin: 0, marginBottom: '8px', fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
+                        {profileData?.full_name || 'Loading...'}
+                      </h2>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                        <span style={{ fontSize: '16px', color: '#6b7280' }}>Tenant</span>
+                        <span style={{ fontSize: '16px', color: '#6b7280' }}>|</span>
+                        <span style={{ fontSize: '16px', color: '#6b7280' }}>Room {roomNumber}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                          Email Address:
+                        </label>
+                        <input
+                          type="email"
+                          value={profileData?.email || ''}
+                          readOnly
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            backgroundColor: '#f8fafc',
+                            color: '#374151'
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                          Phone Number:
+                        </label>
+                        <input
+                          type="tel"
+                          value={profileData?.phone_number || ''}
+                          readOnly
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            backgroundColor: '#f8fafc',
+                            color: '#374151'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

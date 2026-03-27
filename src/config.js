@@ -8,7 +8,7 @@ const getConfig = () => {
     window.location.hostname.startsWith('172.');
 
   const apiBaseUrl = process.env.REACT_APP_API_BASE_URL ||
-    (isDevelopment ? 'http://localhost:5000' : 'https://joyce-suites.onrender.com');
+    (isDevelopment ? 'http://localhost:5000' : 'https://joyce-suites-xdkp.onrender.com');
 
   return {
     apiBaseUrl,
