@@ -1,0 +1,61 @@
+.topbar {
+  background: white;
+  padding: 20px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.topbar-left h1 {
+  margin: 0 0 5px 0;
+  font-size: 1.5em;
+  color: #2c3e50;
+}
+
+.topbar-left p {
+  margin: 0;
+  color: #7f8c8d;
+  font-size: 0.9em;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #007bff;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.user-role {
+  background: #007bff;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  text-transform: capitalize;
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    padding: 15px 20px;
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+  
+  .topbar-left h1 {
+    font-size: 1.2em;
+  }
+}
